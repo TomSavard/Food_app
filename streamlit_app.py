@@ -24,7 +24,8 @@ if st.button("Sauvegarder la recette"):
             df = pd.DataFrame(columns=["Nom", "Ingrédients", "Instructions"])
         
         # Ajouter la nouvelle recette
-        df = df.append(recette, ignore_index=True)
+        new_row = pd.DataFrame([recette])
+        df = pd.concat([df, new_row], ignore_index=True)
         df.to_excel("recettes.xlsx", index=False)
         st.success(f"Recette '{nom}' sauvegardée avec succès !")
     except Exception as e:
