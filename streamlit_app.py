@@ -19,13 +19,13 @@ def authenticate_drive(credentials):
     try:
         st.write("Authenticating with Google Drive...")
 
-        # Convert the credentials (JSON string) to a dictionary if not already in dictionary format
+        # Ensure credentials are in dictionary format
         if isinstance(credentials, str):
-            credentials = json.loads(credentials)
+            credentials = json.loads(credentials)  # Convert JSON string to dictionary
         
         gauth = GoogleAuth()
         gauth.settings['client_config_backend'] = 'service'
-        gauth.settings['service_config'] = credentials
+        gauth.settings['service_config'] = credentials  # Pass dictionary credentials
         gauth.ServiceAuth()  # Authenticate the service account
         drive = GoogleDrive(gauth)
         st.write("Authentication successful.")
