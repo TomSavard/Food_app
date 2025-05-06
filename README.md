@@ -12,3 +12,8 @@ Provide a tool to facilitate shopping and meal planning
 * Permettre un transfert facile vers le téléphone du planning ou de la liste de course.
 * Ajouter une visualisation des apports en macro nutriment
 * Quid des micro-nutriments ?
+
+
+
+food-app@my-food-459018.iam.gserviceaccount.com
+
