@@ -8,7 +8,7 @@ import tempfile
 # Load credentials from Streamlit Secrets
 try:
     st.write("Loading credentials from Streamlit Secrets...")
-    credentials = json.loads(st.secrets["GOOGLE_DRIVE_CREDENTIALS"])
+    credentials = st.secrets["GOOGLE_DRIVE_CREDENTIALS"]
     folder_id = st.secrets["GOOGLE_DRIVE_FOLDER_ID"]
     st.write("Credentials and folder ID loaded successfully.")
 except KeyError as e:
