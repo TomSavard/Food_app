@@ -17,14 +17,11 @@ except KeyError as e:
 def authenticate_drive(credentials):
     try:
         st.write("Authenticating with Google Drive...")
-        
-        # Ensure that credentials are a plain dictionary
-        credentials_dict = dict(credentials)  # Convert the AttrDict to a regular dict
-        
-        # Initialize GoogleAuth and provide the dictionary directly
+
+        # Directly pass the credentials dictionary without modifications
         gauth = GoogleAuth()
         gauth.settings['client_config_backend'] = 'service'
-        gauth.settings['service_config'] = credentials_dict  # Directly pass the dictionary
+        gauth.settings['service_config'] = credentials  # Pass the credentials directly as is
         
         # Authenticate using service account
         gauth.ServiceAuth()
