@@ -3,7 +3,6 @@ from pydrive2.auth import GoogleAuth
 from pydrive2.drive import GoogleDrive
 import pandas as pd
 import tempfile
-import json
 
 # Load credentials from Streamlit Secrets
 try:
@@ -19,13 +18,13 @@ def authenticate_drive(credentials):
     try:
         st.write("Authenticating with Google Drive...")
         
-        # Convert credentials dictionary to JSON string
-        credentials_json = json.dumps(credentials)
+        # Ensure that credentials are a plain dictionary
+        credentials_dict = dict(credentials)  # Convert the AttrDict to a regular dict
         
-        # Initialize GoogleAuth and provide the JSON string
+        # Initialize GoogleAuth and provide the dictionary directly
         gauth = GoogleAuth()
         gauth.settings['client_config_backend'] = 'service'
-        gauth.settings['service_config'] = json.loads(credentials_json)  # Parse back to dict for pydrive2
+        gauth.settings['service_config'] = credentials_dict  # Directly pass the dictionary
         
         # Authenticate using service account
         gauth.ServiceAuth()
