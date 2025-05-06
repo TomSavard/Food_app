@@ -10,6 +10,7 @@ try:
     credentials = st.secrets["GOOGLE_DRIVE_CREDENTIALS"]
     folder_id = st.secrets["GOOGLE_DRIVE_FOLDER_ID"]
     st.write("Credentials and folder ID loaded successfully.")
+    st.write("Google Drive credentials:", st.secrets["GOOGLE_DRIVE_CREDENTIALS"])
 except KeyError as e:
     st.error(f"Missing secret: {e}")
     st.stop()
