@@ -22,12 +22,11 @@ food-app@my-food-459018.iam.gserviceaccount.com
 # J'ai un problème avec l'identification avec google drive. Il faut que je reprenne sérieusement la chose.
 
 
-``ù
-source .venv/bin/activate
 ```
-
+source .venv/bin/activate
 
 streamlit run streamlit_app.py
+```
 
 
 Pour un accès online :

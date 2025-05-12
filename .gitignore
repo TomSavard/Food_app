@@ -1,3 +1,5 @@
 .DS_Store
 .venv
 streamlit_drive_connector.json
+temp_secrest.toml
+src/test_credentials.ipynb
