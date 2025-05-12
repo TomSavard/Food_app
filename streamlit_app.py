@@ -14,24 +14,34 @@ except KeyError as e:
     st.error(f"Missing secret: {e}")
     st.stop()
 
+import json
+import os
+
 def authenticate_drive(credentials):
     try:
         st.write("Authenticating with Google Drive...")
 
-        # Directly pass the credentials dictionary without modifications
+        # Write the credentials dict to a temp file
+        with tempfile.NamedTemporaryFile(delete=False, mode='w', suffix=".json") as tmp_cred_file:
+            json.dump(dict(credentials), tmp_cred_file)
+            tmp_cred_file_path = tmp_cred_file.name
+
         gauth = GoogleAuth()
         gauth.settings['client_config_backend'] = 'service'
-        gauth.settings['service_config'] = credentials  # Pass the credentials directly as is
-        
-        # Authenticate using service account
+        gauth.settings['service_config'] = {
+            "client_json_file_path": tmp_cred_file_path
+        }
+
         gauth.ServiceAuth()
         drive = GoogleDrive(gauth)
-        
+
         st.write("Authentication successful.")
         return drive
+
     except Exception as e:
         st.error(f"Authentication failed: {e}")
         st.stop()
+
 
 # Streamlit App
 st.title("Google Drive Connector")
