@@ -26,10 +26,10 @@ def authenticate_drive(credentials):
 
         gauth = GoogleAuth()
         
-        # Configuration correcte pour l'authentification de service
+        # IMPORTANT: Cette partie doit être exactement comme ci-dessous
         gauth.settings['client_config_backend'] = 'service'
-        # Utiliser client_json_dict au lieu de passer directement à service_config
-        gauth.settings['service_config'] = {'client_json_dict': credentials}
+        gauth.settings['service_config'] = {}
+        gauth.settings['service_config']['client_json_dict'] = credentials
 
         gauth.ServiceAuth()
         drive = GoogleDrive(gauth)
@@ -44,7 +44,7 @@ def authenticate_drive(credentials):
         st.error(str(e))
         st.error(f"Credentials type: {type(credentials).__name__}")
         st.error(f"Available keys: {list(credentials.keys())}")
-        st.stop()
+        return None  # Retourner None au lieu de st.stop()
 
 
 # Streamlit App
