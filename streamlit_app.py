@@ -21,16 +21,16 @@ def authenticate_drive(credentials):
     try:
         st.write("Authenticating with Google Drive...")
 
-        # Write the credentials dict to a temp file
+        # Save credentials to a temporary JSON file
         with tempfile.NamedTemporaryFile(delete=False, mode='w', suffix=".json") as tmp_cred_file:
             json.dump(dict(credentials), tmp_cred_file)
             tmp_cred_file_path = tmp_cred_file.name
 
+        # Set up PyDrive2 authentication
         gauth = GoogleAuth()
         gauth.settings['client_config_backend'] = 'service'
-        gauth.settings['service_config'] = {
-            "client_json_file_path": tmp_cred_file_path
-        }
+        gauth.settings['service_config'] = {}
+        gauth.settings['service_config']['client_json_file_path'] = tmp_cred_file_path
 
         gauth.ServiceAuth()
         drive = GoogleDrive(gauth)
@@ -41,6 +41,7 @@ def authenticate_drive(credentials):
     except Exception as e:
         st.error(f"Authentication failed: {e}")
         st.stop()
+
 
 
 # Streamlit App
