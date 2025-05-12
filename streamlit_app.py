@@ -26,10 +26,13 @@ def authenticate_drive(credentials):
 
         gauth = GoogleAuth()
         
-        # IMPORTANT: Cette partie doit être exactement comme ci-dessous
+        # IMPORTANT: Configuration correcte incluant client_user_email
         gauth.settings['client_config_backend'] = 'service'
-        gauth.settings['service_config'] = {}
-        gauth.settings['service_config']['client_json_dict'] = credentials
+        gauth.settings['service_config'] = {
+            'client_json_dict': credentials,
+            # Utiliser la valeur de client_email pour client_user_email
+            'client_user_email': credentials.get('client_email')
+        }
 
         gauth.ServiceAuth()
         drive = GoogleDrive(gauth)
@@ -39,13 +42,11 @@ def authenticate_drive(credentials):
 
     except Exception as e:
         st.error(f"Authentication failed: {e}")
-        # Afficher plus d'informations pour déboguer
         st.error("Authentication error details:")
         st.error(str(e))
         st.error(f"Credentials type: {type(credentials).__name__}")
         st.error(f"Available keys: {list(credentials.keys())}")
-        return None  # Retourner None au lieu de st.stop()
-
+        return None
 
 # Streamlit App
 st.title("Google Drive Connector")
@@ -53,6 +54,12 @@ st.title("Google Drive Connector")
 try:
     # Authenticate and connect to Google Drive
     drive = authenticate_drive(credentials)
+
+    # Vérifier que l'authentification a réussi avant de continuer
+    if drive is None:
+        st.error("Failed to authenticate with Google Drive.")
+        st.stop()
+
     st.success("Connected to Google Drive successfully!")
 
     # --- File Upload Section ---
