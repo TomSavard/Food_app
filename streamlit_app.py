@@ -248,69 +248,6 @@ elif page == "Add Recipe":
         st.session_state.instructions = recipe.instructions if editing else []
 
     # Main recipe form
-
-    # Ingredients section
-    st.subheader("2. Ingredients")
-    
-    # Display current ingredients
-    if st.session_state.ingredients:
-        st.write("Current ingredients:")
-        for i, ing in enumerate(st.session_state.ingredients):
-            cols = st.columns([3, 1, 1, 2, 1])
-            cols[0].text(ing.name)
-            cols[1].text(ing.formatted_quantity())
-            cols[2].text(ing.unit)
-            cols[3].text(ing.notes)
-            if cols[4].button("❌", key=f"del_ing_{i}"):
-                st.session_state.ingredients.pop(i)
-                st.rerun()
-    else:
-        st.info("No ingredients added yet.")
-    
-    # Add new ingredient
-    st.write("Add New Ingredient:")
-    ing_cols = st.columns([3, 1, 1, 2])
-    ing_name = ing_cols[0].text_input("Name", value="", key="ing_name")
-    ing_qty = ing_cols[1].number_input("Qty", min_value=0.0, step=0.1, key="ing_qty")
-    ing_unit = ing_cols[2].text_input("Unit", value="", key="ing_unit")
-    ing_notes = ing_cols[3].text_input("Notes", value="", key="ing_notes")
-
-    col1, col2 = st.columns([1, 1])
-    with col1:
-        add_ingredient_button = st.button("Add Ingredient", key="add_ing_btn")
-        if add_ingredient_button and ing_name:
-            # Create a new ingredient
-            new_ing = Ingredient(
-                name=ing_name,
-                quantity=ing_qty,
-                unit=ing_unit,
-                notes=ing_notes
-            )
-            
-            # Add to session state ingredients list
-            if "ingredients" not in st.session_state:
-                st.session_state.ingredients = []
-            st.session_state.ingredients.append(new_ing)
-            
-            # Set success flag
-            st.session_state.add_success = True
-            
-            # Rerun the app
-            st.rerun()
-
-    with col2:
-        if st.button("Clear All Ingredients"):
-            st.session_state.ingredients = []
-            st.rerun()
-
-    # Display success message if it exists
-    if "add_success" in st.session_state:
-        st.success("Ingredient added successfully!")
-        del st.session_state.add_success
-
-    # Gardez seulement une section pour ajouter des instructions
-    st.divider()
-
     st.subheader("1. Recipe Details")
     with st.form("recipe_form"):
         # Basic info
@@ -336,6 +273,70 @@ elif page == "Add Recipe":
         submit = st.form_submit_button("Save Recipe")
 
 
+    st.divider()
+    
+    
+    # Ingredients section
+    st.subheader("2. Ingredients")
+
+    # Display current ingredients
+    if st.session_state.ingredients:
+        st.write("Current ingredients:")
+        for i, ing in enumerate(st.session_state.ingredients):
+            cols = st.columns([3, 1, 1, 2, 1])
+            cols[0].text(ing.name)
+            cols[1].text(ing.formatted_quantity())
+            cols[2].text(ing.unit)
+            cols[3].text(ing.notes)
+            if cols[4].button("❌", key=f"del_ing_{i}"):
+                st.session_state.ingredients.pop(i)
+                st.rerun()
+    else:
+        st.info("No ingredients added yet.")
+
+    # Add new ingredient using a form
+    st.write("Add New Ingredient:")
+
+    # Use a form for adding ingredients
+    with st.form(key="ingredient_form"):
+        ing_cols = st.columns([3, 1, 1, 2])
+        ing_name = ing_cols[0].text_input("Name", key="form_ing_name")
+        ing_qty = ing_cols[1].number_input("Qty", min_value=0.0, step=0.1, format="%.1f", key="form_ing_qty")
+        ing_unit = ing_cols[2].text_input("Unit", key="form_ing_unit")
+        ing_notes = ing_cols[3].text_input("Notes", key="form_ing_notes")
+        
+        # Submit button inside form
+        submitted = st.form_submit_button("Add Ingredient")
+        
+        if submitted and ing_name:
+            # Create a new ingredient
+            new_ing = Ingredient(
+                name=ing_name,
+                quantity=ing_qty,
+                unit=ing_unit,
+                notes=ing_notes
+            )
+            
+            # Add to session state ingredients list
+            if "ingredients" not in st.session_state:
+                st.session_state.ingredients = []
+            st.session_state.ingredients.append(new_ing)
+            
+            # Set success flag (will be displayed on next run)
+            st.session_state.add_success = True
+
+    # Display success message if it exists
+    if "add_success" in st.session_state:
+        st.success("Ingredient added successfully!")
+        del st.session_state.add_success
+
+    # Clear All button outside the form
+    if st.button("Clear All Ingredients"):
+        st.session_state.ingredients = []
+        st.rerun()
+
+
+    # Gardez seulement une section pour ajouter des instructions
     st.divider()
 
     # Instructions section
