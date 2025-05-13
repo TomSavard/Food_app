@@ -181,16 +181,51 @@ if page == "Recipe Browser":
                 st.write(f"**Servings:** {recipe.servings}")
                 st.write(f"**Cuisine:** {recipe.cuisine_type}")
                 st.write(f"**Tags:** {', '.join(recipe.tags)}")
-            
+
+        # Ajouter des boutons d'action en bas de la recette
+        col1, col2, col3 = st.columns([1, 1, 1])
+        with col1:
             if st.button("Close Recipe"):
                 st.session_state.view_recipe = False
                 st.rerun()
-            
+        with col2:
             if st.button("Edit Recipe"):
                 st.session_state.edit_recipe = recipe
                 st.session_state.view_recipe = False
                 st.session_state.page = "Add Recipe"
                 st.rerun()
+        with col3:
+            # Nouveau bouton de suppression avec confirmation
+            if st.button("🗑️ Delete Recipe", type="primary", use_container_width=True):
+                st.session_state.confirm_delete = True
+                st.session_state.recipe_to_delete = recipe
+
+        # Afficher la boîte de dialogue de confirmation si nécessaire
+        if "confirm_delete" in st.session_state and st.session_state.confirm_delete:
+            st.warning(f"Are you sure you want to delete '{st.session_state.recipe_to_delete.name}'?")
+            col1, col2 = st.columns([1, 1])
+            
+            with col1:
+                if st.button("Yes, Delete", type="primary", use_container_width=True):
+                    # Supprimer la recette
+                    st.session_state.recipes = [r for r in st.session_state.recipes 
+                                               if r.name != st.session_state.recipe_to_delete.name]
+                    st.session_state.need_save = True
+                    st.session_state.view_recipe = False
+                    del st.session_state.confirm_delete
+                    if "recipe_to_delete" in st.session_state:
+                        del st.session_state.recipe_to_delete
+                    save_changes()  # Sauvegarder immédiatement
+                    st.success("Recipe deleted successfully!")
+                    st.rerun()
+            
+            with col2:
+                if st.button("Cancel", use_container_width=True):
+                    del st.session_state.confirm_delete
+                    if "recipe_to_delete" in st.session_state:
+                        del st.session_state.recipe_to_delete
+                    st.rerun()
+
 
 # ---------- ADD RECIPE PAGE ----------
 elif page == "Add Recipe":
