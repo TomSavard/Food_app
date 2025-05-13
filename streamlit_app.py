@@ -257,7 +257,7 @@ elif page == "Add Recipe":
         # Clear the edit flag if it exists
         if "edit_just_loaded" in st.session_state:
             del st.session_state.edit_just_loaded
-            
+
 
     # Main recipe form
     st.subheader("1. Recipe Details")
@@ -336,6 +336,7 @@ elif page == "Add Recipe":
             
             # Set success flag (will be displayed on next run)
             st.session_state.add_success = True
+            st.rerun()
 
     # Display success message if it exists
     if "add_success" in st.session_state:
@@ -385,6 +386,8 @@ elif page == "Add Recipe":
             
             # Set success flag (will be displayed on next run)
             st.session_state.add_instruction_success = True
+
+            st.rerun()
 
     # Display success message if it exists
     if "add_instruction_success" in st.session_state:
