@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 from typing import List, Dict, Optional
 import pandas as pd
 import json
+import uuid 
 
 @dataclass
 class Ingredient:
