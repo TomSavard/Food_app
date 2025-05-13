@@ -297,29 +297,39 @@ elif page == "Add Recipe":
     # Add new ingredient
     st.write("Add New Ingredient:")
     ing_cols = st.columns([3, 1, 1, 2])
-    ing_name = ing_cols[0].text_input("Name", key="ing_name")
+    ing_name = ing_cols[0].text_input("Name", value="", key="ing_name")
     ing_qty = ing_cols[1].number_input("Qty", min_value=0.0, step=0.1, key="ing_qty")
-    ing_unit = ing_cols[2].text_input("Unit", key="ing_unit")
-    ing_notes = ing_cols[3].text_input("Notes", key="ing_notes")
-    
+    ing_unit = ing_cols[2].text_input("Unit", value="", key="ing_unit")
+    ing_notes = ing_cols[3].text_input("Notes", value="", key="ing_notes")
+
     col1, col2 = st.columns([1, 1])
     with col1:
-        if st.button("Add Ingredient"):
-            if ing_name:  # Basic validation
-                # Add the new ingredient
-                st.session_state.ingredients.append(
-                    Ingredient(name=ing_name, quantity=ing_qty, unit=ing_unit, notes=ing_notes)
-                )
-                
-                # Store a success message to display after rerun
-                st.session_state.add_success = True
-                
-                # Clear input fields by removing their keys from session_state
-                for key in ["ing_name", "ing_qty", "ing_unit", "ing_notes"]:
-                    if key in st.session_state:
-                        del st.session_state[key]
-                
-                st.rerun()
+        add_ingredient_button = st.button("Add Ingredient", key="add_ing_btn")
+        if add_ingredient_button and ing_name:
+            # Create a new ingredient
+            new_ing = Ingredient(
+                name=ing_name,
+                quantity=ing_qty,
+                unit=ing_unit,
+                notes=ing_notes
+            )
+            
+            # Add to session state ingredients list
+            if "ingredients" not in st.session_state:
+                st.session_state.ingredients = []
+            st.session_state.ingredients.append(new_ing)
+            
+            # Set success flag
+            st.session_state.add_success = True
+            
+            # Reset form fields without deleting keys
+            st.session_state.ing_name = ""
+            st.session_state.ing_qty = 0.0
+            st.session_state.ing_unit = ""
+            st.session_state.ing_notes = ""
+            
+            # Rerun the app
+            st.rerun()
 
     with col2:
         if st.button("Clear All Ingredients"):
