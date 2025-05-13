@@ -322,12 +322,6 @@ elif page == "Add Recipe":
             # Set success flag
             st.session_state.add_success = True
             
-            # Reset form fields without deleting keys
-            st.session_state.ing_name = ""
-            st.session_state.ing_qty = 0.0
-            st.session_state.ing_unit = ""
-            st.session_state.ing_notes = ""
-            
             # Rerun the app
             st.rerun()
 
