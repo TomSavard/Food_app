@@ -62,7 +62,7 @@ class Recipe:
             "description": self.description,
             "image_file_id": self.image_file_id,
             "recipe_id": self.recipe_id
-    }
+        }
 
     @classmethod
     def from_dict(cls, data):
@@ -78,7 +78,7 @@ class Recipe:
             description=data.get("description", ""),
             image_file_id=data.get("image_file_id", ""),
             recipe_id=data.get("recipe_id", str(uuid.uuid4()))
-    )
+        )
     
     def to_json(self):
         return json.dumps(self.to_dict(), ensure_ascii=False, indent=2)

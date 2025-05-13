@@ -309,7 +309,13 @@ elif page == "Add Recipe":
                 st.session_state.ingredients.append(
                     Ingredient(name=ing_name, quantity=ing_qty, unit=ing_unit, notes=ing_notes)
                 )
+                # Clear input fields by resetting session state variables
+                st.session_state.ing_name = ""
+                st.session_state.ing_qty = 0.0
+                st.session_state.ing_unit = ""
+                st.session_state.ing_notes = ""
                 st.rerun()
+
     with col2:
         if st.button("Clear All Ingredients"):
             st.session_state.ingredients = []
@@ -343,6 +349,7 @@ elif page == "Add Recipe":
         if st.button("Add Instruction"):
             if new_instruction:
                 st.session_state.instructions.append(new_instruction)
+                st.session_state.new_instruction = ""
                 st.rerun()
     with col2:
         if st.button("Clear All Instructions"):
