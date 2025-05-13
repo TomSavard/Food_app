@@ -304,12 +304,27 @@ elif page == "Add Recipe":
     
     col1, col2 = st.columns([1, 1])
     with col1:
-        if st.button("Add Ingredient"):
-            if ing_name:  # Basic validation
-                st.session_state.ingredients.append(
-                    Ingredient(name=ing_name, quantity=ing_qty, unit=ing_unit, notes=ing_notes)
-                )
-                st.rerun()
+    if st.button("Add Ingredient"):
+        if ing_name:  # Basic validation
+            # Add the new ingredient
+            st.session_state.ingredients.append(
+                Ingredient(name=ing_name, quantity=ing_qty, unit=ing_unit, notes=ing_notes)
+            )
+            
+            # Store a success message to display after rerun
+            st.session_state.add_success = True
+            
+            # Clear input fields by removing their keys from session_state
+            for key in ["ing_name", "ing_qty", "ing_unit", "ing_notes"]:
+                if key in st.session_state:
+                    del st.session_state[key]
+            
+            st.rerun()
+
+# Display success message if it exists
+if "add_success" in st.session_state:
+    st.success("Ingredient added successfully!")
+    del st.session_state.add_success
 
     with col2:
         if st.button("Clear All Ingredients"):
