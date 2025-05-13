@@ -248,7 +248,7 @@ elif page == "Add Recipe":
         st.session_state.instructions = recipe.instructions if editing else []
 
     # Main recipe form
-    st.subheader("Recipe Details")
+    st.subheader("1. Recipe Details")
     with st.form("recipe_form"):
         # Basic info
         name = st.text_input("Recipe Name", recipe.name if editing else "")
@@ -275,6 +275,7 @@ elif page == "Add Recipe":
 
     st.divider()
     
+    
     # Ingredients section
     st.subheader("2. Ingredients")
     
@@ -284,10 +285,9 @@ elif page == "Add Recipe":
         for i, ing in enumerate(st.session_state.ingredients):
             cols = st.columns([3, 1, 1, 2, 1])
             cols[0].text(ing.name)
-            cols[1].text(ing.formatted_quantity())  # Use your method here
+            cols[1].text(ing.formatted_quantity())
             cols[2].text(ing.unit)
             cols[3].text(ing.notes)
-            # Add a delete button per ingredient if needed
             if cols[4].button("❌", key=f"del_ing_{i}"):
                 st.session_state.ingredients.pop(i)
                 st.rerun()
@@ -321,15 +321,15 @@ elif page == "Add Recipe":
                 
                 st.rerun()
 
-# Display success message if it exists
-if "add_success" in st.session_state:
-    st.success("Ingredient added successfully!")
-    del st.session_state.add_success
-
     with col2:
         if st.button("Clear All Ingredients"):
             st.session_state.ingredients = []
             st.rerun()
+
+    # Display success message if it exists
+    if "add_success" in st.session_state:
+        st.success("Ingredient added successfully!")
+        del st.session_state.add_success
 
     # Gardez seulement une section pour ajouter des instructions
     st.divider()
