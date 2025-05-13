@@ -196,23 +196,70 @@ if page == "Recipe Browser":
 elif page == "Add Recipe":
     # Check if we're editing an existing recipe
     editing = "edit_recipe" in st.session_state
-    
+
     if editing:
         st.title("Edit Recipe")
         recipe = st.session_state.edit_recipe
     else:
         st.title("Add New Recipe")
         recipe = None
-    
+
     # Initialize ingredient and instruction lists
     if "ingredients" not in st.session_state or not editing:
         st.session_state.ingredients = recipe.ingredients if editing else []
-    
+
     if "instructions" not in st.session_state or not editing:
         st.session_state.instructions = recipe.instructions if editing else []
+
+    # Main recipe form
+    st.subheader("Recipe Details")
+    with st.form("recipe_form"):
+        # Basic info
+        name = st.text_input("Recipe Name", recipe.name if editing else "")
+        description = st.text_area("Description", recipe.description if editing else "")
+
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            prep_time = st.number_input("Preparation Time (minutes)", min_value=0, value=recipe.prep_time if editing else 0)
+        with col2:
+            cook_time = st.number_input("Cooking Time (minutes)", min_value=0, value=recipe.cook_time if editing else 0)
+        with col3:
+            servings = st.number_input("Servings", min_value=1, value=recipe.servings if editing else 1)
+
+        cuisine_type = st.text_input("Cuisine Type", recipe.cuisine_type if editing else "")
+        tags = st.text_input("Tags (comma separated)", ", ".join(recipe.tags) if editing else "")
+
+        # Image upload
+        st.subheader("Recipe Image")
+        uploaded_image = st.file_uploader("Upload recipe image", type=["jpg", "jpeg", "png"])
+
+        # Submit button
+        submit = st.form_submit_button("Save Recipe")
+
+
+    st.divider()
     
-    # Add ingredient form (separate from main form)
-    st.subheader("Add New Ingredient")
+    # Ingredients section
+    st.subheader("2. Ingredients")
+    
+    # Display current ingredients
+    if st.session_state.ingredients:
+        st.write("Current ingredients:")
+        for i, ing in enumerate(st.session_state.ingredients):
+            cols = st.columns([3, 1, 1, 2, 1])
+            cols[0].text(ing.name)
+            cols[1].text(str(ing.quantity))
+            cols[2].text(ing.unit)
+            cols[3].text(ing.notes)
+            # Add a delete button per ingredient if needed
+            if cols[4].button("❌", key=f"del_ing_{i}"):
+                st.session_state.ingredients.pop(i)
+                st.rerun()
+    else:
+        st.info("No ingredients added yet.")
+    
+    # Add new ingredient
+    st.write("Add New Ingredient:")
     ing_cols = st.columns([3, 1, 1, 2])
     ing_name = ing_cols[0].text_input("Name", key="ing_name")
     ing_qty = ing_cols[1].number_input("Qty", min_value=0.0, step=0.1, key="ing_qty")
@@ -232,18 +279,6 @@ elif page == "Add Recipe":
             st.session_state.ingredients = []
             st.rerun()
     
-    # Display current ingredients
-    st.subheader("Current Ingredients")
-    if st.session_state.ingredients:
-        for i, ing in enumerate(st.session_state.ingredients):
-            cols = st.columns([3, 1, 1, 2, 1])
-            cols[0].text(ing.name)
-            cols[1].text(str(ing.quantity))
-            cols[2].text(ing.unit)
-            cols[3].text(ing.notes)
-    else:
-        st.info("No ingredients added yet.")
-    
     # Add instruction form (separate from main form)
     st.subheader("Add New Instruction")
     new_instruction = st.text_area("Instruction step", key="new_instruction")
@@ -258,40 +293,41 @@ elif page == "Add Recipe":
         if st.button("Clear All Instructions"):
             st.session_state.instructions = []
             st.rerun()
+
+    st.divider()
+    
+    # Instructions section
+    st.subheader("3. Instructions")
     
     # Display current instructions
-    st.subheader("Current Instructions")
     if st.session_state.instructions:
+        st.write("Current instructions:")
         for i, instruction in enumerate(st.session_state.instructions):
-            st.text(f"{i+1}. {instruction}")
+            cols = st.columns([10, 1])
+            cols[0].text(f"{i+1}. {instruction}")
+            # Add a delete button per instruction if needed
+            if cols[1].button("❌", key=f"del_instr_{i}"):
+                st.session_state.instructions.pop(i)
+                st.rerun()
     else:
         st.info("No instructions added yet.")
     
-    # Main recipe form
-    st.subheader("Recipe Details")
-    with st.form("recipe_form"):
-        # Basic info
-        name = st.text_input("Recipe Name", recipe.name if editing else "")
-        description = st.text_area("Description", recipe.description if editing else "")
-        
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            prep_time = st.number_input("Preparation Time (minutes)", min_value=0, value=recipe.prep_time if editing else 0)
-        with col2:
-            cook_time = st.number_input("Cooking Time (minutes)", min_value=0, value=recipe.cook_time if editing else 0)
-        with col3:
-            servings = st.number_input("Servings", min_value=1, value=recipe.servings if editing else 1)
-        
-        cuisine_type = st.text_input("Cuisine Type", recipe.cuisine_type if editing else "")
-        tags = st.text_input("Tags (comma separated)", ", ".join(recipe.tags) if editing else "")
-        
-        # Image upload
-        st.subheader("Recipe Image")
-        uploaded_image = st.file_uploader("Upload recipe image", type=["jpg", "jpeg", "png"])
-        
-        # Submit button
-        submit = st.form_submit_button("Save Recipe")
+    # Add new instruction
+    st.write("Add New Instruction:")
+    new_instruction = st.text_area("Instruction step", key="new_instruction")
     
+    col1, col2 = st.columns([1, 1])
+    with col1:
+        if st.button("Add Instruction"):
+            if new_instruction:  # Basic validation
+                st.session_state.instructions.append(new_instruction)
+                st.rerun()
+    with col2:
+        if st.button("Clear All Instructions"):
+            st.session_state.instructions = []
+            st.rerun()
+
+
     # Process form submission
     if submit and name:  # Basic validation
         # Upload image if provided
