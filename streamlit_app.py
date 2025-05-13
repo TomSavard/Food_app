@@ -206,16 +206,17 @@ if page == "Recipe Browser":
             col1, col2 = st.columns([1, 1])
             
             with col1:
+                # Dans la section pour supprimer une recette
                 if st.button("Yes, Delete", type="primary", use_container_width=True):
-                    # Supprimer la recette
+                    # Supprimer la recette par ID plutôt que par nom
                     st.session_state.recipes = [r for r in st.session_state.recipes 
-                                               if r.name != st.session_state.recipe_to_delete.name]
+                                            if r.recipe_id != st.session_state.recipe_to_delete.recipe_id]
                     st.session_state.need_save = True
                     st.session_state.view_recipe = False
                     del st.session_state.confirm_delete
                     if "recipe_to_delete" in st.session_state:
                         del st.session_state.recipe_to_delete
-                    save_changes()  # Sauvegarder immédiatement
+                    save_changes()
                     st.success("Recipe deleted successfully!")
                     st.rerun()
             

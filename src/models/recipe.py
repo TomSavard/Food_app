@@ -39,6 +39,7 @@ class Recipe:
     tags: List[str] = field(default_factory=list)
     description: str = ""
     image_file_id: str = ""  # Google Drive file ID for recipe image
+    recipe_id: str = field(default_factory=lambda: str(uuid.uuid4())) # Générer un ID unique
     
     def to_dict(self):
         return {
