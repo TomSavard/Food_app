@@ -49,35 +49,35 @@ class Recipe:
     image_file_id: str = ""  # Google Drive file ID for recipe image
     recipe_id: str = field(default_factory=lambda: str(uuid.uuid4())) # Générer un ID unique
     
-def to_dict(self):
-    return {
-        "name": self.name,
-        "ingredients": [i.to_dict() for i in self.ingredients],
-        "instructions": self.instructions,
-        "prep_time": self.prep_time,
-        "cook_time": self.cook_time,
-        "servings": self.servings,
-        "cuisine_type": self.cuisine_type,
-        "tags": self.tags,
-        "description": self.description,
-        "image_file_id": self.image_file_id,
-        "recipe_id": self.recipe_id
+    def to_dict(self):
+        return {
+            "name": self.name,
+            "ingredients": [i.to_dict() for i in self.ingredients],
+            "instructions": self.instructions,
+            "prep_time": self.prep_time,
+            "cook_time": self.cook_time,
+            "servings": self.servings,
+            "cuisine_type": self.cuisine_type,
+            "tags": self.tags,
+            "description": self.description,
+            "image_file_id": self.image_file_id,
+            "recipe_id": self.recipe_id
     }
 
-@classmethod
-def from_dict(cls, data):
-    return cls(
-        name=data.get("name", ""),
-        ingredients=[Ingredient.from_dict(i) for i in data.get("ingredients", [])],
-        instructions=data.get("instructions", []),
-        prep_time=data.get("prep_time", 0),
-        cook_time=data.get("cook_time", 0),
-        servings=data.get("servings", 1),
-        cuisine_type=data.get("cuisine_type", ""),
-        tags=data.get("tags", []),
-        description=data.get("description", ""),
-        image_file_id=data.get("image_file_id", ""),
-        recipe_id=data.get("recipe_id", str(uuid.uuid4()))
+    @classmethod
+    def from_dict(cls, data):
+        return cls(
+            name=data.get("name", ""),
+            ingredients=[Ingredient.from_dict(i) for i in data.get("ingredients", [])],
+            instructions=data.get("instructions", []),
+            prep_time=data.get("prep_time", 0),
+            cook_time=data.get("cook_time", 0),
+            servings=data.get("servings", 1),
+            cuisine_type=data.get("cuisine_type", ""),
+            tags=data.get("tags", []),
+            description=data.get("description", ""),
+            image_file_id=data.get("image_file_id", ""),
+            recipe_id=data.get("recipe_id", str(uuid.uuid4()))
     )
     
     def to_json(self):
