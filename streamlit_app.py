@@ -80,13 +80,13 @@ def save_changes():
 # ---------- RECIPE BROWSER PAGE ----------
 if page == "Recipe Browser":
     st.title("Recipe Browser")
-    
+
     with st.expander("Debug Information", expanded=False):
-    st.write(f"Number of recipes: {len(st.session_state.recipes)}")
-    st.write("Recipe IDs:")
-    for i, r in enumerate(st.session_state.recipes):
-        st.write(f"{i}. '{r.name}': {r.recipe_id}")
-    
+        st.write(f"Number of recipes: {len(st.session_state.recipes)}")
+        st.write("Recipe IDs:")
+        for i, r in enumerate(st.session_state.recipes):
+            st.write(f"{i}. '{r.name}': {r.recipe_id}")
+        
     # Filter/Search controls
     col1, col2, col3, col4 = st.columns([2, 1, 1, 1])
     with col1:
