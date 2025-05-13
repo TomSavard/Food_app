@@ -1,0 +1,164 @@
+import json
+import pandas as pd
+import tempfile
+from typing import List, Optional, Dict
+import streamlit as st
+from pydrive2.drive import GoogleDrive
+
+from src.models.recipe import Recipe, Ingredient
+
+# Constants
+RECIPES_FILE_NAME = "food_recipes_database.json"
+
+def find_recipes_file(drive: GoogleDrive, folder_id: str) -> Optional[Dict]:
+    """Find or create the recipes database file in Google Drive"""
+    file_list = drive.ListFile({'q': f"'{folder_id}' in parents and title='{RECIPES_FILE_NAME}' and trashed=false"}).GetList()
+    
+    if file_list:
+        # Database file exists
+        return file_list[0]
+    else:
+        # Create a new database file
+        st.info(f"Creating new recipes database file '{RECIPES_FILE_NAME}'")
+        
+        # Create empty recipes file
+        empty_db = []
+        
+        # Create a temporary file with empty database
+        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix=".json") as tmp_file:
+            json.dump(empty_db, tmp_file)
+            tmp_file_path = tmp_file.name
+        
+        # Upload to Google Drive
+        gfile = drive.CreateFile({
+            'title': RECIPES_FILE_NAME,
+            'parents': [{'id': folder_id}]
+        })
+        gfile.SetContentFile(tmp_file_path)
+        gfile.Upload()
+        
+        # Clean up temporary file
+        import os
+        if os.path.exists(tmp_file_path):
+            os.remove(tmp_file_path)
+            
+        return gfile
+
+def load_recipes(drive: GoogleDrive, folder_id: str) -> List[Recipe]:
+    """Load all recipes from the database file in Google Drive"""
+    recipes_file = find_recipes_file(drive, folder_id)
+    
+    if not recipes_file:
+        return []
+    
+    # Download the recipes file
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".json") as tmp_file:
+        recipes_file.GetContentFile(tmp_file.name)
+        tmp_file_path = tmp_file.name
+        
+    # Read recipes
+    try:
+        with open(tmp_file_path, 'r') as f:
+            data = json.load(f)
+        
+        # Convert to Recipe objects
+        recipes = [Recipe.from_dict(recipe_data) for recipe_data in data]
+        
+        # Clean up
+        import os
+        if os.path.exists(tmp_file_path):
+            os.remove(tmp_file_path)
+            
+        return recipes
+    
+    except Exception as e:
+        st.error(f"Failed to load recipes: {e}")
+        
+        # Clean up in case of error
+        import os
+        if os.path.exists(tmp_file_path):
+            os.remove(tmp_file_path)
+            
+        return []
+
+def save_recipes(drive: GoogleDrive, folder_id: str, recipes: List[Recipe]) -> bool:
+    """Save all recipes to the database file in Google Drive"""
+    recipes_file = find_recipes_file(drive, folder_id)
+    
+    if not recipes_file:
+        st.error("Failed to find or create recipes database file")
+        return False
+    
+    # Convert recipes to dict format
+    recipes_data = [recipe.to_dict() for recipe in recipes]
+    
+    # Create a temporary file
+    with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix=".json") as tmp_file:
+        json.dump(recipes_data, tmp_file)
+        tmp_file_path = tmp_file.name
+    
+    # Upload to Google Drive (overwrite existing file)
+    try:
+        # Update existing file
+        recipes_file.SetContentFile(tmp_file_path)
+        recipes_file.Upload()
+        
+        # Clean up
+        import os
+        if os.path.exists(tmp_file_path):
+            os.remove(tmp_file_path)
+            
+        return True
+    
+    except Exception as e:
+        st.error(f"Failed to save recipes: {e}")
+        
+        # Clean up in case of error
+        import os
+        if os.path.exists(tmp_file_path):
+            os.remove(tmp_file_path)
+            
+        return False
+
+def recipes_to_dataframe(recipes: List[Recipe]) -> pd.DataFrame:
+    """Convert a list of recipes to a pandas DataFrame"""
+    if not recipes:
+        return pd.DataFrame()
+    
+    # Convert each recipe to a row
+    recipe_rows = [recipe.to_dataframe_row() for recipe in recipes]
+    
+    # Create DataFrame
+    df = pd.DataFrame(recipe_rows)
+    
+    return df
+
+def filter_recipes(recipes: List[Recipe], search_term: str = "", tags: List[str] = None, cuisine: str = None) -> List[Recipe]:
+    """Filter recipes based on search criteria"""
+    filtered_recipes = recipes
+    
+    # Filter by search term
+    if search_term:
+        search_lower = search_term.lower()
+        filtered_recipes = [
+            r for r in filtered_recipes if 
+            search_lower in r.name.lower() or
+            search_lower in r.description.lower() or
+            any(search_lower in ingredient.name.lower() for ingredient in r.ingredients)
+        ]
+    
+    # Filter by tags
+    if tags:
+        filtered_recipes = [
+            r for r in filtered_recipes if
+            any(tag in r.tags for tag in tags)
+        ]
+    
+    # Filter by cuisine type
+    if cuisine:
+        filtered_recipes = [
+            r for r in filtered_recipes if
+            cuisine.lower() == r.cuisine_type.lower()
+        ]
+    
+    return filtered_recipes
