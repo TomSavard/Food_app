@@ -196,7 +196,7 @@ if page == "Recipe Browser":
                 st.rerun()
         with col3:
             # Nouveau bouton de suppression avec confirmation
-            if st.button("🗑️ Delete Recipe", type="primary", use_container_width=True):
+            if st.button("Delete Recipe", type="primary", use_container_width=True):
                 st.session_state.confirm_delete = True
                 st.session_state.recipe_to_delete = recipe
 
@@ -236,16 +236,28 @@ elif page == "Add Recipe":
     if editing:
         st.title("Edit Recipe")
         recipe = st.session_state.edit_recipe
+        
+        # Initialize ingredients and instructions with the recipe's data
+        # Only initialize if we're first loading the edit page
+        if "edit_just_loaded" not in st.session_state:
+            st.session_state.ingredients = recipe.ingredients.copy() if recipe.ingredients else []
+            st.session_state.instructions = recipe.instructions.copy() if recipe.instructions else []
+            st.session_state.edit_just_loaded = True
     else:
         st.title("Add New Recipe")
         recipe = None
-
-    # Initialize ingredient and instruction lists
-    if "ingredients" not in st.session_state or not editing:
-        st.session_state.ingredients = recipe.ingredients if editing else []
-
-    if "instructions" not in st.session_state or not editing:
-        st.session_state.instructions = recipe.instructions if editing else []
+        
+        # Initialize empty lists for new recipes
+        if "ingredients" not in st.session_state:
+            st.session_state.ingredients = []
+        
+        if "instructions" not in st.session_state:
+            st.session_state.instructions = []
+        
+        # Clear the edit flag if it exists
+        if "edit_just_loaded" in st.session_state:
+            del st.session_state.edit_just_loaded
+            
 
     # Main recipe form
     st.subheader("1. Recipe Details")
@@ -420,16 +432,17 @@ elif page == "Add Recipe":
             servings=int(servings),
             cuisine_type=cuisine_type,
             tags=[tag.strip() for tag in tags.split(",") if tag.strip()],
-            ingredients=st.session_state.ingredients,
-            instructions=st.session_state.instructions,
-            image_file_id=image_file_id
+            ingredients=st.session_state.ingredients.copy(),  # Use copy to avoid reference issues
+            instructions=st.session_state.instructions.copy(),  # Use copy to avoid reference issues
+            image_file_id=image_file_id,
+            recipe_id=recipe.recipe_id if editing else None  # Preserve original ID when editing
         )
         
         # Save recipe
         if editing:
-            # Replace existing recipe
+            # Replace existing recipe by ID
             for i, r in enumerate(st.session_state.recipes):
-                if r.name == recipe.name:  # Find by name
+                if r.recipe_id == recipe.recipe_id:  # Find by ID instead of name
                     st.session_state.recipes[i] = new_recipe
                     break
         else:
