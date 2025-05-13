@@ -348,27 +348,41 @@ elif page == "Add Recipe":
         for i, instruction in enumerate(st.session_state.instructions):
             cols = st.columns([10, 1])
             cols[0].text(f"{i+1}. {instruction}")
-            # Add a delete button per instruction if needed
+            # Add a delete button per instruction
             if cols[1].button("❌", key=f"del_instr_{i}"):
                 st.session_state.instructions.pop(i)
                 st.rerun()
     else:
         st.info("No instructions added yet.")
 
-    # Add new instruction - une seule section
+    # Add new instruction using a form
     st.write("Add New Instruction:")
-    new_instruction = st.text_area("Instruction step", key="new_instruction")
 
-    col1, col2 = st.columns([1, 1])
-    with col1:
-        if st.button("Add Instruction"):
-            if new_instruction:
-                st.session_state.instructions.append(new_instruction)
-                st.rerun()
-    with col2:
-        if st.button("Clear All Instructions"):
-            st.session_state.instructions = []
-            st.rerun()
+    # Use a form for adding instructions
+    with st.form(key="instruction_form"):
+        new_instruction = st.text_area("Instruction step", key="form_new_instruction")
+        
+        # Submit button inside form
+        submitted = st.form_submit_button("Add Instruction")
+        
+        if submitted and new_instruction:
+            # Add to session state instructions list
+            if "instructions" not in st.session_state:
+                st.session_state.instructions = []
+            st.session_state.instructions.append(new_instruction)
+            
+            # Set success flag (will be displayed on next run)
+            st.session_state.add_instruction_success = True
+
+    # Display success message if it exists
+    if "add_instruction_success" in st.session_state:
+        st.success("Instruction added successfully!")
+        del st.session_state.add_instruction_success
+
+    # Clear All button outside the form
+    if st.button("Clear All Instructions"):
+        st.session_state.instructions = []
+        st.rerun()
 
     # Process form submission
     if submit and name:  # Basic validation
