@@ -194,31 +194,41 @@ if page == "Recipe Browser":
                 st.session_state.view_recipe = False
                 st.session_state.page = "Add Recipe"
                 st.rerun()
+        # Replace your current delete button code with this:
         with col3:
-            # Nouveau bouton de suppression avec confirmation
             if st.button("Delete Recipe", type="primary", use_container_width=True):
                 st.session_state.confirm_delete = True
-                st.session_state.recipe_to_delete = recipe
+                # Store both the recipe and its index for precise deletion
+                recipe_index = next((i for i, r in enumerate(st.session_state.recipes) 
+                                    if r.recipe_id == recipe.recipe_id), None)
+                
+                if recipe_index is not None:
+                    st.session_state.recipe_to_delete = recipe
+                    st.session_state.recipe_index_to_delete = recipe_index
+                else:
+                    st.error("Could not locate recipe for deletion.")
 
         # Afficher la boîte de dialogue de confirmation si nécessaire
         if "confirm_delete" in st.session_state and st.session_state.confirm_delete:
             st.warning(f"Are you sure you want to delete '{st.session_state.recipe_to_delete.name}'?")
             col1, col2 = st.columns([1, 1])
             
+            # Then update your delete confirmation handler:
             with col1:
-                # Dans la section pour supprimer une recette
                 if st.button("Yes, Delete", type="primary", use_container_width=True):
-                    # Supprimer la recette par ID plutôt que par nom
-                    st.session_state.recipes = [r for r in st.session_state.recipes 
-                                            if r.recipe_id != st.session_state.recipe_to_delete.recipe_id]
-                    st.session_state.need_save = True
-                    st.session_state.view_recipe = False
-                    del st.session_state.confirm_delete
-                    if "recipe_to_delete" in st.session_state:
+                    if "recipe_index_to_delete" in st.session_state:
+                        # Delete by index - this ensures only one recipe is deleted
+                        st.session_state.recipes.pop(st.session_state.recipe_index_to_delete)
+                        st.session_state.need_save = True
+                        st.session_state.view_recipe = False
+                        del st.session_state.confirm_delete
                         del st.session_state.recipe_to_delete
-                    save_changes()
-                    st.success("Recipe deleted successfully!")
-                    st.rerun()
+                        del st.session_state.recipe_index_to_delete
+                        save_changes()
+                        st.success("Recipe deleted successfully!")
+                        st.rerun()
+                    else:
+                        st.error("Recipe index not found.")
             
             with col2:
                 if st.button("Cancel", use_container_width=True):
