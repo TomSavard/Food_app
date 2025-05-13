@@ -204,7 +204,71 @@ elif page == "Add Recipe":
         st.title("Add New Recipe")
         recipe = None
     
-    # Recipe form
+    # Initialize ingredient and instruction lists
+    if "ingredients" not in st.session_state or not editing:
+        st.session_state.ingredients = recipe.ingredients if editing else []
+    
+    if "instructions" not in st.session_state or not editing:
+        st.session_state.instructions = recipe.instructions if editing else []
+    
+    # Add ingredient form (separate from main form)
+    st.subheader("Add New Ingredient")
+    ing_cols = st.columns([3, 1, 1, 2])
+    ing_name = ing_cols[0].text_input("Name", key="ing_name")
+    ing_qty = ing_cols[1].number_input("Qty", min_value=0.0, step=0.1, key="ing_qty")
+    ing_unit = ing_cols[2].text_input("Unit", key="ing_unit")
+    ing_notes = ing_cols[3].text_input("Notes", key="ing_notes")
+    
+    col1, col2 = st.columns([1, 1])
+    with col1:
+        if st.button("Add Ingredient"):
+            if ing_name:  # Basic validation
+                st.session_state.ingredients.append(
+                    Ingredient(name=ing_name, quantity=ing_qty, unit=ing_unit, notes=ing_notes)
+                )
+                st.rerun()
+    with col2:
+        if st.button("Clear All Ingredients"):
+            st.session_state.ingredients = []
+            st.rerun()
+    
+    # Display current ingredients
+    st.subheader("Current Ingredients")
+    if st.session_state.ingredients:
+        for i, ing in enumerate(st.session_state.ingredients):
+            cols = st.columns([3, 1, 1, 2, 1])
+            cols[0].text(ing.name)
+            cols[1].text(str(ing.quantity))
+            cols[2].text(ing.unit)
+            cols[3].text(ing.notes)
+    else:
+        st.info("No ingredients added yet.")
+    
+    # Add instruction form (separate from main form)
+    st.subheader("Add New Instruction")
+    new_instruction = st.text_area("Instruction step", key="new_instruction")
+    
+    col1, col2 = st.columns([1, 1])
+    with col1:
+        if st.button("Add Instruction"):
+            if new_instruction:  # Basic validation
+                st.session_state.instructions.append(new_instruction)
+                st.rerun()
+    with col2:
+        if st.button("Clear All Instructions"):
+            st.session_state.instructions = []
+            st.rerun()
+    
+    # Display current instructions
+    st.subheader("Current Instructions")
+    if st.session_state.instructions:
+        for i, instruction in enumerate(st.session_state.instructions):
+            st.text(f"{i+1}. {instruction}")
+    else:
+        st.info("No instructions added yet.")
+    
+    # Main recipe form
+    st.subheader("Recipe Details")
     with st.form("recipe_form"):
         # Basic info
         name = st.text_input("Recipe Name", recipe.name if editing else "")
@@ -221,77 +285,12 @@ elif page == "Add Recipe":
         cuisine_type = st.text_input("Cuisine Type", recipe.cuisine_type if editing else "")
         tags = st.text_input("Tags (comma separated)", ", ".join(recipe.tags) if editing else "")
         
-        # Ingredients
-        st.subheader("Ingredients")
-        
-        if "ingredients" not in st.session_state or not editing:
-            st.session_state.ingredients = recipe.ingredients if editing else []
-        
-        # Display current ingredients
-        for i, ing in enumerate(st.session_state.ingredients):
-            cols = st.columns([3, 1, 1, 2, 1])
-            cols[0].text(ing.name)
-            cols[1].text(str(ing.quantity))
-            cols[2].text(ing.unit)
-            cols[3].text(ing.notes)
-            
-        # Add new ingredient inputs
-        st.write("Add New Ingredient:")
-        ing_cols = st.columns([3, 1, 1, 2])
-        ing_name = ing_cols[0].text_input("Name", key="ing_name")
-        ing_qty = ing_cols[1].number_input("Qty", min_value=0.0, step=0.1, key="ing_qty")
-        ing_unit = ing_cols[2].text_input("Unit", key="ing_unit")
-        ing_notes = ing_cols[3].text_input("Notes", key="ing_notes")
-        
-        # Buttons for ingredients
-        ing_btn_cols = st.columns([1, 1])
-        add_ingredient = ing_btn_cols[0].form_submit_button("Add Ingredient")
-        clear_ingredients = ing_btn_cols[1].form_submit_button("Clear All Ingredients")
-        
-        # Instructions
-        st.subheader("Instructions")
-        
-        if "instructions" not in st.session_state or not editing:
-            st.session_state.instructions = recipe.instructions if editing else []
-        
-        # Display current instructions
-        for i, instruction in enumerate(st.session_state.instructions):
-            st.text(f"{i+1}. {instruction}")
-        
-        # Add new instruction
-        new_instruction = st.text_area("New Instruction Step", key="new_instruction")
-        
-        # Buttons for instructions
-        inst_btn_cols = st.columns([1, 1])
-        add_instruction = inst_btn_cols[0].form_submit_button("Add Instruction")
-        clear_instructions = inst_btn_cols[1].form_submit_button("Clear All Instructions")
-        
         # Image upload
         st.subheader("Recipe Image")
         uploaded_image = st.file_uploader("Upload recipe image", type=["jpg", "jpeg", "png"])
         
         # Submit button
         submit = st.form_submit_button("Save Recipe")
-    
-    # Process ingredient add/clear
-    if add_ingredient and ing_name:
-        st.session_state.ingredients.append(
-            Ingredient(name=ing_name, quantity=ing_qty, unit=ing_unit, notes=ing_notes)
-        )
-        st.rerun()
-    
-    if clear_ingredients:
-        st.session_state.ingredients = []
-        st.rerun()
-    
-    # Process instruction add/clear
-    if add_instruction and new_instruction:
-        st.session_state.instructions.append(new_instruction)
-        st.rerun()
-    
-    if clear_instructions:
-        st.session_state.instructions = []
-        st.rerun()
     
     # Process form submission
     if submit and name:  # Basic validation
