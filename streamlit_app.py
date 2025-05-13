@@ -184,13 +184,13 @@ if page == "Recipe Browser":
             
             if st.button("Close Recipe"):
                 st.session_state.view_recipe = False
-                st.experimental_rerun()
+                st.rerun()
             
             if st.button("Edit Recipe"):
                 st.session_state.edit_recipe = recipe
                 st.session_state.view_recipe = False
                 st.session_state.page = "Add Recipe"
-                st.experimental_rerun()
+                st.rerun()
 
 # ---------- ADD RECIPE PAGE ----------
 elif page == "Add Recipe":
@@ -278,20 +278,20 @@ elif page == "Add Recipe":
         st.session_state.ingredients.append(
             Ingredient(name=ing_name, quantity=ing_qty, unit=ing_unit, notes=ing_notes)
         )
-        st.experimental_rerun()
+        st.rerun()
     
     if clear_ingredients:
         st.session_state.ingredients = []
-        st.experimental_rerun()
+        st.rerun()
     
     # Process instruction add/clear
     if add_instruction and new_instruction:
         st.session_state.instructions.append(new_instruction)
-        st.experimental_rerun()
+        st.rerun()
     
     if clear_instructions:
         st.session_state.instructions = []
-        st.experimental_rerun()
+        st.rerun()
     
     # Process form submission
     if submit and name:  # Basic validation
