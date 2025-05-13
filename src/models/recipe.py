@@ -77,7 +77,7 @@ class Recipe:
             tags=data.get("tags", []),
             description=data.get("description", ""),
             image_file_id=data.get("image_file_id", ""),
-            recipe_id=data.get("recipe_id", str(uuid.uuid4()))
+            recipe_id=data.get("recipe_id", "")
         )
     
     def to_json(self):
