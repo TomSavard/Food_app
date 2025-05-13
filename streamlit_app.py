@@ -158,7 +158,7 @@ if page == "Recipe Browser":
                 
                 st.write("### Ingredients")
                 for ing in recipe.ingredients:
-                    st.write(f"- {ing.quantity} {ing.unit} {ing.name} {ing.notes}")
+                    st.write(f"- {ing.formatted_quantity()} {ing.unit} {ing.name} {ing.notes}")
                 
                 st.write("### Instructions")
                 for i, step in enumerate(recipe.instructions, 1):
@@ -284,7 +284,7 @@ elif page == "Add Recipe":
         for i, ing in enumerate(st.session_state.ingredients):
             cols = st.columns([3, 1, 1, 2, 1])
             cols[0].text(ing.name)
-            cols[1].text(str(ing.quantity))
+            cols[1].text(ing.formatted_quantity())  # Use your method here
             cols[2].text(ing.unit)
             cols[3].text(ing.notes)
             # Add a delete button per ingredient if needed
