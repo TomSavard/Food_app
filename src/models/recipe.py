@@ -59,7 +59,7 @@ def to_dict(self):
         "servings": self.servings,
         "cuisine_type": self.cuisine_type,
         "tags": self.tags,
-        "description": self.description,Ò
+        "description": self.description,
         "image_file_id": self.image_file_id,
         "recipe_id": self.recipe_id
     }
