@@ -298,42 +298,34 @@ elif page == "Add Recipe":
     st.write("Add New Ingredient:")
     ing_cols = st.columns([3, 1, 1, 2])
     ing_name = ing_cols[0].text_input("Name", value="", key="ing_name")
-    ing_qty = ing_cols[1].number_input("Qty", min_value=0.0, step=0.1, key="ing_qty")
+    ing_qty = ing_cols[1].number_input("Qty", min_value=0.0, step=0.1, format="%.1f", key="ing_qty")
     ing_unit = ing_cols[2].text_input("Unit", value="", key="ing_unit")
     ing_notes = ing_cols[3].text_input("Notes", value="", key="ing_notes")
 
     col1, col2 = st.columns([1, 1])
     with col1:
-        add_ingredient_button = st.button("Add Ingredient", key="add_ing_btn")
-        if add_ingredient_button and ing_name:
-            # Create a new ingredient
-            new_ing = Ingredient(
-                name=ing_name,
-                quantity=ing_qty,
-                unit=ing_unit,
-                notes=ing_notes
-            )
-            
-            # Add to session state ingredients list
-            if "ingredients" not in st.session_state:
-                st.session_state.ingredients = []
-            st.session_state.ingredients.append(new_ing)
-            
-            # Set success flag
-            st.session_state.add_success = True
-            
-            # Rerun the app
-            st.rerun()
+        # Use a form for adding ingredients to avoid session state issues
+        with st.form(key="add_ingredient_form"):
+            add_ingredient_button = st.form_submit_button("Add Ingredient")
+            if add_ingredient_button and ing_name:
+                # Create a new ingredient
+                new_ing = Ingredient(
+                    name=ing_name,
+                    quantity=ing_qty,
+                    unit=ing_unit,
+                    notes=ing_notes
+                )
+                
+                # Add to session state ingredients list
+                if "ingredients" not in st.session_state:
+                    st.session_state.ingredients = []
+                st.session_state.ingredients.append(new_ing)
+                st.session_state.add_success = True
 
     with col2:
         if st.button("Clear All Ingredients"):
             st.session_state.ingredients = []
             st.rerun()
-
-    # Display success message if it exists
-    if "add_success" in st.session_state:
-        st.success("Ingredient added successfully!")
-        del st.session_state.add_success
 
     # Gardez seulement une section pour ajouter des instructions
     st.divider()
