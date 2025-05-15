@@ -85,8 +85,11 @@ if page == "Recipe Browser":
         st.write(f"Number of recipes: {len(st.session_state.recipes)}")
         st.write("Recipe IDs:")
         for i, r in enumerate(st.session_state.recipes):
-            st.write(f"{i}. '{r.name}': {r.recipe_id}")
-        
+            id_value = r.recipe_id
+            id_display = f"'{id_value}'" if id_value else "EMPTY"
+            id_type = type(id_value).__name__
+            st.write(f"{i}. '{r.name}': {id_display} (type: {id_type}, length: {len(str(id_value))})")
+
     # Filter/Search controls
     col1, col2, col3, col4 = st.columns([2, 1, 1, 1])
     with col1:
@@ -453,7 +456,7 @@ elif page == "Add Recipe":
             ingredients=st.session_state.ingredients.copy(),  # Use copy to avoid reference issues
             instructions=st.session_state.instructions.copy(),  # Use copy to avoid reference issues
             image_file_id=image_file_id,
-            recipe_id=recipe.recipe_id if editing else ""
+            recipe_id=recipe.recipe_id if editing else None  # Use None to trigger default value
         )
         
         # Save recipe

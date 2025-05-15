@@ -67,9 +67,11 @@ class Recipe:
     @classmethod
     def from_dict(cls, data):
         recipe_id = data.get("recipe_id", "")
-        # Si l'ID est vide, générer un nouvel UUID
+        # Generate a new ID if empty
         if not recipe_id:
+            import uuid
             recipe_id = str(uuid.uuid4())
+
 
         return cls(
             name=data.get("name", ""),
