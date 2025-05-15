@@ -36,11 +36,33 @@ def run(drive, folder_id):
 
     st.markdown("---")
     # Bouton pour ajouter une ligne
-    if st.button("Ajouter une ligne"):
+    if st.button("Ajouter une recette"):
         st.session_state.week_menu.append({"recipe": "", "note": ""})
 
-    # Affichage récapitulatif
-    st.subheader("Résumé du menu")
+
+    # Résumé de la liste de courses
+    st.subheader("🛒 Liste de courses")
+
+    # Dictionnaire pour agréger les ingrédients
+    shopping_list = {}
+
+    # On parcourt chaque recette sélectionnée
     for entry in st.session_state.week_menu:
-        if entry["recipe"]:
-            st.write(f"- **{entry['recipe']}** : {entry['note']}")
+        recipe_name = entry["recipe"]
+        if recipe_name:
+            # Trouver la recette correspondante
+            recipe = next((r for r in recipes if r.name == recipe_name), None)
+            if recipe:
+                for ing in recipe.ingredients:
+                    key = (ing.name.strip().lower(), ing.unit.strip())
+                    if key not in shopping_list:
+                        shopping_list[key] = 0
+                    shopping_list[key] += ing.quantity
+
+    # Affichage de la liste de courses
+    if shopping_list:
+        for (name, unit), qty in shopping_list.items():
+            unit_str = f" {unit}" if unit else ""
+            st.write(f"- **{qty:g}{unit_str}** {name.capitalize()}")
+    else:
+        st.info("Aucune recette sélectionnée pour générer la liste de courses.")
