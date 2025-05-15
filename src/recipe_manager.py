@@ -13,8 +13,8 @@ WEEK_MENU_FILE_NAME = "week_menu.json"
 
 
 @st.cache_data(show_spinner="Chargement du menu de la semaine...")
-def cached_load_week_menu(drive, folder_id):
-    return load_week_menu(drive, folder_id)
+def cached_load_week_menu(_drive, folder_id):
+    return load_week_menu(_drive, folder_id)
 
 
 

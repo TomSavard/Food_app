@@ -176,4 +176,4 @@ def run(drive, folder_id):
                     del st.session_state.confirm_delete
                     if "recipe_to_delete" in st.session_state:
                         del st.session_state.recipe_to_delete
-                    # st.rerun()
+                    st.rerun()
