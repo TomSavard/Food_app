@@ -253,7 +253,7 @@ if st.session_state.page == "Recipe Browser":
 
 
 # ---------- ADD RECIPE PAGE ----------
-elif page == "Add Recipe":
+elif st.session_state.page == "Add Recipe":
     # Check if we're editing an existing recipe
     editing = "edit_recipe" in st.session_state
 
@@ -490,7 +490,7 @@ elif page == "Add Recipe":
         save_changes()
 
 # ---------- FILES MANAGER PAGE ----------
-elif page == "Files Manager":
+elif st.session_state.page == "Files Manager":
     st.title("Google Drive Files Manager")
     
     # --- File Upload Section ---
