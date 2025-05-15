@@ -1,8 +1,8 @@
+import streamlit as st
 import json
 import pandas as pd
 import tempfile
 from typing import List, Optional, Dict
-import streamlit as st
 from pydrive2.drive import GoogleDrive
 
 from src.models.recipe import Recipe, Ingredient
@@ -167,6 +167,7 @@ def filter_recipes(recipes: List[Recipe], search_term: str = "", tags: List[str]
 
 
 
+
 def load_week_menu(drive, folder_id):
     """Charge le menu de la semaine depuis Google Drive"""
     file_list = drive.ListFile({'q': f"'{folder_id}' in parents and trashed=false and title='{WEEK_MENU_FILE_NAME}'"}).GetList()
@@ -175,6 +176,14 @@ def load_week_menu(drive, folder_id):
         content = file.GetContentString()
         return json.loads(content)
     return []
+
+
+
+@st.cache_data(show_spinner="Chargement du menu de la semaine...")
+def cached_load_week_menu(drive, folder_id):
+    return load_week_menu(drive, folder_id)
+
+
 
 def save_week_menu(drive, folder_id, week_menu):
     """Sauvegarde le menu de la semaine sur Google Drive"""
