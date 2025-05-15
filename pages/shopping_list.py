@@ -46,7 +46,7 @@ def run(drive, folder_id):
         submitted = st.form_submit_button("Ajouter")
         if submitted and new_product.strip():
             st.session_state.extra_products.append(new_product.strip())
-            st.experimental_rerun()
+            st.rerun()
 
     # Affichage et suppression
     if st.session_state.extra_products:
@@ -56,6 +56,6 @@ def run(drive, folder_id):
             cols[0].write(f"- {prod}")
             if cols[1].button("❌", key=f"del_prod_{i}"):
                 st.session_state.extra_products.pop(i)
-                st.experimental_rerun()
+                st.rerun()
     else:
         st.info("Aucun produit ajouté manuellement.")
