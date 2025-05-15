@@ -45,6 +45,7 @@ class Recipe:
     servings: int = 1
     cuisine_type: str = ""
     tags: List[str] = field(default_factory=list)
+    utensils: List[str] = field(default_factory=list)
     description: str = ""
     image_file_id: str = ""  # Google Drive file ID for recipe image
     recipe_id: str = field(default_factory=lambda: str(uuid.uuid4())) # Générer un ID unique

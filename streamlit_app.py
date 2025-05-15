@@ -160,6 +160,7 @@ if st.session_state.page == "Recipe Browser":
                 st.write(f"**Cuisine:** {recipe.cuisine_type}")
                 st.write(f"**Total time:** {recipe.prep_time + recipe.cook_time} min")
                 st.write(f"**Tags:** {', '.join(recipe.tags)}")
+                st.write(f"**Ustensils:** {', '.join(recipe.utensils)}")
                 
                 # View button
                 if st.button(f"View Recipe", key=f"view_{i}"):
@@ -202,6 +203,11 @@ if st.session_state.page == "Recipe Browser":
                 st.write(f"**Servings:** {recipe.servings}")
                 st.write(f"**Cuisine:** {recipe.cuisine_type}")
                 st.write(f"**Tags:** {', '.join(recipe.tags)}")
+
+                st.write("### Ustensils")
+                for u in recipe.utensils:
+                    st.write(f"- {u}")
+
 
         # Ajouter des boutons d'action en bas de la recette
         col1, col2, col3 = st.columns([1, 1, 1])
@@ -307,7 +313,10 @@ elif st.session_state.page == "Add Recipe":
 
         cuisine_type = st.text_input("Cuisine Type", recipe.cuisine_type if editing else "")
         tags = st.text_input("Tags (comma separated)", ", ".join(recipe.tags) if editing else "")
-
+        utensils = st.text_input(
+            "Ustensils (comma separated)",
+            ", ".join(recipe.utensils) if editing and hasattr(recipe, "utensils") else ""
+        )
         # Image upload
         st.subheader("Recipe Image")
         uploaded_image = st.file_uploader("Upload recipe image", type=["jpg", "jpeg", "png"])
@@ -456,7 +465,9 @@ elif st.session_state.page == "Add Recipe":
         elif editing and recipe.image_file_id:
             # Keep existing image
             image_file_id = recipe.image_file_id
-        
+
+        utensils_list = [u.strip() for u in utensils.split(",") if u.strip()]
+
         # Create recipe object
         new_recipe = Recipe(
             name=name,
@@ -466,8 +477,9 @@ elif st.session_state.page == "Add Recipe":
             servings=int(servings),
             cuisine_type=cuisine_type,
             tags=[tag.strip() for tag in tags.split(",") if tag.strip()],
-            ingredients=st.session_state.ingredients.copy(),  # Use copy to avoid reference issues
-            instructions=st.session_state.instructions.copy(),  # Use copy to avoid reference issues
+            utensils=utensils_list,
+            ingredients=st.session_state.ingredients.copy(),
+            instructions=st.session_state.instructions.copy(),
             image_file_id=image_file_id,
             **({} if not editing else {"recipe_id": recipe.recipe_id})
         )
