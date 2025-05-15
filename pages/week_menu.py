@@ -29,7 +29,6 @@ def run(drive, folder_id):
         # Bouton suppression
         if cols[2].button("❌", key=f"del_menu_{idx}"):
             st.session_state.week_menu.pop(idx)
-            st.experimental_rerun()
         else:
             # Mise à jour de la ligne
             st.session_state.week_menu[idx] = {"recipe": selected, "note": note}
