@@ -83,6 +83,12 @@ def save_changes():
             else:
                 st.error("Failed to save changes")
 
+def _on_edit_recipe(recipe):
+    st.session_state.edit_recipe = recipe
+    st.session_state.view_recipe = False
+    st.session_state.page = "Add Recipe"
+    st.experimental_rerun()
+
 # ---------- RECIPE BROWSER PAGE ----------
 if st.session_state.page == "Recipe Browser":
     st.title("Recipe Browser")
@@ -204,11 +210,12 @@ if st.session_state.page == "Recipe Browser":
                 st.session_state.view_recipe = False
                 st.rerun()
         with col2:
-            if st.button("Edit Recipe"):
-                st.session_state.edit_recipe = recipe
-                st.session_state.view_recipe = False
-                st.session_state.page = "Add Recipe"
-                st.rerun()
+            st.button(
+                "Edit Recipe",
+                key=f"edit_{i}",
+                on_click=_on_edit_recipe,
+                args=(recipe,)
+            )
         with col3:
             # Show ID for debugging
             #st.write(f"Recipe ID: {recipe.recipe_id}")
