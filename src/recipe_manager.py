@@ -12,6 +12,12 @@ RECIPES_FILE_NAME = "food_recipes_database.json"
 WEEK_MENU_FILE_NAME = "week_menu.json"
 
 
+@st.cache_data(show_spinner="Chargement du menu de la semaine...")
+def cached_load_week_menu(drive, folder_id):
+    return load_week_menu(drive, folder_id)
+
+
+
 def find_recipes_file(drive: GoogleDrive, folder_id: str) -> Optional[Dict]:
     """Find or create the recipes database file in Google Drive"""
     file_list = drive.ListFile({'q': f"'{folder_id}' in parents and title='{RECIPES_FILE_NAME}' and trashed=false"}).GetList()
@@ -178,10 +184,6 @@ def load_week_menu(drive, folder_id):
     return []
 
 
-
-@st.cache_data(show_spinner="Chargement du menu de la semaine...")
-def cached_load_week_menu(drive, folder_id):
-    return load_week_menu(drive, folder_id)
 
 
 
