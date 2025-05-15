@@ -86,6 +86,7 @@ def run(drive, folder_id):
                     """,
                     unsafe_allow_html=True,
                 )
+                st.markdown('<div style="margin-top:-1.2em"></div>', unsafe_allow_html=True)
                 if st.button("View Recipe", key=f"view_{i}"):
                     st.session_state.selected_recipe = recipe
                     st.session_state.view_recipe = True
