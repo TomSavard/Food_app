@@ -59,8 +59,14 @@ if not drive:
 
 # Sidebar Navigation
 st.sidebar.title("Food App 🍲")
-page = st.sidebar.radio("Navigate", ["Recipe Browser", "Add Recipe", "Files Manager"])
-
+if "page" not in st.session_state:
+    st.session_state.page = "Recipe Browser"
+st.sidebar.radio(
+    "Navigate",
+    ["Recipe Browser", "Add Recipe", "Files Manager"],
+    index=["Recipe Browser", "Add Recipe", "Files Manager"].index(st.session_state.page),
+    key="page"
+)
 # Load recipes data
 if "recipes" not in st.session_state:
     with st.spinner("Loading recipes..."):
@@ -78,7 +84,7 @@ def save_changes():
                 st.error("Failed to save changes")
 
 # ---------- RECIPE BROWSER PAGE ----------
-if page == "Recipe Browser":
+if st.session_state.page == "Recipe Browser":
     st.title("Recipe Browser")
 
     with st.expander("Debug Information", expanded=False):
@@ -456,7 +462,7 @@ elif page == "Add Recipe":
             ingredients=st.session_state.ingredients.copy(),  # Use copy to avoid reference issues
             instructions=st.session_state.instructions.copy(),  # Use copy to avoid reference issues
             image_file_id=image_file_id,
-            recipe_id=recipe.recipe_id if editing else None  # Use None to trigger default value
+            **({} if not editing else {"recipe_id": recipe.recipe_id})
         )
         
         # Save recipe
