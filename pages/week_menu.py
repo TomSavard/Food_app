@@ -24,8 +24,8 @@ def run(drive, folder_id):
             key=f"menu_recipe_{idx}"
         )
         note = cols[1].text_input(
-            "Infos (jour, moment, invités...)", 
-            value=entry["note"], 
+            "Infos (jour, moment, invités...)",
+            value=entry["note"],
             key=f"menu_note_{idx}"
         )
         if cols[2].button("❌", key=f"del_menu_{idx}"):
