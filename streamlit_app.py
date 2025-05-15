@@ -208,7 +208,7 @@ if st.session_state.page == "Recipe Browser":
         with col1:
             if st.button("Close Recipe"):
                 st.session_state.view_recipe = False
-                st.rerun()
+                # st.rerun()
         with col2:
             st.button(
                 "Edit Recipe",
@@ -249,14 +249,14 @@ if st.session_state.page == "Recipe Browser":
                         del st.session_state.recipe_index_to_delete
                         save_changes()
                         st.success("Recipe deleted successfully!")
-                        st.rerun()
+                        # st.rerun()
                     
             with col2:
                 if st.button("Cancel", use_container_width=True):
                     del st.session_state.confirm_delete
                     if "recipe_to_delete" in st.session_state:
                         del st.session_state.recipe_to_delete
-                    st.rerun()
+                    # st.rerun()
 
 
 # ---------- ADD RECIPE PAGE ----------
@@ -333,7 +333,7 @@ elif st.session_state.page == "Add Recipe":
             cols[3].text(ing.notes)
             if cols[4].button("❌", key=f"del_ing_{i}"):
                 st.session_state.ingredients.pop(i)
-                st.rerun()
+                # st.rerun()
     else:
         st.info("No ingredients added yet.")
 
@@ -367,7 +367,7 @@ elif st.session_state.page == "Add Recipe":
             
             # Set success flag (will be displayed on next run)
             st.session_state.add_success = True
-            st.rerun()
+            # st.rerun()
 
     # Display success message if it exists
     if "add_success" in st.session_state:
@@ -377,7 +377,7 @@ elif st.session_state.page == "Add Recipe":
     # Clear All button outside the form
     if st.button("Clear All Ingredients"):
         st.session_state.ingredients = []
-        st.rerun()
+        # st.rerun()
 
 
     # Gardez seulement une section pour ajouter des instructions
@@ -395,7 +395,7 @@ elif st.session_state.page == "Add Recipe":
             # Add a delete button per instruction
             if cols[1].button("❌", key=f"del_instr_{i}"):
                 st.session_state.instructions.pop(i)
-                st.rerun()
+                # st.rerun()
     else:
         st.info("No instructions added yet.")
 
@@ -418,7 +418,7 @@ elif st.session_state.page == "Add Recipe":
             # Set success flag (will be displayed on next run)
             st.session_state.add_instruction_success = True
 
-            st.rerun()
+            # st.rerun()
 
     # Display success message if it exists
     if "add_instruction_success" in st.session_state:
@@ -428,7 +428,7 @@ elif st.session_state.page == "Add Recipe":
     # Clear All button outside the form
     if st.button("Clear All Instructions"):
         st.session_state.instructions = []
-        st.rerun()
+        # st.rerun()
 
     # Process form submission
     if submit and name:  # Basic validation
