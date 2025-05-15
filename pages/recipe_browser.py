@@ -62,7 +62,7 @@ def run(drive, folder_id):
         cols = st.columns(3)
         for i, recipe in enumerate(filtered_recipes):
             with cols[i % 3]:
-                card_color = "#FFE5B4"
+                card_color = "#F0F2F6"
                 border_color = "#d1d8e0"  # couleur de la bordure
                 st.markdown(
                     f"""
