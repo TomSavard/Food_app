@@ -128,7 +128,7 @@ def run(drive, folder_id):
         with col1:
             if st.button("Close Recipe"):
                 st.session_state.view_recipe = False
-                # st.rerun()
+                st.rerun()
         with col2:
             st.button(
                 "Edit Recipe",
