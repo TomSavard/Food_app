@@ -29,6 +29,7 @@ def run(drive, folder_id):
         # Bouton suppression
         if cols[2].button("❌", key=f"del_menu_{idx}"):
             st.session_state.week_menu.pop(idx)
+            return
         else:
             # Mise à jour de la ligne
             st.session_state.week_menu[idx] = {"recipe": selected, "note": note}
@@ -37,6 +38,7 @@ def run(drive, folder_id):
     # Bouton pour ajouter une ligne
     if st.button("Ajouter une recette"):
         st.session_state.week_menu.append({"recipe": "", "note": ""})
+        return
 
 
     # Résumé de la liste de courses

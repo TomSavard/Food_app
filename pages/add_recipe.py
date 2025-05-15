@@ -127,7 +127,7 @@ def run(drive, folder_id):
             
             # Set success flag (will be displayed on next run)
             st.session_state.add_success = True
-            # st.rerun()
+            return
 
     # Display success message if it exists
     if "add_success" in st.session_state:
