@@ -10,6 +10,8 @@ from src.models.recipe import Recipe, Ingredient
 # Constants
 RECIPES_FILE_NAME = "food_recipes_database.json"
 WEEK_MENU_FILE_NAME = "week_menu.json"
+EXTRA_PRODUCTS_FILE_NAME = "extra_products.json"
+
 
 
 @st.cache_data(show_spinner="Chargement du menu de la semaine...")
@@ -198,5 +200,28 @@ def save_week_menu(drive, folder_id, week_menu):
         file.Upload()
     else:
         file = drive.CreateFile({'title': WEEK_MENU_FILE_NAME, 'parents': [{'id': folder_id}]})
+        file.SetContentString(content)
+        file.Upload()
+
+
+
+
+def load_extra_products(drive, folder_id):
+    file_list = drive.ListFile({'q': f"'{folder_id}' in parents and trashed=false and title='{EXTRA_PRODUCTS_FILE_NAME}'"}).GetList()
+    if file_list:
+        file = file_list[0]
+        content = file.GetContentString()
+        return json.loads(content)
+    return []
+
+def save_extra_products(drive, folder_id, extra_products):
+    file_list = drive.ListFile({'q': f"'{folder_id}' in parents and trashed=false and title='{EXTRA_PRODUCTS_FILE_NAME}'"}).GetList()
+    content = json.dumps(extra_products, ensure_ascii=False, indent=2)
+    if file_list:
+        file = file_list[0]
+        file.SetContentString(content)
+        file.Upload()
+    else:
+        file = drive.CreateFile({'title': EXTRA_PRODUCTS_FILE_NAME, 'parents': [{'id': folder_id}]})
         file.SetContentString(content)
         file.Upload()

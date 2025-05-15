@@ -1,5 +1,5 @@
 import streamlit as st
-from src.recipe_manager import load_week_menu
+from src.recipe_manager import load_week_menu, load_extra_products, save_extra_products
 
 def run(drive, folder_id):
     st.title("🛒 Liste de courses")
@@ -8,6 +8,11 @@ def run(drive, folder_id):
     if "week_menu" not in st.session_state:
         week_menu = load_week_menu(drive, folder_id)
         st.session_state.week_menu = week_menu if week_menu else []
+
+    # Charger les produits libres au démarrage
+    if "extra_products" not in st.session_state:
+        st.session_state.extra_products = load_extra_products(drive, folder_id)
+
 
     # Charger les recettes
     recipes = st.session_state.recipes
@@ -27,8 +32,6 @@ def run(drive, folder_id):
 
     # Liste libre de produits à ajouter
     st.subheader("Ajouter un produit manuellement")
-    if "extra_products" not in st.session_state:
-        st.session_state.extra_products = []
 
     # Formulaire d'ajout
     with st.form("add_product_form"):
@@ -36,6 +39,7 @@ def run(drive, folder_id):
         submitted = st.form_submit_button("Ajouter")
         if submitted and new_product.strip():
             st.session_state.extra_products.append(new_product.strip())
+            save_extra_products(drive, folder_id, st.session_state.extra_products)
             st.rerun()
 
     if shopping_list:
@@ -48,4 +52,5 @@ def run(drive, folder_id):
             cols[0].write(f"- {prod}")
             if cols[1].button("❌", key=f"del_prod_{i}"):
                 st.session_state.extra_products.pop(i)
+                save_extra_products(drive, folder_id, st.session_state.extra_products)
                 st.rerun()
