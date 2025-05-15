@@ -3,7 +3,7 @@ from pydrive2.auth import GoogleAuth
 from pydrive2.drive import GoogleDrive
 
 
-from pages import recipe_browser, add_recipe, files_manager, week_menu
+from pages import recipe_browser, add_recipe, files_manager, week_menu, shopping_list
 from src.utils import _on_edit_recipe, save_changes
 from src.recipe_manager import load_recipes, save_recipes
 
@@ -65,6 +65,7 @@ PAGES = {
     "Add Recipe": add_recipe.run,
     "Files Manager": files_manager.run,
     "Week Menu": week_menu.run,
+    "Shopping List": shopping_list.run,
 }
 
 page = st.sidebar.radio(
