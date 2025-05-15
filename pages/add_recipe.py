@@ -93,7 +93,7 @@ def run(drive, folder_id):
             cols[3].text(ing.notes)
             if cols[4].button("❌", key=f"del_ing_{i}"):
                 st.session_state.ingredients.pop(i)
-                # st.rerun()
+                return
     else:
         st.info("No ingredients added yet.")
 
@@ -137,7 +137,7 @@ def run(drive, folder_id):
     # Clear All button outside the form
     if st.button("Clear All Ingredients"):
         st.session_state.ingredients = []
-        # st.rerun()
+        return
 
 
     # Gardez seulement une section pour ajouter des instructions
@@ -155,7 +155,7 @@ def run(drive, folder_id):
             # Add a delete button per instruction
             if cols[1].button("❌", key=f"del_instr_{i}"):
                 st.session_state.instructions.pop(i)
-                # st.rerun()
+                return
     else:
         st.info("No instructions added yet.")
 
@@ -178,7 +178,7 @@ def run(drive, folder_id):
             # Set success flag (will be displayed on next run)
             st.session_state.add_instruction_success = True
 
-            # st.rerun()
+            return
 
     # Display success message if it exists
     if "add_instruction_success" in st.session_state:
@@ -188,7 +188,7 @@ def run(drive, folder_id):
     # Clear All button outside the form
     if st.button("Clear All Instructions"):
         st.session_state.instructions = []
-        # st.rerun()
+        return
 
     # Process form submission
     if submit and name:  # Basic validation

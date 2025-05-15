@@ -169,7 +169,7 @@ def run(drive, folder_id):
                         del st.session_state.recipe_index_to_delete
                         save_changes(drive, folder_id, save_recipes)
                         st.success("Recipe deleted successfully!")
-                        # st.rerun()
+                        rerun
 
             with col2:
                 if st.button("Cancel", use_container_width=True):
