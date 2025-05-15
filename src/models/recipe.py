@@ -60,6 +60,7 @@ class Recipe:
             "servings": self.servings,
             "cuisine_type": self.cuisine_type,
             "tags": self.tags,
+            "utensils": self.utensils,
             "description": self.description,
             "image_file_id": self.image_file_id,
             "recipe_id": self.recipe_id
@@ -83,6 +84,7 @@ class Recipe:
             servings=data.get("servings", 1),
             cuisine_type=data.get("cuisine_type", ""),
             tags=data.get("tags", []),
+            utensils=data.get("utensils", []),
             description=data.get("description", ""),
             image_file_id=data.get("image_file_id", ""),
             recipe_id=recipe_id
