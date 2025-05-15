@@ -25,16 +25,6 @@ def run(drive, folder_id):
                         shopping_list[key] = 0
                     shopping_list[key] += ing.quantity
 
-    st.subheader("Ingrédients des recettes de la semaine")
-    if shopping_list:
-        for (name, unit), qty in shopping_list.items():
-            unit_str = f" {unit}" if unit else ""
-            st.write(f"- **{qty:g}{unit_str}** {name.capitalize()}")
-    else:
-        st.info("Aucune recette sélectionnée dans le menu de la semaine.")
-
-    st.divider()
-
     # Liste libre de produits à ajouter
     st.subheader("Ajouter des produits libres (hors recettes)")
     if "extra_products" not in st.session_state:
@@ -47,6 +37,16 @@ def run(drive, folder_id):
         if submitted and new_product.strip():
             st.session_state.extra_products.append(new_product.strip())
             st.rerun()
+
+    st.subheader("Ingrédients des recettes de la semaine")
+    if shopping_list:
+        for (name, unit), qty in shopping_list.items():
+            unit_str = f" {unit}" if unit else ""
+            st.write(f"- **{qty:g}{unit_str}** {name.capitalize()}")
+    else:
+        st.info("Aucune recette sélectionnée dans le menu de la semaine.")
+
+    st.divider()
 
     # Affichage et suppression
     if st.session_state.extra_products:
