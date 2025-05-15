@@ -1,14 +1,11 @@
 import streamlit as st
-
-
-# Import modules
 from pydrive2.auth import GoogleAuth
 from pydrive2.drive import GoogleDrive
 
 
 from pages import recipe_browser, add_recipe, files_manager, week_menu
-
 from src.utils import _on_edit_recipe, save_changes
+from src.recipe_manager import load_recipes, save_recipes
 
 # Page configuration
 st.set_page_config(
