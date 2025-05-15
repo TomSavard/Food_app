@@ -87,7 +87,7 @@ def _on_edit_recipe(recipe):
     st.session_state.edit_recipe = recipe
     st.session_state.view_recipe = False
     st.session_state.page = "Add Recipe"
-    st.experimental_rerun()
+
 
 # ---------- RECIPE BROWSER PAGE ----------
 if st.session_state.page == "Recipe Browser":
