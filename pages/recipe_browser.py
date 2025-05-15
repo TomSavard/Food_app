@@ -62,28 +62,41 @@ def run(drive, folder_id):
         cols = st.columns(3)
         for i, recipe in enumerate(filtered_recipes):
             with cols[i % 3]:
-                st.subheader(recipe.name)
-
-                # Display image if available
-                if recipe.image_file_id:
-                    try:
-                        img_file = drive.CreateFile({'id': recipe.image_file_id})
-                        img_content = BytesIO(img_file.GetContentString(content_type="image/jpeg").encode())
-                        image = Image.open(img_content)
-                        st.image(image, use_column_width=True)
-                    except:
-                        st.warning("Image not available")
-
-                st.write(f"**Cuisine:** {recipe.cuisine_type}")
-                st.write(f"**Total time:** {recipe.prep_time + recipe.cook_time} min")
-                st.write(f"**Tags:** {', '.join(recipe.tags)}")
-                st.write(f"**Ustensils:** {', '.join(recipe.utensils)}")
-
-                # View button
-                if st.button(f"View Recipe", key=f"view_{i}"):
-                    st.session_state.selected_recipe = recipe
-                    st.session_state.view_recipe = True
-
+                card_color = "#f5f6fa"  # couleur de fond de la carte
+                border_color = "#d1d8e0"  # couleur de la bordure
+                st.markdown(
+                    f"""
+                    <div style="
+                        background: {card_color};
+                        border-radius: 18px;
+                        border: 1.5px solid {border_color};
+                        padding: 1.2em 1em 1em 1em;
+                        margin-bottom: 1.5em;
+                        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+                        min-height: 230px;
+                    ">
+                        <h4 style="margin-top:0;margin-bottom:0.5em;">{recipe.name}</h4>
+                        <p style="margin-bottom:0.5em;"><b>Cuisine:</b> {recipe.cuisine_type}</p>
+                        <p style="margin-bottom:0.5em;"><b>Total:</b> {recipe.prep_time + recipe.cook_time} min</p>
+                        <p style="margin-bottom:0.5em;"><b>Tags:</b> {', '.join(recipe.tags)}</p>
+                        <p style="margin-bottom:0.5em;"><b>Ustensils:</b> {', '.join(recipe.utensils)}</p>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+                # Boutons sous la carte
+                colA, colB = st.columns([1, 1])
+                with colA:
+                    if st.button(f"View Recipe", key=f"view_{i}"):
+                        st.session_state.selected_recipe = recipe
+                        st.session_state.view_recipe = True
+                with colB:
+                    st.button(
+                        "Edit Recipe",
+                        key=f"edit_{i}",
+                        on_click=_on_edit_recipe,
+                        args=(recipe,)
+                    )
     # Recipe detail view (when a recipe is selected)
     if "view_recipe" in st.session_state and st.session_state.view_recipe:
         recipe = st.session_state.selected_recipe
