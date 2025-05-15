@@ -1,9 +1,10 @@
 import streamlit as st
 from io import BytesIO
 from PIL import Image
-from src.recipe_manager import filter_recipes
+from src.recipe_manager import filter_recipes, save_recipes
 
 from src.utils import _on_edit_recipe, save_changes
+
 
 # ---------- RECIPE BROWSER PAGE ----------
 def run(drive, folder_id):
@@ -166,7 +167,7 @@ def run(drive, folder_id):
                         del st.session_state.confirm_delete
                         del st.session_state.recipe_to_delete
                         del st.session_state.recipe_index_to_delete
-                        save_changes()
+                        save_changes(drive, folder_id, save_recipes)
                         st.success("Recipe deleted successfully!")
                         # st.rerun()
 
