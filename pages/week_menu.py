@@ -7,12 +7,14 @@ def run(drive, folder_id):
 
     # Charger le menu de la semaine au démarrage
     if "week_menu_loaded" not in st.session_state:
-        week_menu = load_week_menu(drive, folder_id)
+        week_menu = cached_load_week_menu(drive, folder_id)
         st.session_state.week_menu = week_menu if week_menu else []
         st.session_state.week_menu_loaded = True
 
     recipes = st.session_state.recipes
     recipe_names = [r.name for r in recipes]
+
+    changed = False
 
     # Affichage de chaque ligne du menu
     for idx, entry in enumerate(st.session_state.week_menu):
@@ -30,18 +32,22 @@ def run(drive, folder_id):
         )
         if cols[2].button("❌", key=f"del_menu_{idx}"):
             st.session_state.week_menu.pop(idx)
+            changed = True
             save_week_menu(drive, folder_id, st.session_state.week_menu)
             st.rerun()
         else:
-            st.session_state.week_menu[idx] = {"recipe": selected, "note": note}
-            save_week_menu(drive, folder_id, st.session_state.week_menu)
+            if entry["recipe"] != selected or entry["note"] != note:
+                st.session_state.week_menu[idx] = {"recipe": selected, "note": note}
+                changed = True
 
     st.markdown("---")
     if st.button("Ajouter une recette"):
         st.session_state.week_menu.append({"recipe": "", "note": ""})
-        save_week_menu(drive, folder_id, st.session_state.week_menu)
+        changed = True
         st.rerun()
 
+    if changed:
+        save_week_menu(drive, folder_id, st.session_state.week_menu)
 
 
     # Résumé de la liste de courses
