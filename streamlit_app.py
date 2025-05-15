@@ -1,23 +1,14 @@
 import streamlit as st
-import pandas as pd
-import tempfile
-import os
-import json
-from io import BytesIO
-from PIL import Image
+
 
 # Import modules
 from pydrive2.auth import GoogleAuth
 from pydrive2.drive import GoogleDrive
 
-# Import custom modules
-from src.recipe_manager import (
-    load_recipes, save_recipes, recipes_to_dataframe,
-    filter_recipes, Recipe, Ingredient
-)
+
 from pages import recipe_browser, add_recipe, files_manager, week_menu
 
-
+from src.utils import _on_edit_recipe, save_changes
 
 # Page configuration
 st.set_page_config(
@@ -64,11 +55,11 @@ if not drive:
 st.sidebar.title("Food App 🍲")
 if "page" not in st.session_state:
     st.session_state.page = "Recipe Browser"
-st.sidebar.radio(
+page = st.sidebar.radio(
     "Navigate",
-    ["Recipe Browser", "Add Recipe", "Files Manager"],
-    index=["Recipe Browser", "Add Recipe", "Files Manager"].index(st.session_state.page),
-    key="page"
+    list(PAGES.keys()),
+    index=list(PAGES.keys()).index(st.session_state.get("page", "Recipe Browser")),
+    key="page",
 )
 
 # Load recipes data
@@ -76,21 +67,6 @@ if "recipes" not in st.session_state:
     with st.spinner("Loading recipes..."):
         st.session_state.recipes = load_recipes(drive, folder_id)
         st.session_state.need_save = False
-
-# Function to save changes when needed
-def save_changes():
-    if st.session_state.need_save:
-        with st.spinner("Saving changes..."):
-            if save_recipes(drive, folder_id, st.session_state.recipes):
-                st.success("Changes saved successfully!")
-                st.session_state.need_save = False
-            else:
-                st.error("Failed to save changes")
-
-def _on_edit_recipe(recipe):
-    st.session_state.edit_recipe = recipe
-    st.session_state.view_recipe = False
-    st.session_state.page = "Add Recipe"
 
 
 PAGES = {
@@ -100,13 +76,7 @@ PAGES = {
     "Week Menu": week_menu.run,
 }
 
-page = st.sidebar.radio(
-    "Navigate",
-    list(PAGES.keys()),
-    index=list(PAGES.keys()).index(st.session_state.get("page", "Recipe Browser")),
-    key="page",
-)
 
 PAGES[page](drive, folder_id)
 
-save_changes()
+save_changes(drive, folder_id, save_recipes)

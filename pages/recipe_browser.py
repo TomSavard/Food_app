@@ -1,9 +1,9 @@
 import streamlit as st
-from ..streamlit_app import _on_edit_recipe, save_changes
 from io import BytesIO
 from PIL import Image
 from src.recipe_manager import filter_recipes
 
+from src.utils import _on_edit_recipe, save_changes
 
 # ---------- RECIPE BROWSER PAGE ----------
 def run(drive, folder_id):
