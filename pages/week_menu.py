@@ -1,6 +1,5 @@
 import streamlit as st
-from src.recipe_manager import load_week_menu, save_week_menu
-
+from src.recipe_manager import load_week_menu, save_week_menu, cached_load_week_menu
 
 def run(drive, folder_id):
     st.title("Menu de la semaine (libre)")
