@@ -55,12 +55,6 @@ if not drive:
 st.sidebar.title("Food App 🍲")
 if "page" not in st.session_state:
     st.session_state.page = "Recipe Browser"
-page = st.sidebar.radio(
-    "Navigate",
-    list(PAGES.keys()),
-    index=list(PAGES.keys()).index(st.session_state.get("page", "Recipe Browser")),
-    key="page",
-)
 
 # Load recipes data
 if "recipes" not in st.session_state:
@@ -76,6 +70,12 @@ PAGES = {
     "Week Menu": week_menu.run,
 }
 
+page = st.sidebar.radio(
+    "Navigate",
+    list(PAGES.keys()),
+    index=list(PAGES.keys()).index(st.session_state.get("page", "Recipe Browser")),
+    key="page",
+)
 
 PAGES[page](drive, folder_id)
 
