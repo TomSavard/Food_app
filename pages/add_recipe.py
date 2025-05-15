@@ -13,6 +13,7 @@ from pydrive2.drive import GoogleDrive
 
 from src.recipe_manager import save_recipes
 from src.utils import save_changes
+from src.models.recipe import Recipe
 
 
 def run(drive, folder_id):
