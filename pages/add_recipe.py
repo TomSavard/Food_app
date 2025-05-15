@@ -10,11 +10,9 @@ from PIL import Image
 from pydrive2.auth import GoogleAuth
 from pydrive2.drive import GoogleDrive
 
-# Import custom modules
-from src.recipe_manager import (
-    load_recipes, save_recipes, recipes_to_dataframe,
-    filter_recipes, Recipe, Ingredient
-)
+
+from src.recipe_manager import save_recipes
+from src.utils import save_changes
 
 
 def run(drive, folder_id):
@@ -258,4 +256,4 @@ def run(drive, folder_id):
         st.session_state.instructions = []
         
         # Save immediately
-        save_changes()
+        save_changes(drive, folder_id, save_recipes)
