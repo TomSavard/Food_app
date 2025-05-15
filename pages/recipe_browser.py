@@ -71,7 +71,7 @@ def run(drive, folder_id):
                         border-radius: 18px;
                         border: 1.5px solid {border_color};
                         padding: 1.2em 1em 1em 1em;
-                        margin-bottom: 1.5em;
+                        margin-bottom: 0.2em;
                         box-shadow: 0 2px 8px rgba(0,0,0,0.04);
                         min-height: 230px;
                         color: #fff;
@@ -86,7 +86,6 @@ def run(drive, folder_id):
                     """,
                     unsafe_allow_html=True,
                 )
-                st.markdown('<div style="margin-top:-1.2em"></div>', unsafe_allow_html=True)
                 if st.button("View Recipe", key=f"view_{i}"):
                     st.session_state.selected_recipe = recipe
                     st.session_state.view_recipe = True
