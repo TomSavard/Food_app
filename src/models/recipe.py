@@ -66,6 +66,11 @@ class Recipe:
 
     @classmethod
     def from_dict(cls, data):
+        recipe_id = data.get("recipe_id", "")
+        # Si l'ID est vide, générer un nouvel UUID
+        if not recipe_id:
+            recipe_id = str(uuid.uuid4())
+
         return cls(
             name=data.get("name", ""),
             ingredients=[Ingredient.from_dict(i) for i in data.get("ingredients", [])],
@@ -77,16 +82,16 @@ class Recipe:
             tags=data.get("tags", []),
             description=data.get("description", ""),
             image_file_id=data.get("image_file_id", ""),
-            recipe_id=data.get("recipe_id", "")
+            recipe_id=recipe_id
         )
-    
+
     def to_json(self):
         return json.dumps(self.to_dict(), ensure_ascii=False, indent=2)
-    
+
     @classmethod
     def from_json(cls, json_str):
         return cls.from_dict(json.loads(json_str))
-    
+
     def to_dataframe_row(self):
         """Convert recipe to a pandas DataFrame row format"""
         return {

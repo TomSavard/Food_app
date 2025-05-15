@@ -31,3 +31,7 @@ streamlit run streamlit_app.py
 
 Pour un accès online :
 
+
+
+Current issue : 
+incorrect ID for recipes which affects the delete.

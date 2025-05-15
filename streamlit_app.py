@@ -453,7 +453,7 @@ elif page == "Add Recipe":
             ingredients=st.session_state.ingredients.copy(),  # Use copy to avoid reference issues
             instructions=st.session_state.instructions.copy(),  # Use copy to avoid reference issues
             image_file_id=image_file_id,
-            recipe_id=recipe.recipe_id if editing else None  # Preserve original ID when editing
+            recipe_id=recipe.recipe_id if editing else ""
         )
         
         # Save recipe
