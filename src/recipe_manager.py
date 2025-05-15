@@ -9,6 +9,8 @@ from src.models.recipe import Recipe, Ingredient
 
 # Constants
 RECIPES_FILE_NAME = "food_recipes_database.json"
+WEEK_MENU_FILE_NAME = "week_menu.json"
+
 
 def find_recipes_file(drive: GoogleDrive, folder_id: str) -> Optional[Dict]:
     """Find or create the recipes database file in Google Drive"""
@@ -162,3 +164,28 @@ def filter_recipes(recipes: List[Recipe], search_term: str = "", tags: List[str]
         ]
     
     return filtered_recipes
+
+
+
+def load_week_menu(drive, folder_id):
+    """Charge le menu de la semaine depuis Google Drive"""
+    file_list = drive.ListFile({'q': f"'{folder_id}' in parents and trashed=false and title='{WEEK_MENU_FILE_NAME}'"}).GetList()
+    if file_list:
+        file = file_list[0]
+        content = file.GetContentString()
+        return json.loads(content)
+    return []
+
+def save_week_menu(drive, folder_id, week_menu):
+    """Sauvegarde le menu de la semaine sur Google Drive"""
+    # Cherche si le fichier existe déjà
+    file_list = drive.ListFile({'q': f"'{folder_id}' in parents and trashed=false and title='{WEEK_MENU_FILE_NAME}'"}).GetList()
+    content = json.dumps(week_menu, ensure_ascii=False, indent=2)
+    if file_list:
+        file = file_list[0]
+        file.SetContentString(content)
+        file.Upload()
+    else:
+        file = drive.CreateFile({'title': WEEK_MENU_FILE_NAME, 'parents': [{'id': folder_id}]})
+        file.SetContentString(content)
+        file.Upload()

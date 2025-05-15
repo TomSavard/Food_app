@@ -1,11 +1,15 @@
 import streamlit as st
+from src.recipe_manager import load_week_menu, save_week_menu
+
 
 def run(drive, folder_id):
     st.title("Menu de la semaine (libre)")
 
-    # Initialisation de la liste si besoin
-    if "week_menu" not in st.session_state:
-        st.session_state.week_menu = []
+    # Charger le menu de la semaine au démarrage
+    if "week_menu_loaded" not in st.session_state:
+        week_menu = load_week_menu(drive, folder_id)
+        st.session_state.week_menu = week_menu if week_menu else []
+        st.session_state.week_menu_loaded = True
 
     recipes = st.session_state.recipes
     recipe_names = [r.name for r in recipes]
@@ -13,32 +17,31 @@ def run(drive, folder_id):
     # Affichage de chaque ligne du menu
     for idx, entry in enumerate(st.session_state.week_menu):
         cols = st.columns([3, 5, 1])
-        # Sélecteur de recette
         selected = cols[0].selectbox(
             f"Recette {idx+1}",
             [""] + recipe_names,
             index=(recipe_names.index(entry["recipe"]) + 1) if entry["recipe"] in recipe_names else 0,
             key=f"menu_recipe_{idx}"
         )
-        # Champ texte libre
         note = cols[1].text_input(
             "Infos (jour, moment, invités...)", 
             value=entry["note"], 
             key=f"menu_note_{idx}"
         )
-        # Bouton suppression
         if cols[2].button("❌", key=f"del_menu_{idx}"):
             st.session_state.week_menu.pop(idx)
+            save_week_menu(drive, folder_id, st.session_state.week_menu)
             st.rerun()
         else:
-            # Mise à jour de la ligne
             st.session_state.week_menu[idx] = {"recipe": selected, "note": note}
+            save_week_menu(drive, folder_id, st.session_state.week_menu)
 
     st.markdown("---")
-    # Bouton pour ajouter une ligne
     if st.button("Ajouter une recette"):
         st.session_state.week_menu.append({"recipe": "", "note": ""})
+        save_week_menu(drive, folder_id, st.session_state.week_menu)
         st.rerun()
+
 
 
     # Résumé de la liste de courses
