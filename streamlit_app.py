@@ -203,10 +203,7 @@ if st.session_state.page == "Recipe Browser":
                 st.write(f"**Servings:** {recipe.servings}")
                 st.write(f"**Cuisine:** {recipe.cuisine_type}")
                 st.write(f"**Tags:** {', '.join(recipe.tags)}")
-
-                st.write("### Ustensils")
-                for u in recipe.utensils:
-                    st.write(f"- {u}")
+                st.write(f"**Ustensils:** {', '.join(recipe.utensils)}")
 
 
         # Ajouter des boutons d'action en bas de la recette
