@@ -9,7 +9,7 @@ from src.recipe_manager import load_recipes, save_recipes
 
 # Page configuration
 st.set_page_config(
-    page_title="Food App",
+    page_title="MyFood",
     page_icon="🍲",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -63,9 +63,9 @@ if "recipes" not in st.session_state:
 PAGES = {
     "Recipe Browser": recipe_browser.run,
     "Add Recipe": add_recipe.run,
-    "Files Manager": files_manager.run,
     "Week Menu": week_menu.run,
     "Shopping List": shopping_list.run,
+    "Files Manager": files_manager.run,
 }
 
 page = st.sidebar.radio(
