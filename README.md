@@ -19,19 +19,7 @@ food-app@my-food-459018.iam.gserviceaccount.com
 
 
 
-# J'ai un problème avec l'identification avec google drive. Il faut que je reprenne sérieusement la chose.
+TODO : link les ingrédients avec la bdd de nourriture.
+Ne plus taper les ingrédients mais avoir une barre de recherche et sélectionner l'ingrédient. => que ce passe t il s'il n'y a pas l'ingrédient ?
 
-
-```
-source .venv/bin/activate
-
-streamlit run streamlit_app.py
-```
-
-
-Pour un accès online :
-
-
-
-Current issue : 
-incorrect ID for recipes which affects the delete.
+remplir la BDD de recette
