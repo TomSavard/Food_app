@@ -21,32 +21,32 @@ from src.recipe_manager import (
 def run(drive, folder_id):
     st.title("Files Manager")
     
-    # --- File Upload Section ---
-    uploaded_file = st.file_uploader("Upload file to Google Drive folder", type=None)
-    if uploaded_file is not None:
-        st.write(f"Uploaded file: {uploaded_file.name}")
-        with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
-            tmp_file.write(uploaded_file.read())
-            tmp_file_path = tmp_file.name
+    # # --- File Upload Section ---
+    # uploaded_file = st.file_uploader("Upload file to Google Drive folder", type=None)
+    # if uploaded_file is not None:
+    #     st.write(f"Uploaded file: {uploaded_file.name}")
+    #     with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
+    #         tmp_file.write(uploaded_file.read())
+    #         tmp_file_path = tmp_file.name
 
-        # Upload to Drive
-        try:
-            with st.spinner(f"Uploading {uploaded_file.name}..."):
-                gfile = drive.CreateFile({
-                    'title': uploaded_file.name,
-                    'parents': [{'id': folder_id}]
-                })
-                gfile.SetContentFile(tmp_file_path)
-                gfile.Upload()
-            st.success(f"'{uploaded_file.name}' uploaded successfully!")
+        # # Upload to Drive
+        # try:
+        #     with st.spinner(f"Uploading {uploaded_file.name}..."):
+        #         gfile = drive.CreateFile({
+        #             'title': uploaded_file.name,
+        #             'parents': [{'id': folder_id}]
+        #         })
+        #         gfile.SetContentFile(tmp_file_path)
+        #         gfile.Upload()
+        #     st.success(f"'{uploaded_file.name}' uploaded successfully!")
             
-            # Clean up temporary file
-            if os.path.exists(tmp_file_path):
-                os.remove(tmp_file_path)
-        except Exception as e:
-            st.error(f"Upload failed: {e}")
-            if os.path.exists(tmp_file_path):
-                os.remove(tmp_file_path)
+        #     # Clean up temporary file
+        #     if os.path.exists(tmp_file_path):
+        #         os.remove(tmp_file_path)
+        # except Exception as e:
+        #     st.error(f"Upload failed: {e}")
+        #     if os.path.exists(tmp_file_path):
+        #         os.remove(tmp_file_path)
     
     # --- List Files in Google Drive ---
     st.subheader("Files in Google Drive Folder")
