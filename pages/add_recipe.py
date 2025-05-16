@@ -165,16 +165,16 @@ def run(drive, folder_id):
     # Use a form for adding instructions
     with st.form(key="instruction_form"):
         new_instruction = st.text_area("Instruction step", key="form_new_instruction")
-        
+
         # Submit button inside form
         submitted = st.form_submit_button("Add Instruction")
-        
+
         if submitted and new_instruction:
             # Add to session state instructions list
             if "instructions" not in st.session_state:
                 st.session_state.instructions = []
             st.session_state.instructions.append(new_instruction)
-            
+
             # Set success flag (will be displayed on next run)
             st.session_state.add_instruction_success = True
 
@@ -198,7 +198,7 @@ def run(drive, folder_id):
             with tempfile.NamedTemporaryFile(delete=False, suffix=f".{uploaded_image.type.split('/')[1]}") as tmp_file:
                 tmp_file.write(uploaded_image.read())
                 tmp_file_path = tmp_file.name
-            
+
             try:
                 gfile = drive.CreateFile({
                     'title': f"recipe_img_{name.replace(' ', '_')}",
@@ -207,7 +207,7 @@ def run(drive, folder_id):
                 gfile.SetContentFile(tmp_file_path)
                 gfile.Upload()
                 image_file_id = gfile['id']
-                
+
                 # Clean up
                 if os.path.exists(tmp_file_path):
                     os.remove(tmp_file_path)
@@ -234,7 +234,7 @@ def run(drive, folder_id):
             image_file_id=image_file_id,
             **({} if not editing else {"recipe_id": recipe.recipe_id})
         )
-        
+
         # Save recipe
         if editing:
             # Replace existing recipe by ID
@@ -245,16 +245,16 @@ def run(drive, folder_id):
         else:
             # Add new recipe
             st.session_state.recipes.append(new_recipe)
-        
+
         # Mark for saving
         st.session_state.need_save = True
-        
+
         # Confirmation and cleanup
         st.success(f"Recipe {'updated' if editing else 'added'} successfully!")
         if editing:
             del st.session_state.edit_recipe
         st.session_state.ingredients = []
         st.session_state.instructions = []
-        
+
         # Save immediately
         save_changes(drive, folder_id, save_recipes)
