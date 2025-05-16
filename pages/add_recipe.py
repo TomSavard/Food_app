@@ -16,6 +16,18 @@ from src.utils import save_changes
 from src.models.recipe import Recipe, Ingredient
 
 
+@st.cache_data
+def load_ingredient_db(drive, folder_id, filename="BDD.xlsx"):
+    file_list = drive.ListFile({'q': f"'{folder_id}' in parents and trashed=false and title='{filename}'"}).GetList()
+    if not file_list:
+        st.warning("Base d'ingrédients non trouvée.")
+        return pd.DataFrame()
+    file = file_list[O]
+    with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
+        file.GetContentFile(tmp_file.name)
+        df = pd.read_excel(tmp_file.name)
+    return df
+
 def run(drive, folder_id):
     st.title("Add / Edit Recipe")
 
@@ -99,18 +111,31 @@ def run(drive, folder_id):
 
     # Add new ingredient using a form
     st.write("Add New Ingredient:")
-
+    ingredient_db = load_ingredient_db(drive, folder_id, file_name="recettes.xlsx")  # adapte le nom si besoin
     # Use a form for adding ingredients
     with st.form(key="ingredient_form"):
         ing_cols = st.columns([3, 1, 1, 2])
-        ing_name = ing_cols[0].text_input("Name", key="form_ing_name")
+        if not ingredient_db.empty:
+            ingredient_names = ingredient_db['alim_nom_fr'].dropna().unique().tolist()
+            selected_ing = ing_cols[0].selectbox("Nom", [""] + ingredient_names, key="form_ing_name")
+            if selected_ing:
+                ing_row = ingredient_db[ingredient_db['alim_nom_fr'] == selected_ing].iloc[0]
+                ing_class = ing_row.get('alim_grp_nom_fr', '')
+            else:
+                ing_name = ""
+                ing_class = ""
+        else:
+            ing_name = ing_cols[0].text_input("Nom", key="form_ing_name")
+            ing_class = ""
+
         ing_qty = ing_cols[1].number_input("Qty", min_value=0.0, step=0.1, format="%.1f", key="form_ing_qty")
         ing_unit = ing_cols[2].text_input("Unit", key="form_ing_unit")
+        ing_cols[3].text_input("Class", value=ing_class, key="form_ing_class", disabled=True)
         ing_notes = ing_cols[3].text_input("Notes", key="form_ing_notes")
-        
+
         # Submit button inside form
         submitted = st.form_submit_button("Add Ingredient")
-        
+
         if submitted and ing_name:
             # Create a new ingredient
             new_ing = Ingredient(
@@ -119,13 +144,11 @@ def run(drive, folder_id):
                 unit=ing_unit,
                 notes=ing_notes
             )
-            
+
             # Add to session state ingredients list
             if "ingredients" not in st.session_state:
                 st.session_state.ingredients = []
             st.session_state.ingredients.append(new_ing)
-            
-            # Set success flag (will be displayed on next run)
             st.session_state.add_success = True
             st.rerun()
 
