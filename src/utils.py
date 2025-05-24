@@ -1,6 +1,7 @@
 import streamlit as st
 from pydrive2.auth import GoogleAuth
 from pydrive2.drive import GoogleDrive
+import pandas as pd
 
 
 def _on_edit_recipe(recipe):
@@ -33,3 +34,17 @@ def ensure_drive_connection():
         except Exception as e:
             st.error(f"Google Drive authentication failed: {e}")
             st.stop()
+
+
+def load_ingredient_db(drive, folder_id, filename="BDD.xlsx"):
+    # Cherche le fichier dans le dossier Drive
+    file_list = drive.ListFile({'q': f"'{folder_id}' in parents and trashed=false and title='{filename}'"}).GetList()
+    if not file_list:
+        return pd.DataFrame()
+    file = file_list[0]
+    content = file.GetContentString(encoding='utf-8')
+    # Utilise BytesIO pour lire le fichier Excel
+    from io import BytesIO
+    file_bytes = file.GetContentBinary()
+    return pd.read_excel(BytesIO(file_bytes))
+
