@@ -4,17 +4,16 @@ from src.recipe_manager import load_week_menu, load_extra_products, save_extra_p
 
 st.title("🛒 Liste de courses")
 
+drive = st.session_state.get("drive")
+folder_id = st.session_state.get("folder_id")
+
 if "week_menu" not in st.session_state:
-    drive = st.session_state.get("drive")
-    folder_id = st.session_state.get("folder_id")
     if drive is not None and folder_id is not None:
         st.session_state.week_menu = load_week_menu(drive, folder_id)
     else:
         st.session_state.week_menu = []
 
 if "extra_products" not in st.session_state:
-    drive = st.session_state.get("drive")
-    folder_id = st.session_state.get("folder_id")
     if drive is not None and folder_id is not None:
         st.session_state.extra_products = load_extra_products(drive, folder_id)
     else:
