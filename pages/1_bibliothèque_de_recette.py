@@ -19,14 +19,14 @@ else:
 
 st.title("Recipe Browser")
 
-with st.expander("Debug Information", expanded=False):
-    st.write(f"Number of recipes: {len(st.session_state.recipes)}")
-    st.write("Recipe IDs:")
-    for i, r in enumerate(st.session_state.recipes):
-        id_value = r.recipe_id
-        id_display = f"'{id_value}'" if id_value else "EMPTY"
-        id_type = type(id_value).__name__
-        st.write(f"{i}. '{r.name}': {id_display} (type: {id_type}, length: {len(str(id_value))})")
+# with st.expander("Debug Information", expanded=False):
+#     st.write(f"Number of recipes: {len(st.session_state.recipes)}")
+#     st.write("Recipe IDs:")
+#     for i, r in enumerate(st.session_state.recipes):
+#         id_value = r.recipe_id
+#         id_display = f"'{id_value}'" if id_value else "EMPTY"
+#         id_type = type(id_value).__name__
+#         st.write(f"{i}. '{r.name}': {id_display} (type: {id_type}, length: {len(str(id_value))})")
 
 # Filter/Search controls
 col1, col2, col3, col4 = st.columns([2, 1, 1, 1])
