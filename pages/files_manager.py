@@ -5,7 +5,7 @@ import os
 import json
 from io import BytesIO
 from PIL import Image
-from utils import ensure_drive_connection
+from src.utils import ensure_drive_connection
 
 
 # ---------- FILES MANAGER PAGE ----------
