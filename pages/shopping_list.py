@@ -7,6 +7,10 @@ st.title("🛒 Liste de courses")
 drive = st.session_state.get("drive")
 folder_id = st.session_state.get("folder_id")
 
+if drive is None or folder_id is None:
+    st.error("Google Drive connection not available. Please reload the app.")
+    st.stop()
+
 if "week_menu" not in st.session_state:
     if drive is not None and folder_id is not None:
         st.session_state.week_menu = load_week_menu(drive, folder_id)
