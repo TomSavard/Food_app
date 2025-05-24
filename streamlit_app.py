@@ -49,9 +49,9 @@ if not drive:
     st.stop()
 
 # Sidebar Navigation
-st.sidebar.title("Food App 🍲")
-if "page" not in st.session_state:
-    st.session_state.page = "Recipe Browser"
+# st.sidebar.title("Food App 🍲")
+# if "page" not in st.session_state:
+#     st.session_state.page = "Recipe Browser"
 
 # Load recipes data
 if "recipes" not in st.session_state:
@@ -60,21 +60,21 @@ if "recipes" not in st.session_state:
         st.session_state.need_save = False
 
 
-PAGES = {
-    "Recipe Browser": recipe_browser.run,
-    "Add Recipe": add_recipe.run,
-    "Week Menu": week_menu.run,
-    "Shopping List": shopping_list.run,
-    "Files Manager": files_manager.run,
-}
+# PAGES = {
+#     "Recipe Browser": recipe_browser.run,
+#     "Add Recipe": add_recipe.run,
+#     "Week Menu": week_menu.run,
+#     "Shopping List": shopping_list.run,
+#     "Files Manager": files_manager.run,
+# }
 
-page = st.sidebar.radio(
-    "Navigate",
-    list(PAGES.keys()),
-    index=list(PAGES.keys()).index(st.session_state.get("page", "Recipe Browser")),
-    key="page",
-)
+# page = st.sidebar.radio(
+#     "Navigate",
+#     list(PAGES.keys()),
+#     index=list(PAGES.keys()).index(st.session_state.get("page", "Recipe Browser")),
+#     key="page",
+# )
 
-PAGES[page](drive, folder_id)
+# PAGES[page](drive, folder_id)
 
 save_changes(drive, folder_id, save_recipes)
