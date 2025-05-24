@@ -21,7 +21,6 @@ def ensure_drive_connection():
     if "drive" not in st.session_state or "folder_id" not in st.session_state:
         try:
             credentials = st.secrets["GOOGLE_DRIVE_CREDENTIALS"]
-            st.write("DEBUG credentials:", credentials)
             gauth = GoogleAuth()
             gauth.settings['client_config_backend'] = 'service'
             gauth.settings['service_config'] = {
@@ -29,8 +28,8 @@ def ensure_drive_connection():
                 'client_user_email': credentials.get('client_email')
             }
             gauth.ServiceAuth()
-            st.session_state.drive = GoogleDrive(gauth)
-            st.session_state.folder_id = st.secrets["GOOGLE_DRIVE_FOLDER_ID"]
+            # st.session_state.drive = GoogleDrive(gauth)
+            # st.session_state.folder_id = st.secrets["GOOGLE_DRIVE_FOLDER_ID"]
         except Exception as e:
             st.error(f"Google Drive authentication failed: {e}")
             st.stop()
