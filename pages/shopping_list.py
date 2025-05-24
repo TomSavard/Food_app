@@ -4,18 +4,15 @@ from src.recipe_manager import load_week_menu, load_extra_products, save_extra_p
 
 st.title("🛒 Liste de courses")
 
-# # Charger le menu de la semaine (depuis session ou Drive)
-# if "week_menu" not in st.session_state:
-#     week_menu = load_week_menu(drive, folder_id)
-#     st.session_state.week_menu = week_menu if week_menu else []
+# Charger le menu de la semaine (depuis session ou Drive)
+if "week_menu" not in st.session_state:
+    week_menu = load_week_menu(drive, folder_id)
+    st.session_state.week_menu = week_menu if week_menu else []
 
-# # Charger les produits libres au démarrage
-# if "extra_products" not in st.session_state:
-#     st.session_state.extra_products = load_extra_products(drive, folder_id)
+# Charger les produits libres au démarrage
+if "extra_products" not in st.session_state:
+    st.session_state.extra_products = load_extra_products(drive, folder_id)
 
-
-# # Charger les recettes
-# recipes = st.session_state.recipes
 
 # Retrieve data from session state
 week_menu = st.session_state.get("week_menu", [])
