@@ -21,7 +21,7 @@ def ensure_drive_connection():
         try:
             credentials = st.secrets["GOOGLE_DRIVE_CREDENTIALS"]
             gauth = GoogleAuth()
-            gauth.settings['client_config_backend'] = 'service
+            gauth.settings['client_config_backend'] = 'service'
             gauth.settings['service°config'] = {
                 'client_json_dict': credentials,
                 'client_user_email': credentials.get('client_email')
