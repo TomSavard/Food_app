@@ -4,8 +4,14 @@ from pydrive2.drive import GoogleDrive
 
 
 from pages import recipe_browser, add_recipe, files_manager, week_menu, shopping_list
-from src.utils import _on_edit_recipe, save_changes
+from src.utils import _on_edit_recipe, save_changes, ensure_drive_connection
 from src.recipe_manager import load_recipes, save_recipes
+
+
+
+ensure_drive_connection()
+drive = st.session_state.drive
+folder_id = st.session_state.folder_id
 
 # Page configuration
 st.set_page_config(
@@ -15,41 +21,41 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Load credentials from Streamlit Secrets
-@st.cache_resource
-def get_drive() -> GoogleDrive | None:
-    try:
-        credentials = st.secrets["GOOGLE_DRIVE_CREDENTIALS"]
+# # Load credentials from Streamlit Secrets
+# @st.cache_resource
+# def get_drive() -> GoogleDrive | None:
+#     try:
+#         credentials = st.secrets["GOOGLE_DRIVE_CREDENTIALS"]
 
-        # Authenticate with Google Drive
-        gauth = GoogleAuth()
-        gauth.settings['client_config_backend'] = 'service'
-        gauth.settings['service_config'] = {
-            'client_json_dict': credentials,
-            'client_user_email': credentials.get('client_email')
-        }
-        gauth.ServiceAuth()
-        return GoogleDrive(gauth)
+#         # Authenticate with Google Drive
+#         gauth = GoogleAuth()
+#         gauth.settings['client_config_backend'] = 'service'
+#         gauth.settings['service_config'] = {
+#             'client_json_dict': credentials,
+#             'client_user_email': credentials.get('client_email')
+#         }
+#         gauth.ServiceAuth()
+#         return GoogleDrive(gauth)
 
-    except Exception as e:
-        st.error(f"Authentication failed: {e}")
-        return None
+#     except Exception as e:
+#         st.error(f"Authentication failed: {e}")
+#         return None
 
-# Get folder ID from secrets
-try:
-    folder_id = st.secrets["GOOGLE_DRIVE_FOLDER_ID"]
-except KeyError:
-    st.error("Missing GOOGLE_DRIVE_FOLDER_ID in Streamlit Secrets")
-    st.stop()
+# # Get folder ID from secrets
+# try:
+#     folder_id = st.secrets["GOOGLE_DRIVE_FOLDER_ID"]
+# except KeyError:
+#     st.error("Missing GOOGLE_DRIVE_FOLDER_ID in Streamlit Secrets")
+#     st.stop()
 
-# Connect to Google Drive
-drive = get_drive()
-if not drive:
-    st.error("Failed to authenticate with Google Drive.")
-    st.stop()
+# # Connect to Google Drive
+# drive = get_drive()
+# if not drive:
+#     st.error("Failed to authenticate with Google Drive.")
+#     st.stop()
 
-st.session_state.drive = drive
-st.session_state.folder_id = folder_id
+# st.session_state.drive = drive
+# st.session_state.folder_id = folder_id
 
 # Load recipes data
 if "recipes" not in st.session_state:
