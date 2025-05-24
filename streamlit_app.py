@@ -1,7 +1,4 @@
-# Accueil
-
 import streamlit as st
-st.set_page_config(page_title="My Tab Title")
 from pydrive2.auth import GoogleAuth
 from pydrive2.drive import GoogleDrive
 
