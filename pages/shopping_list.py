@@ -51,12 +51,13 @@ with st.form("add_product_form"):
         st.session_state.extra_products.append(new_product.strip())
         save_extra_products(drive, folder_id, st.session_state.extra_products)
         st.rerun()
-        
+
 # Debug info
 with st.expander("Debug Info"):
     st.write("Week menu:", week_menu)
     st.write("Recipes:", [getattr(r, "name", None) for r in recipes])
     st.write("Extra products:", extra_products)
+    st.write("Shopping list:", shopping_list)
 
 if shopping_list:
     for (name, unit), qty in shopping_list.items():
