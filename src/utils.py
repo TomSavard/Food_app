@@ -48,3 +48,17 @@ def load_ingredient_db(drive, folder_id, filename="BDD.xlsx"):
     with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=True) as tmp_file:
         file.GetContentFile(tmp_file.name)
         return pd.read_excel(tmp_file.name)
+
+
+def compute_recipe_protein(ingredients, ingredient_db):
+    total_protein = 0.0
+    for ing in ingredients:
+        # Find the ingredient in the DB
+        row = ingredient_db[ingredient_db["alim_nom_fr"] == ing.name]
+        if not row.empty:
+            # Adapt the column name if needed
+            protein_per_100g = row.iloc[0].get("proteins", row.iloc[0].get("protéines", 0))
+            # Assume quantity is in grams
+            qty = ing.quantity
+            total_protein += (protein_per_100g * qty) / 100
+    return total_protein

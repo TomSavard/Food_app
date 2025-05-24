@@ -2,7 +2,8 @@ import streamlit as st
 from io import BytesIO
 from PIL import Image
 from src.recipe_manager import filter_recipes, save_recipes, load_recipes
-from src.utils import _on_edit_recipe, save_changes, ensure_drive_connection
+from src.utils import _on_edit_recipe, save_changes, ensure_drive_connection, load_ingredient_db, compute_recipe_protein
+
 
 
 # ---------- RECIPE BROWSER PAGE ----------
@@ -15,6 +16,8 @@ if "recipes" not in st.session_state:
     st.session_state.recipes = load_recipes(drive, folder_id)
 else:
     recipes = st.session_state.get("recipes", [])
+
+ingredient_db = load_ingredient_db(drive, folder_id)
 
 
 st.title("Recipe Browser")
@@ -135,6 +138,9 @@ if "view_recipe" in st.session_state and st.session_state.view_recipe:
             st.write(f"**Cuisine:** {recipe.cuisine_type}")
             st.write(f"**Tags:** {', '.join(recipe.tags)}")
             st.write(f"**Ustensils:** {', '.join(recipe.utensils)}")
+            protein_total = compute_recipe_protein(recipe.ingredients, ingredient_db)
+            st.write(f"**Total Protein:** {protein_total:.1f} g")
+
 
 
     # Ajouter des boutons d'action en bas de la recette
