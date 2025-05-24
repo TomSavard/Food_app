@@ -112,7 +112,11 @@ st.write("Add New Ingredient:")
 # Use a form for adding ingredients
 with st.form(key="ingredient_form"):
     ing_cols = st.columns([3, 1, 1, 2])
-    ing_name = ing_cols[0].text_input("Name", key="form_ing_name")
+    ing_name = ing_cols[0].selectbox(
+        "Nom",
+        options=ingredient_names,
+        key="form_ing_name"
+    )
     ing_qty = ing_cols[1].number_input("Qty", min_value=0.0, step=0.1, format="%.1f", key="form_ing_qty")
     ing_unit = ing_cols[2].text_input("Unit", key="form_ing_unit")
     ing_notes = ing_cols[3].text_input("Notes", key="form_ing_notes")
