@@ -144,14 +144,11 @@ if "view_recipe" in st.session_state and st.session_state.view_recipe:
             st.session_state.view_recipe = False
             st.rerun()
     with col2:
-        if st.button("Edit Recipe"):
-            st.switch_page("pages/2_ajouter_une_recette.py")
-        # st.button(
-        #     "Edit Recipe",
-        #     key=f"edit_detail_{recipe.recipe_id}",
-        #     on_click=_on_edit_recipe,
-        #     args=(recipe,)
-        # )
+        if st.button(
+            "Edit Recipe",
+            key=f"edit_detail_{recipe.recipe_id}"
+        ):
+            _on_edit_recipe(recipe)
     with col3:
         # Show ID for debugging
         #st.write(f"Recipe ID: {recipe.recipe_id}")
