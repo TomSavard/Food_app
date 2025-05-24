@@ -14,16 +14,10 @@ if drive is None or folder_id is None:
     st.stop()
 
 if "week_menu" not in st.session_state:
-    if drive is not None and folder_id is not None:
-        st.session_state.week_menu = load_week_menu(drive, folder_id)
-    else:
-        st.session_state.week_menu = []
+    st.session_state.week_menu = load_week_menu(drive, folder_id)
 
 if "extra_products" not in st.session_state:
-    if drive is not None and folder_id is not None:
-        st.session_state.extra_products = load_extra_products(drive, folder_id)
-    else:
-        st.session_state.extra_products = []
+    st.session_state.extra_products = load_extra_products(drive, folder_id)
 
 if "recipes" not in st.session_state:
     st.session_state.recipes = []
