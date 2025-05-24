@@ -60,4 +60,4 @@ if "recipes" not in st.session_state:
 save_changes(drive, folder_id, save_recipes)
 
 st.title("Welcome to My Food 🍲")
-st.sidebar.title("Navigation")
+st.sidebar.markdown("Navigate through the app using the sidebar.")
