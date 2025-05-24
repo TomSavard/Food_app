@@ -29,7 +29,7 @@ def ensure_drive_connection():
             }
             gauth.ServiceAuth()
             st.session_state.drive = GoogleDrive(gauth)
-            # st.session_state.folder_id = st.secrets["GOOGLE_DRIVE_FOLDER_ID"]
+            st.session_state.folder_id = st.secrets["GOOGLE_DRIVE_FOLDER_ID"]
         except Exception as e:
             st.error(f"Google Drive authentication failed: {e}")
             st.stop()
