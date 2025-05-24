@@ -6,7 +6,7 @@ from pydrive2.drive import GoogleDrive
 def _on_edit_recipe(recipe):
     st.session_state.edit_recipe = recipe
     st.session_state.view_recipe = False
-    st.switch_page("pages/2_ajouter_une_recette.py")
+    st.switch_page("pages/2_ajouter_une_recette")
 
 def save_changes(drive, folder_id, save_recipes):
     if st.session_state.get("need_save", False):
