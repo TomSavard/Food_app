@@ -17,7 +17,17 @@ from src.recipe_manager import (
 )
 
 
+
+
+
 # ---------- FILES MANAGER PAGE ----------
+
+drive = st.session_state.get("drive")
+folder_id = st.session_state.get("folder_id")
+
+if drive is None or folder_id is None:
+    st.error("Google Drive connection not available. Please reload the app.")
+    st.stop()
 
 st.title("Files Manager")
 
