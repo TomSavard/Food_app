@@ -12,7 +12,7 @@ from pydrive2.drive import GoogleDrive
 
 
 from src.recipe_manager import save_recipes
-from src.utils import save_changes, ensure_drive_connection
+from src.utils import save_changes, ensure_drive_connection, load_ingredient_db
 from src.models.recipe import Recipe, Ingredient
 
 ingredient_db = load_ingredient_db(drive, folder_id)
