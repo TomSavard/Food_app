@@ -1,7 +1,7 @@
 import streamlit as st
 from io import BytesIO
 from PIL import Image
-from src.recipe_manager import filter_recipes, save_recipes
+from src.recipe_manager import filter_recipes, save_recipes, load_recipes
 from src.utils import _on_edit_recipe, save_changes, ensure_drive_connection
 
 
@@ -10,7 +10,13 @@ from src.utils import _on_edit_recipe, save_changes, ensure_drive_connection
 ensure_drive_connection()
 drive = st.session_state.drive
 folder_id = st.session_state.folder_id
-recipes = st.session_state.get("recipes", [])
+
+if "recipes" not in st.session_state:
+    st.session_state.recipes = load_recipes(drive, folder_id)
+else:
+    recipes = st.session_state.get("recipes", [])
+
+
 st.title("Recipe Browser")
 
 with st.expander("Debug Information", expanded=False):
