@@ -37,14 +37,11 @@ def ensure_drive_connection():
 
 
 def load_ingredient_db(drive, folder_id, filename="BDD.xlsx"):
-    # Cherche le fichier dans le dossier Drive
     file_list = drive.ListFile({'q': f"'{folder_id}' in parents and trashed=false and title='{filename}'"}).GetList()
     if not file_list:
         return pd.DataFrame()
     file = file_list[0]
-    content = file.GetContentString(encoding='utf-8')
-    # Utilise BytesIO pour lire le fichier Excel
-    from io import BytesIO
     file_bytes = file.GetContentBinary()
+    from io import BytesIO
     return pd.read_excel(BytesIO(file_bytes))
 
