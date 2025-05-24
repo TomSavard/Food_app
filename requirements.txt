@@ -4,4 +4,3 @@ pydrive2
 openpyxl
 pillow
 dataclasses_json
-streamlit-extras
