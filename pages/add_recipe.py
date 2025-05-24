@@ -12,12 +12,15 @@ from pydrive2.drive import GoogleDrive
 
 
 from src.recipe_manager import save_recipes
-from src.utils import save_changes
+from src.utils import save_changes, ensure_drive_connection
 from src.models.recipe import Recipe, Ingredient
 
 
 
 st.title("Add / Edit Recipe")
+ensure_drive_connection()
+drive = st.session_state.drive
+folder_id = st.session_state.folder_id
 
 editing = "edit_recipe" in st.session_state
 

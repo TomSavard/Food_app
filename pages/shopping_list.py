@@ -1,11 +1,13 @@
 import streamlit as st
 from src.recipe_manager import load_week_menu, load_extra_products, save_extra_products
+from src.utils import ensure_drive_connection
 
 
 st.title("🛒 Liste de courses")
 
-drive = st.session_state.get("drive")
-folder_id = st.session_state.get("folder_id")
+ensure_drive_connection()
+drive = st.session_state.drive
+folder_id = st.session_state.folder_id
 
 if drive is None or folder_id is None:
     st.error("Google Drive connection not available. Please reload the app.")

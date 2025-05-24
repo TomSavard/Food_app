@@ -2,11 +2,14 @@ import streamlit as st
 from io import BytesIO
 from PIL import Image
 from src.recipe_manager import filter_recipes, save_recipes
-from src.utils import _on_edit_recipe, save_changes
+from src.utils import _on_edit_recipe, save_changes, ensure_drive_connection
 
 
 # ---------- RECIPE BROWSER PAGE ----------
 
+ensure_drive_connection()
+drive = st.session_state.drive
+folder_id = st.session_state.folder_id
 recipes = st.session_state.get("recipes", [])
 st.title("Recipe Browser")
 

@@ -5,12 +5,14 @@ import os
 import json
 from io import BytesIO
 from PIL import Image
+from utils import ensure_drive_connection
 
 
 # ---------- FILES MANAGER PAGE ----------
 
-drive = st.session_state.get("drive")
-folder_id = st.session_state.get("folder_id")
+ensure_drive_connection()
+drive = st.session_state.drive
+folder_id = st.session_state.folder_id
 
 if drive is None or folder_id is None:
     st.error("Google Drive connection not available. Please reload the app.")
