@@ -64,10 +64,11 @@ if shopping_list:
         unit_str = f" {unit}" if unit else ""
         st.write(f"- **{qty:g}{unit_str}** {name.capitalize()}")
 
-for i, prod in enumerate(st.session_state.extra_products):
-    cols = st.columns([8, 1])
-    cols[0].write(f"- {prod}")
-    if cols[1].button("❌", key=f"del_prod_{i}"):
-        st.session_state.extra_products.pop(i)
-        save_extra_products(drive, folder_id, st.session_state.extra_products)
-        st.rerun()
+if st.session_state.extra_products:
+    for i, prod in enumerate(st.session_state.extra_products):
+        cols = st.columns([8, 1])
+        cols[0].write(f"- {prod}")
+        if cols[1].button("❌", key=f"del_prod_{i}"):
+            st.session_state.extra_products.pop(i)
+            save_extra_products(drive, folder_id, st.session_state.extra_products)
+            st.rerun()
