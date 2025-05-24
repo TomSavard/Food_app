@@ -11,7 +11,7 @@ from pydrive2.auth import GoogleAuth
 from pydrive2.drive import GoogleDrive
 
 
-from src.recipe_manager import save_recipes
+from src.recipe_manager import save_recipes, load_recipes
 from src.utils import save_changes, ensure_drive_connection, load_ingredient_db
 from src.models.recipe import Recipe, Ingredient
 
@@ -20,6 +20,8 @@ st.title("Add / Edit Recipe")
 ensure_drive_connection()
 drive = st.session_state.drive
 folder_id = st.session_state.folder_id
+if "recipes" not in st.session_state:
+    st.session_state.recipes = load_recipes(drive, folder_id)
 
 
 ingredient_db = load_ingredient_db(drive, folder_id)
