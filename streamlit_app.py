@@ -9,7 +9,7 @@ from src.recipe_manager import load_recipes, save_recipes
 
 # Page configuration
 st.set_page_config(
-    page_title="MyFood",
+    page_title="Accueil",
     page_icon="🍲",
     layout="wide",
     initial_sidebar_state="expanded"
