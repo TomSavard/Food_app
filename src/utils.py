@@ -21,6 +21,7 @@ def ensure_drive_connection():
     if "drive" not in st.session_state or "folder_id" not in st.session_state:
         try:
             credentials = st.secrets["GOOGLE_DRIVE_CREDENTIALS"]
+            st.write("DEBUG credentials:", credentials)
             gauth = GoogleAuth()
             gauth.settings['client_config_backend'] = 'service'
             gauth.settings['service_config'] = {
