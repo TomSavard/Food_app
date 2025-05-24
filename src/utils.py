@@ -41,7 +41,9 @@ def load_ingredient_db(drive, folder_id, filename="BDD.xlsx"):
     if not file_list:
         return pd.DataFrame()
     file = file_list[0]
-    file_bytes = file.GetContentBinary()
     from io import BytesIO
-    return pd.read_excel(BytesIO(file_bytes))
+    file_buffer = BytesIO()
+    file.GetContentFile(file_buffer)  # Remplit le buffer avec le contenu du fichier
+    file_buffer.seek(0)
+    return pd.read_excel(file_buffer)
 
