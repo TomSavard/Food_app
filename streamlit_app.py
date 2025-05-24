@@ -48,6 +48,9 @@ if not drive:
     st.error("Failed to authenticate with Google Drive.")
     st.stop()
 
+st.session_state.drive = drive
+st.session_state.folder_id = folder_id
+
 # Load recipes data
 if "recipes" not in st.session_state:
     with st.spinner("Loading recipes..."):
