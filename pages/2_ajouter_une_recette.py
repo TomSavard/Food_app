@@ -26,9 +26,6 @@ if "recipes" not in st.session_state:
 
 ingredient_db = load_ingredient_db(drive, folder_id)
 ingredient_names = ingredient_db["alim_nom_fr"].dropna().unique().tolist() if not ingredient_db.empty else []
-st.write("Aperçu de la BDD d'ingrédients :")
-st.write(ingredient_db.head())
-
 
 editing = "edit_recipe" in st.session_state
 
