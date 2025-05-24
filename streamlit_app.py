@@ -58,3 +58,6 @@ if "recipes" not in st.session_state:
         st.session_state.need_save = False
 
 save_changes(drive, folder_id, save_recipes)
+
+st.title("Welcome to My Food 🍲")
+st.sidebar.title("Navigation")
