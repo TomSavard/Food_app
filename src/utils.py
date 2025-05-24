@@ -57,7 +57,7 @@ def compute_recipe_protein(ingredients, ingredient_db):
         row = ingredient_db[ingredient_db["alim_nom_fr"] == ing.name]
         if not row.empty:
             # Adapt the column name if needed
-            protein_per_100g = row.iloc[0].get("proteins", row.iloc[0].get("protéines", 0))
+            protein_per_100g = row.iloc[0].get("Protéines, N x facteur de Jones (g/100 g)", row.iloc[0].get("protéines", 0))
             # Assume quantity is in grams
             qty = ing.quantity
             total_protein += (protein_per_100g * qty) / 100
