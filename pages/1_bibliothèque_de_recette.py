@@ -146,7 +146,7 @@ if "view_recipe" in st.session_state and st.session_state.view_recipe:
     with col2:
         st.button(
             "Edit Recipe",
-            key=f"edit_{i}",
+            key=f"edit_detail_{recipe.recipe_id}",
             on_click=_on_edit_recipe,
             args=(recipe,)
         )
