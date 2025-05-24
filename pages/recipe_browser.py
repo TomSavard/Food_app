@@ -6,7 +6,7 @@ from src.utils import _on_edit_recipe, save_changes
 
 
 # ---------- RECIPE BROWSER PAGE ----------
-# def run(drive, folder_id):
+
 recipes = st.session_state.get("recipes", [])
 st.title("Recipe Browser")
 
