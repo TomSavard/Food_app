@@ -2,6 +2,8 @@ import streamlit as st
 from pydrive2.auth import GoogleAuth
 from pydrive2.drive import GoogleDrive
 import pandas as pd
+import tempfile
+
 
 
 def _on_edit_recipe(recipe):
@@ -41,9 +43,8 @@ def load_ingredient_db(drive, folder_id, filename="BDD.xlsx"):
     if not file_list:
         return pd.DataFrame()
     file = file_list[0]
-    from io import BytesIO
-    file_buffer = BytesIO()
-    file.GetContentFile(file_buffer)  # Remplit le buffer avec le contenu du fichier
-    file_buffer.seek(0)
-    return pd.read_excel(file_buffer)
-
+    import pandas as pd
+    import tempfile
+    with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=True) as tmp_file:
+        file.GetContentFile(tmp_file.name)
+        return pd.read_excel(tmp_file.name)
