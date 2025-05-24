@@ -6,19 +6,6 @@ import json
 from io import BytesIO
 from PIL import Image
 
-# Import modules
-from pydrive2.auth import GoogleAuth
-from pydrive2.drive import GoogleDrive
-
-# Import custom modules
-from src.recipe_manager import (
-    load_recipes, save_recipes, recipes_to_dataframe,
-    filter_recipes, Recipe, Ingredient
-)
-
-
-
-
 
 # ---------- FILES MANAGER PAGE ----------
 

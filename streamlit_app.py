@@ -20,7 +20,7 @@ st.set_page_config(
 def get_drive() -> GoogleDrive | None:
     try:
         credentials = st.secrets["GOOGLE_DRIVE_CREDENTIALS"]
-        
+
         # Authenticate with Google Drive
         gauth = GoogleAuth()
         gauth.settings['client_config_backend'] = 'service'
@@ -30,7 +30,7 @@ def get_drive() -> GoogleDrive | None:
         }
         gauth.ServiceAuth()
         return GoogleDrive(gauth)
-    
+
     except Exception as e:
         st.error(f"Authentication failed: {e}")
         return None
@@ -48,33 +48,10 @@ if not drive:
     st.error("Failed to authenticate with Google Drive.")
     st.stop()
 
-# Sidebar Navigation
-# st.sidebar.title("Food App 🍲")
-# if "page" not in st.session_state:
-#     st.session_state.page = "Recipe Browser"
-
 # Load recipes data
 if "recipes" not in st.session_state:
     with st.spinner("Loading recipes..."):
         st.session_state.recipes = load_recipes(drive, folder_id)
         st.session_state.need_save = False
-
-
-# PAGES = {
-#     "Recipe Browser": recipe_browser.run,
-#     "Add Recipe": add_recipe.run,
-#     "Week Menu": week_menu.run,
-#     "Shopping List": shopping_list.run,
-#     "Files Manager": files_manager.run,
-# }
-
-# page = st.sidebar.radio(
-#     "Navigate",
-#     list(PAGES.keys()),
-#     index=list(PAGES.keys()).index(st.session_state.get("page", "Recipe Browser")),
-#     key="page",
-# )
-
-# PAGES[page](drive, folder_id)
 
 save_changes(drive, folder_id, save_recipes)
