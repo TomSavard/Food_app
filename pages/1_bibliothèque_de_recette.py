@@ -145,7 +145,7 @@ if "view_recipe" in st.session_state and st.session_state.view_recipe:
             st.rerun()
     with col2:
         if st.button("Edit Recipe"):
-            st.switch_page("your_app.py")
+            st.switch_page("pages/2_ajouter_une_recette.py")
         # st.button(
         #     "Edit Recipe",
         #     key=f"edit_detail_{recipe.recipe_id}",
