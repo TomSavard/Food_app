@@ -24,10 +24,10 @@ def ensure_drive_connection():
             st.write("DEBUG credentials:", credentials)
             gauth = GoogleAuth()
             gauth.settings['client_config_backend'] = 'service'
-            # gauth.settings['service_config'] = {
-            #     'client_json_dict': credentials,
-            #     'client_user_email': credentials.get('client_email')
-            # }
+            gauth.settings['service_config'] = {
+                'client_json_dict': credentials,
+                'client_user_email': credentials.get('client_email')
+            }
             gauth.ServiceAuth()
             st.session_state.drive = GoogleDrive(gauth)
             st.session_state.folder_id = st.secrets["GOOGLE_DRIVE_FOLDER_ID"]
