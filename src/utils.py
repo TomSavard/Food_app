@@ -53,26 +53,36 @@ def load_ingredient_db(drive, folder_id, filename="BDD.xlsx"):
 def compute_recipe_protein(ingredients, ingredient_db):
     total_protein = 0.0
     for ing in ingredients:
+        # on check l'unité
+        unit = ing.unit.lower()
+        if unit == "g":
+            qty = ing.quantity
+        elif unit == "kg":
+            qty = ing.quantity * 1000
+        else:
+            continue
         # Find the ingredient in the DB
         row = ingredient_db[ingredient_db["alim_nom_fr"] == ing.name]
         if not row.empty:
-            # Adapt the column name if needed
             protein_per_100g = row.iloc[0].get("Protéines, N x facteur de Jones (g/100 g)", 0)
-            # Assume quantity is in grams
-            qty = ing.quantity
             total_protein += (protein_per_100g * qty) / 100
     return total_protein
 
 def compute_recipe_lipide(ingredients, ingredient_db):
     total_lipide = 0.0
     for ing in ingredients:
+        # on check l'unité
+        unit = ing.unit.lower()
+        if unit == "g":
+            qty = ing.quantity
+        elif unit == "kg":
+            qty = ing.quantity * 1000
+        else:
+            continue
         # Find the ingredient in the DB
         row = ingredient_db[ingredient_db["alim_nom_fr"] == ing.name]
         if not row.empty:
-            # Adapt the column name if needed
             lipide_per_100g = row.iloc[0].get("Lipides (g/100 g)",0)
-            # Assume quantity is in grams
-            qty = ing.quantity
             total_lipide += (lipide_per_100g * qty) / 100
     return total_lipide
 
@@ -80,13 +90,18 @@ def compute_recipe_lipide(ingredients, ingredient_db):
 def compute_recipe_glucide(ingredients, ingredient_db):
     total_glucide = 0.0
     for ing in ingredients:
+        # on check l'unité
+        unit = ing.unit.lower()
+        if unit == "g":
+            qty = ing.quantity
+        elif unit == "kg":
+            qty = ing.quantity * 1000
+        else:
+            continue
         # Find the ingredient in the DB
         row = ingredient_db[ingredient_db["alim_nom_fr"] == ing.name]
         if not row.empty:
-            # Adapt the column name if needed
             glucide_per_100g = row.iloc[0].get("Glucides (g/100 g)", 0)
-            # Assume quantity is in grams
-            qty = ing.quantity
             total_glucide += (glucide_per_100g * qty) / 100
     return total_glucide
 
@@ -95,12 +110,17 @@ def compute_recipe_glucide(ingredients, ingredient_db):
 def compute_recipe_calorie(ingredients, ingredient_db):
     total_calorie = 0.0
     for ing in ingredients:
+        # on check l'unité
+        unit = ing.unit.lower()
+        if unit == "g":
+            qty = ing.quantity
+        elif unit == "kg":
+            qty = ing.quantity * 1000
+        else:
+            continue
         # Find the ingredient in the DB
         row = ingredient_db[ingredient_db["alim_nom_fr"] == ing.name]
         if not row.empty:
-            # Adapt the column name if needed
             calorie_per_100g = row.iloc[0].get("Energie, Règlement UE N° 1169/2011 (kcal/100 g)", 0)
-            # Assume quantity is in grams
-            qty = ing.quantity
             total_calorie += (calorie_per_100g * qty) / 100
     return total_calorie
