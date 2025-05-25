@@ -139,13 +139,13 @@ if "view_recipe" in st.session_state and st.session_state.view_recipe:
             st.write(f"**Tags:** {', '.join(recipe.tags)}")
             st.write(f"**Ustensils:** {', '.join(recipe.utensils)}")
             calorie_total = compute_recipe_calorie(recipe.ingredients, ingredient_db)
-            st.write(f"**Total Calories:** {calorie_total:.1f} kcal")
+            st.write(f"**Calories:** {calorie_total:.1f} kcal")
             protein_total = compute_recipe_protein(recipe.ingredients, ingredient_db)
-            st.write(f"**Total Protein:** {protein_total:.1f} g")
+            st.write(f"**Protéines:** {protein_total:.1f} g")
             lipide_total = compute_recipe_lipide(recipe.ingredients, ingredient_db)
-            st.write(f"**Total Lipides:** {lipide_total:.1f} g")
+            st.write(f"**Lipides:** {lipide_total:.1f} g")
             glucide_total = compute_recipe_glucide(recipe.ingredients, ingredient_db)
-            st.write(f"**Total Glucides:** {glucide_total:.1f} g")
+            st.write(f"**Glucides:** {glucide_total:.1f} g")
 
 
 
