@@ -54,7 +54,7 @@ def compute_recipe_protein(ingredients, ingredient_db):
     total_protein = 0.0
     for ing in ingredients:
         # on check l'unité
-        unit = ing.unit.lower()
+        unit = ing.unit.lower().strip()
         st.write(f"Ingredient: {ing.name}, unit: '{unit}', quantity: {ing.quantity}")
         if unit == "g":
             qty = ing.quantity
