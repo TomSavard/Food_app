@@ -2,7 +2,7 @@ import streamlit as st
 from io import BytesIO
 from PIL import Image
 from src.recipe_manager import filter_recipes, save_recipes, load_recipes
-from src.utils import _on_edit_recipe, save_changes, ensure_drive_connection, load_ingredient_db, compute_recipe_protein
+from src.utils import _on_edit_recipe, save_changes, ensure_drive_connection, load_ingredient_db, compute_recipe_protein, compute_recipe_glucide, compute_recipe_lipide, compute_recipe_calorie
 
 
 
@@ -138,8 +138,17 @@ if "view_recipe" in st.session_state and st.session_state.view_recipe:
             st.write(f"**Cuisine:** {recipe.cuisine_type}")
             st.write(f"**Tags:** {', '.join(recipe.tags)}")
             st.write(f"**Ustensils:** {', '.join(recipe.utensils)}")
+            calorie_total = compute_recipe_calorie(recipe.ingredients, ingredient_db)
+            st.write(f"**Total Calories:** {calorie_total:.1f} kcal")
             protein_total = compute_recipe_protein(recipe.ingredients, ingredient_db)
             st.write(f"**Total Protein:** {protein_total:.1f} g")
+            lipide_total = compute_recipe_lipide(recipe.ingredients, ingredient_db)
+            st.write(f"**Total Lipides:** {lipide_total:.1f} g")
+            glucide_total = compute_recipe_glucide(recipe.ingredients, ingredient_db)
+            st.write(f"**Total Glucides:** {glucide_total:.1f} g")
+
+
+
 
 
 
