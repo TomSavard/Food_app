@@ -53,6 +53,7 @@ def load_ingredient_db(drive, folder_id, filename="BDD.xlsx"):
 def compute_recipe_protein(ingredients, ingredient_db):
     total_protein = 0.0
     for ing in ingredients:
+        st.write(f"Ingredient: {ing.name}, unit: '{unit}', quantity: {ing.quantity}")
         # on check l'unité
         unit = ing.unit.lower()
         if unit == "g":
