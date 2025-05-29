@@ -51,10 +51,7 @@ def load_ingredient_db(_drive, folder_id, filename="BDD.xlsx"):
         file.GetContentFile(tmp_file.name)
         return pd.read_excel(tmp_file.name)
 
-def clear_ingredient_db_cache():
-    """Clear the cached ingredient database"""
-    load_ingredient_db.clear()
-    
+
 def compute_recipe_protein(ingredients, ingredient_db):
     total_protein = 0.0
     for ing in ingredients:
