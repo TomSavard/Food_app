@@ -114,104 +114,108 @@ else:
                             st.session_state.selected_recipe = recipe.recipe_id
                             st.rerun()
 
-    # Display selected recipe details below the grid (full width)
-    if st.session_state.selected_recipe:
-        selected_recipe = next((r for r in filtered_recipes if r.recipe_id == st.session_state.selected_recipe), None)
-        if selected_recipe:
-            st.markdown("---")
-            st.markdown("## Recipe Details")
-            
-            col1, col2 = st.columns([2, 1])
-
-            with col1:
-                st.subheader(selected_recipe.name)
-                st.write(selected_recipe.description)
-
-                st.write("### Ingredients")
-                for ing in selected_recipe.ingredients:
-                    st.write(f"- {ing.formatted_quantity()} {ing.unit} {ing.name} {ing.notes}")
-
-                st.write("### Instructions")
-                for j, step in enumerate(selected_recipe.instructions, 1):
-                    st.write(f"{j}. {step}")
-
-            with col2:
-                if selected_recipe.image_file_id:
-                    try:
-                        img_file = drive.CreateFile({'id': selected_recipe.image_file_id})
-                        img_content = BytesIO(img_file.GetContentString(content_type="image/jpeg").encode())
-                        image = Image.open(img_content)
-                        st.image(image, use_column_width=True)
-                    except:
-                        st.warning("Image not available")
+        # Check if any recipe in this row is selected and display details
+        for col_idx in range(cols_per_row):
+            recipe_idx = row + col_idx
+            if recipe_idx < len(filtered_recipes):
+                recipe = filtered_recipes[recipe_idx]
                 
-                st.write(f"**Preparation Time:** {selected_recipe.prep_time} min")
-                st.write(f"**Cooking Time:** {selected_recipe.cook_time} min")
-                st.write(f"**Total Time:** {selected_recipe.prep_time + selected_recipe.cook_time} min")
-                st.write(f"**Servings:** {selected_recipe.servings}")
-                st.write(f"**Cuisine:** {selected_recipe.cuisine_type}")
-                st.write(f"**Tags:** {', '.join(selected_recipe.tags)}")
-                st.write(f"**Ustensils:** {', '.join(selected_recipe.utensils)}")
+                # If this recipe is selected, display its details below the row
+                if st.session_state.selected_recipe == recipe.recipe_id:
+                    st.markdown("---")
+                    st.markdown(f"## {recipe.name} - Recipe Details")
+                    
+                    col1, col2 = st.columns([2, 1])
 
-                # Nutritional information
-                calorie_total = compute_recipe_calorie(selected_recipe.ingredients, ingredient_db)
-                st.write(f"**Calories:** {calorie_total:.1f} kcal")
-                protein_total = compute_recipe_protein(selected_recipe.ingredients, ingredient_db)
-                st.write(f"**Protéines:** {protein_total:.1f} g")
-                lipide_total = compute_recipe_lipide(selected_recipe.ingredients, ingredient_db)
-                st.write(f"**Lipides:** {lipide_total:.1f} g")
-                glucide_total = compute_recipe_glucide(selected_recipe.ingredients, ingredient_db)
-                st.write(f"**Glucides:** {glucide_total:.1f} g")
+                    with col1:
+                        st.write(recipe.description)
 
-            # Action buttons
-            st.markdown("### Actions")
-            col1, col2, col3 = st.columns([1, 1, 1])
-            with col1:
-                if st.button("Close Recipe", key="close_detail", use_container_width=True):
-                    st.session_state.selected_recipe = None
-                    st.rerun()
-            with col2:
-                if st.button("Edit Recipe", key="edit_detail", use_container_width=True):
-                    _on_edit_recipe(selected_recipe)
-            with col3:
-                if st.button("Delete Recipe", key="delete_detail", type="primary", use_container_width=True):
-                    # Store a reference to the specific recipe index to delete
-                    recipe_index = next((idx for idx, r in enumerate(st.session_state.recipes)
-                                        if r.recipe_id == selected_recipe.recipe_id), None)
+                        st.write("### Ingredients")
+                        for ing in recipe.ingredients:
+                            st.write(f"- {ing.formatted_quantity()} {ing.unit} {ing.name} {ing.notes}")
 
-                    if recipe_index is not None:
-                        st.session_state.confirm_delete = True
-                        st.session_state.recipe_to_delete = selected_recipe
-                        st.session_state.recipe_index_to_delete = recipe_index
-                    else:
-                        st.error("Recipe not found in the list.")
+                        st.write("### Instructions")
+                        for j, step in enumerate(recipe.instructions, 1):
+                            st.write(f"{j}. {step}")
 
-            # Delete confirmation
-            if ("confirm_delete" in st.session_state and st.session_state.confirm_delete and 
-                st.session_state.recipe_to_delete.recipe_id == selected_recipe.recipe_id):
+                    with col2:
+                        if recipe.image_file_id:
+                            try:
+                                img_file = drive.CreateFile({'id': recipe.image_file_id})
+                                img_content = BytesIO(img_file.GetContentString(content_type="image/jpeg").encode())
+                                image = Image.open(img_content)
+                                st.image(image, use_column_width=True)
+                            except:
+                                st.warning("Image not available")
+                        
+                        st.write(f"**Preparation Time:** {recipe.prep_time} min")
+                        st.write(f"**Cooking Time:** {recipe.cook_time} min")
+                        st.write(f"**Total Time:** {recipe.prep_time + recipe.cook_time} min")
+                        st.write(f"**Servings:** {recipe.servings}")
+                        st.write(f"**Cuisine:** {recipe.cuisine_type}")
+                        st.write(f"**Tags:** {', '.join(recipe.tags)}")
+                        st.write(f"**Ustensils:** {', '.join(recipe.utensils)}")
 
-                st.warning(f"Are you sure you want to delete '{st.session_state.recipe_to_delete.name}'?")
-                col1, col2 = st.columns([1, 1])
+                        # Nutritional information
+                        calorie_total = compute_recipe_calorie(recipe.ingredients, ingredient_db)
+                        st.write(f"**Calories:** {calorie_total:.1f} kcal")
+                        protein_total = compute_recipe_protein(recipe.ingredients, ingredient_db)
+                        st.write(f"**Protéines:** {protein_total:.1f} g")
+                        lipide_total = compute_recipe_lipide(recipe.ingredients, ingredient_db)
+                        st.write(f"**Lipides:** {lipide_total:.1f} g")
+                        glucide_total = compute_recipe_glucide(recipe.ingredients, ingredient_db)
+                        st.write(f"**Glucides:** {glucide_total:.1f} g")
 
-                with col1:
-                    if st.button("Yes, Delete", key="confirm_delete_detail", type="primary", use_container_width=True):
-                        if "recipe_index_to_delete" in st.session_state:
-                            # Delete by index instead of filtering by ID
-                            st.session_state.recipes.pop(st.session_state.recipe_index_to_delete)
-                            st.session_state.need_save = True
+                    # Action buttons
+                    st.markdown("### Actions")
+                    col1, col2, col3 = st.columns([1, 1, 1])
+                    with col1:
+                        if st.button("Close Recipe", key=f"close_{recipe_idx}", use_container_width=True):
                             st.session_state.selected_recipe = None
-                            del st.session_state.confirm_delete
-                            del st.session_state.recipe_to_delete
-                            del st.session_state.recipe_index_to_delete
-                            save_changes(drive, folder_id, save_recipes)
-                            st.success("Recipe deleted successfully!")
                             st.rerun()
+                    with col2:
+                        if st.button("Edit Recipe", key=f"edit_{recipe_idx}", use_container_width=True):
+                            _on_edit_recipe(recipe)
+                    with col3:
+                        if st.button("Delete Recipe", key=f"delete_{recipe_idx}", type="primary", use_container_width=True):
+                            # Store a reference to the specific recipe index to delete
+                            recipe_index = next((idx for idx, r in enumerate(st.session_state.recipes)
+                                                if r.recipe_id == recipe.recipe_id), None)
 
-                with col2:
-                    if st.button("Cancel", key="cancel_delete_detail", use_container_width=True):
-                        del st.session_state.confirm_delete
-                        if "recipe_to_delete" in st.session_state:
-                            del st.session_state.recipe_to_delete
-                        st.rerun()
-            
-            st.markdown("---")
+                            if recipe_index is not None:
+                                st.session_state.confirm_delete = True
+                                st.session_state.recipe_to_delete = recipe
+                                st.session_state.recipe_index_to_delete = recipe_index
+                            else:
+                                st.error("Recipe not found in the list.")
+
+                    # Delete confirmation
+                    if ("confirm_delete" in st.session_state and st.session_state.confirm_delete and 
+                        st.session_state.recipe_to_delete.recipe_id == recipe.recipe_id):
+
+                        st.warning(f"Are you sure you want to delete '{st.session_state.recipe_to_delete.name}'?")
+                        col1, col2 = st.columns([1, 1])
+
+                        with col1:
+                            if st.button("Yes, Delete", key=f"confirm_delete_{recipe_idx}", type="primary", use_container_width=True):
+                                if "recipe_index_to_delete" in st.session_state:
+                                    # Delete by index instead of filtering by ID
+                                    st.session_state.recipes.pop(st.session_state.recipe_index_to_delete)
+                                    st.session_state.need_save = True
+                                    st.session_state.selected_recipe = None
+                                    del st.session_state.confirm_delete
+                                    del st.session_state.recipe_to_delete
+                                    del st.session_state.recipe_index_to_delete
+                                    save_changes(drive, folder_id, save_recipes)
+                                    st.success("Recipe deleted successfully!")
+                                    st.rerun()
+
+                        with col2:
+                            if st.button("Cancel", key=f"cancel_delete_{recipe_idx}", use_container_width=True):
+                                del st.session_state.confirm_delete
+                                if "recipe_to_delete" in st.session_state:
+                                    del st.session_state.recipe_to_delete
+                                st.rerun()
+                    
+                    st.markdown("---")
+                    break  # Only show one expanded recipe at a time
