@@ -120,7 +120,7 @@ else:
             if recipe_idx < len(filtered_recipes):
                 recipe = filtered_recipes[recipe_idx]
 
-                 # If this recipe is selected, display its details below the row
+                # If this recipe is selected, display its details below the row
                 if st.session_state.selected_recipe == recipe.recipe_id:
                     st.markdown("---")
 
@@ -148,13 +148,16 @@ else:
                             color: #FFFFFF;
                             height: fit-content;
                         }
+                        .column-container {
+                            display: flex;
+                            flex-direction: column;
+                            justify-content: flex-end;
+                            height: 100%;
+                        }
                         </style>
                         """,
                         unsafe_allow_html=True
                     )
-                    
-                    # Start the container div
-                    # st.markdown('<div class="recipe-detail-container">', unsafe_allow_html=True)
                     
                     st.markdown(f"## 🍽️ {recipe.name}")
                     
@@ -170,8 +173,12 @@ else:
                         st.write("### 📝 Instructions")
                         for j, step in enumerate(recipe.instructions, 1):
                             st.write(f"{j}. {step}")
+
+                        # Add some space before nutrition box to push it down
+                        st.write("")
+                        st.write("")
                         
-                        # Nutritional information in another dark-themed info box
+                        # Nutritional information in the left column, positioned at bottom
                         calorie_total = compute_recipe_calorie(recipe.ingredients, ingredient_db)
                         protein_total = compute_recipe_protein(recipe.ingredients, ingredient_db)
                         lipide_total = compute_recipe_lipide(recipe.ingredients, ingredient_db)
@@ -203,6 +210,10 @@ else:
                                 st.image(image, use_column_width=True, caption="Recipe Image")
                             except:
                                 st.warning("Image not available")
+                        
+                        # Add space to push info box to bottom (align with nutrition box)
+                        st.write("")
+                        st.write("")
                         
                         # Recipe info in a dark-themed info box
                         st.markdown(
@@ -289,9 +300,6 @@ else:
                                 if "recipe_to_delete" in st.session_state:
                                     del st.session_state.recipe_to_delete
                                 st.rerun()
-                    
-                    # Close the container div
-                    st.markdown('</div>', unsafe_allow_html=True)
                     
                     st.markdown("---")
                     break  # Only show one expanded recipe at a time
