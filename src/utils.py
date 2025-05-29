@@ -165,6 +165,30 @@ def compute_recipe_protein(ingredients, ingredient_db):
                     continue
     return total_protein
 
+def compute_recipe_calorie(ingredients, ingredient_db):
+    total_calorie = 0.0
+    for ing in ingredients:
+        # Check the unit
+        unit = ing.unit.lower().strip()
+        if unit == "g":
+            qty = ing.quantity
+        elif unit == "kg":
+            qty = ing.quantity * 1000
+        else:
+            continue
+        # Find the ingredient in the DB
+        row = ingredient_db[ingredient_db["alim_nom_fr"] == ing.name]
+        if not row.empty:
+            calorie_per_100g = row.iloc[0].get("Energie, Règlement UE N° 1169/2011 (kcal/100 g)", 0)
+            if pd.notna(calorie_per_100g) and str(calorie_per_100g).strip() not in ['-', '', 'nan', 'NaN']:
+                try:
+                    calorie_value = float(calorie_per_100g)
+                    total_calorie += (calorie_value * qty) / 100
+                except (ValueError, TypeError):
+                    # Skip if conversion fails
+                    continue
+    return total_calorie
+
 def compute_recipe_lipide(ingredients, ingredient_db):
     total_lipide = 0.0
     for ing in ingredients:
@@ -213,26 +237,130 @@ def compute_recipe_glucide(ingredients, ingredient_db):
                     continue
     return total_glucide
 
-def compute_recipe_calorie(ingredients, ingredient_db):
-    total_calorie = 0.0
-    for ing in ingredients:
-        # Check the unit
+def debug_nutrition_columns(ingredient_db):
+    """Debug function to show nutrition-related columns and their sample values"""
+    if ingredient_db.empty:
+        st.write("❌ Ingredient database is empty")
+        return
+    
+    st.write("### 🔍 Nutrition Columns Debug")
+    
+    # Define the exact columns we're looking for
+    nutrition_columns = {
+        "Calories": "Energie, Règlement UE N° 1169/2011 (kcal/100 g)",
+        "Proteins": "Protéines, N x facteur de Jones (g/100 g)",
+        "Lipides": "Lipides (g/100 g)",
+        "Glucides": "Glucides (g/100 g)"
+    }
+    
+    st.write("**Nutrition columns status:**")
+    for nutrient, column_name in nutrition_columns.items():
+        if column_name in ingredient_db.columns:
+            st.write(f"✅ **{nutrient}**: `{column_name}` - Found")
+            
+            # Show sample values (excluding '-' and empty values)
+            sample_data = ingredient_db[column_name].dropna()
+            valid_samples = []
+            for val in sample_data.head(10):
+                if str(val).strip() not in ['-', '', 'nan', 'NaN']:
+                    try:
+                        float_val = float(val)
+                        valid_samples.append(str(val))
+                    except:
+                        pass
+            
+            if valid_samples:
+                st.write(f"   Sample values: {valid_samples[:5]}")
+            else:
+                st.write("   ⚠️ No valid numeric values found")
+        else:
+            st.write(f"❌ **{nutrient}**: `{column_name}` - Not found")
+    
+    # Show ingredient matching test
+    st.write("**Ingredient matching test:**")
+    if "alim_nom_fr" in ingredient_db.columns:
+        sample_ingredients = ingredient_db["alim_nom_fr"].dropna().head(3).tolist()
+        for ing_name in sample_ingredients:
+            st.write(f"Testing ingredient: `{ing_name}`")
+            row = ingredient_db[ingredient_db["alim_nom_fr"] == ing_name]
+            if not row.empty:
+                for nutrient, column_name in nutrition_columns.items():
+                    if column_name in ingredient_db.columns:
+                        value = row.iloc[0].get(column_name, "N/A")
+                        st.write(f"  - {nutrient}: {value}")
+            st.write("---")
+
+def debug_recipe_nutrition(recipe, ingredient_db):
+    """Debug function to show nutrition calculation for a specific recipe"""
+    st.write(f"### 🧮 Nutrition Debug for: {recipe.name}")
+    
+    total_calories = 0
+    total_proteins = 0
+    total_lipides = 0
+    total_glucides = 0
+    
+    st.write("**Ingredient breakdown:**")
+    
+    for ing in recipe.ingredients:
+        st.write(f"**{ing.name}** - {ing.formatted_quantity()} {ing.unit}")
+        
+        # Convert to grams
         unit = ing.unit.lower().strip()
         if unit == "g":
-            qty = ing.quantity
+            qty_in_grams = ing.quantity
         elif unit == "kg":
-            qty = ing.quantity * 1000
+            qty_in_grams = ing.quantity * 1000
         else:
+            st.write(f"  ⚠️ Unit '{ing.unit}' not supported for nutrition calculation")
             continue
-        # Find the ingredient in the DB
+        
+        st.write(f"  Quantity in grams: {qty_in_grams}g")
+        
+        # Find in database
         row = ingredient_db[ingredient_db["alim_nom_fr"] == ing.name]
         if not row.empty:
-            calorie_per_100g = row.iloc[0].get("Energie, Règlement UE N° 1169/2011 (kcal/100 g)", 0)
-            if pd.notna(calorie_per_100g) and str(calorie_per_100g).strip() not in ['-', '', 'nan', 'NaN']:
-                try:
-                    calorie_value = float(calorie_per_100g)
-                    total_calorie += (calorie_value * qty) / 100
-                except (ValueError, TypeError):
-                    # Skip if conversion fails
-                    continue
-    return total_calorie
+            st.write(f"  ✅ Found in database")
+            
+            # Check each nutrient
+            nutrients = {
+                "Calories": "Energie, Règlement UE N° 1169/2011 (kcal/100 g)",
+                "Proteins": "Protéines, N x facteur de Jones (g/100 g)",
+                "Lipides": "Lipides (g/100 g)",
+                "Glucides": "Glucides (g/100 g)"
+            }
+            
+            for nutrient_name, column_name in nutrients.items():
+                if column_name in ingredient_db.columns:
+                    value_per_100g = row.iloc[0].get(column_name, 0)
+                    st.write(f"    {nutrient_name} per 100g: {value_per_100g}")
+                    
+                    if pd.notna(value_per_100g) and str(value_per_100g).strip() not in ['-', '', 'nan', 'NaN']:
+                        try:
+                            numeric_value = float(value_per_100g)
+                            total_for_ingredient = (numeric_value * qty_in_grams) / 100
+                            st.write(f"    {nutrient_name} total: {total_for_ingredient:.2f}")
+                            
+                            # Add to totals
+                            if nutrient_name == "Calories":
+                                total_calories += total_for_ingredient
+                            elif nutrient_name == "Proteins":
+                                total_proteins += total_for_ingredient
+                            elif nutrient_name == "Lipides":
+                                total_lipides += total_for_ingredient
+                            elif nutrient_name == "Glucides":
+                                total_glucides += total_for_ingredient
+                                
+                        except (ValueError, TypeError):
+                            st.write(f"    ❌ Cannot convert '{value_per_100g}' to number")
+                    else:
+                        st.write(f"    ⚠️ No valid data for {nutrient_name}")
+        else:
+            st.write(f"  ❌ Not found in database")
+        
+        st.write("---")
+    
+    st.write("**Recipe Totals:**")
+    st.write(f"- **Calories**: {total_calories:.1f} kcal")
+    st.write(f"- **Proteins**: {total_proteins:.1f} g")
+    st.write(f"- **Lipides**: {total_lipides:.1f} g")
+    st.write(f"- **Glucides**: {total_glucides:.1f} g")

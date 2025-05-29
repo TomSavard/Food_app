@@ -11,7 +11,7 @@ from pydrive2.auth import GoogleAuth
 from pydrive2.drive import GoogleDrive
 
 from src.recipe_manager import save_recipes, cached_load_recipes, clear_recipes_cache
-from src.utils import ensure_drive_connection, load_ingredient_db, clear_ingredient_db_cache, debug_ingredient_db  # ADD THIS LINE
+from src.utils import ensure_drive_connection, load_ingredient_db, clear_ingredient_db_cache, debug_ingredient_db, debug_nutrition_columns, debug_recipe_nutrition
 from src.models.recipe import Recipe, Ingredient
 
 
@@ -39,6 +39,17 @@ if st.sidebar.button("🔄 Refresh Ingredient Database"):
 
 if st.sidebar.button("🔍 Debug Database"):
     debug_ingredient_db(drive, folder_id)
+
+if st.sidebar.button("🔍 Debug Nutrition Columns"):
+    debug_nutrition_columns(ingredient_db)
+
+# Add this to test nutrition calculation for an existing recipe
+if st.sidebar.button("🧮 Test Nutrition Calculation"):
+    if st.session_state.recipes:
+        test_recipe = st.session_state.recipes[0]  # Test with first recipe
+        debug_recipe_nutrition(test_recipe, ingredient_db)
+    else:
+        st.write("No recipes available for testing")
 
 # IMPROVED INGREDIENT PROCESSING
 ingredient_names = []
