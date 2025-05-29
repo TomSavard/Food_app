@@ -160,7 +160,7 @@ else:
                                 box-shadow: 0 2px 4px rgba(0,0,0,0.3);
                             }
                             .nutrition-box {
-                                border: 2px solid #4A90E2;
+                                border: 2px solid #28a745;
                                 border-radius: 15px;
                                 padding: 20px;
                                 margin: 15px 0;
