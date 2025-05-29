@@ -128,9 +128,6 @@ else:
                     st.markdown(
                         """
                         <style>
-                        .recipe-detail-container p {
-                            color: #E0E0E0;
-                        }
                         .info-box {
                             border: 2px solid #4A90E2;
                             border-radius: 15px;
