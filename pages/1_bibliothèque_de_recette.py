@@ -94,7 +94,7 @@ else:
                             color:#fff;
                             position: relative;
                         ">
-                            <h5 style="margin-top:0;margin-bottom:0.4em;font-size:16px;">{recipe.name}</h5>
+                            <h5 style="margin-top:0;margin-bottom:0.4em;font-size:20px;">{recipe.name}</h5>
                             <p style="margin-bottom:0.3em;font-size:12px;"><b>Cuisine:</b> {recipe.cuisine_type}</p>
                             <p style="margin-bottom:0.3em;font-size:12px;"><b>Total:</b> {recipe.prep_time + recipe.cook_time} min</p>
                             <p style="margin-bottom:0.3em;font-size:12px;"><b>Tags:</b> {', '.join(recipe.tags[:2])}{'...' if len(recipe.tags) > 2 else ''}</p>
