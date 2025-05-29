@@ -11,7 +11,7 @@ from pydrive2.auth import GoogleAuth
 from pydrive2.drive import GoogleDrive
 
 
-from src.recipe_manager import save_recipes, cached_load_recipes
+from src.recipe_manager import save_recipes, cached_load_recipes, clear_recipes_cache
 from src.utils import save_changes, ensure_drive_connection, load_ingredient_db
 from src.models.recipe import Recipe, Ingredient
 
@@ -263,15 +263,32 @@ if submit and name:  # Basic validation
         # Add new recipe
         st.session_state.recipes.append(new_recipe)
 
-    # Mark for saving
+    # Mark for saving and save immediately
     st.session_state.need_save = True
-
-    # Confirmation and cleanup
-    st.success(f"Recipe {'updated' if editing else 'added'} successfully!")
-    if editing:
-        del st.session_state.edit_recipe
-    st.session_state.ingredients = []
-    st.session_state.instructions = []
-
-    # Save immediately
-    save_changes(drive, folder_id, save_recipes)
+    
+    # Import and call save_changes directly
+    from src.recipe_manager import save_recipes, clear_recipes_cache
+    
+    # Save immediately with better error handling
+    success = save_recipes(drive, folder_id, st.session_state.recipes)
+    
+    if success:
+        st.success(f"Recipe {'updated' if editing else 'added'} successfully!")
+        st.session_state.need_save = False
+        
+        # Clear cache and reload to ensure consistency
+        clear_recipes_cache()
+        st.session_state.recipes = cached_load_recipes(drive, folder_id)
+        
+        # Clean up form state
+        if editing:
+            del st.session_state.edit_recipe
+        st.session_state.ingredients = []
+        st.session_state.instructions = []
+        
+        # Small delay then rerun to show updated state
+        import time
+        time.sleep(1)
+        st.rerun()
+    else:
+        st.error(f"Failed to {'update' if editing else 'add'} recipe. Please try again.")

@@ -54,6 +54,7 @@ def find_recipes_file(drive: GoogleDrive, folder_id: str) -> Optional[Dict]:
             
         return gfile
 
+
 def load_recipes(drive: GoogleDrive, folder_id: str) -> List[Recipe]:
     """Load all recipes from the database file in Google Drive"""
     recipes_file = find_recipes_file(drive, folder_id)
@@ -96,6 +97,10 @@ def cached_load_recipes(_drive, folder_id):
     """Cached version of load_recipes to avoid repeated downloads"""
     return load_recipes(_drive, folder_id)
 
+def clear_recipes_cache():
+    """Clear the cached recipes data"""
+    cached_load_recipes.clear()
+
 def save_recipes(drive: GoogleDrive, folder_id: str, recipes: List[Recipe]) -> bool:
     """Save all recipes to the database file in Google Drive"""
     recipes_file = find_recipes_file(drive, folder_id)
@@ -109,7 +114,7 @@ def save_recipes(drive: GoogleDrive, folder_id: str, recipes: List[Recipe]) -> b
     
     # Create a temporary file
     with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix=".json") as tmp_file:
-        json.dump(recipes_data, tmp_file)
+        json.dump(recipes_data, tmp_file, ensure_ascii=False, indent=2)
         tmp_file_path = tmp_file.name
     
     # Upload to Google Drive (overwrite existing file)
@@ -117,6 +122,9 @@ def save_recipes(drive: GoogleDrive, folder_id: str, recipes: List[Recipe]) -> b
         # Update existing file
         recipes_file.SetContentFile(tmp_file_path)
         recipes_file.Upload()
+        
+        # Clear cache to force reload on next access
+        clear_recipes_cache()
         
         # Clean up
         import os
