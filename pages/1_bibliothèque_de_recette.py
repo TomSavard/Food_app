@@ -1,7 +1,7 @@
 import streamlit as st
 from io import BytesIO
 from PIL import Image
-from src.recipe_manager import filter_recipes, save_recipes, load_recipes
+from src.recipe_manager import filter_recipes, save_recipes, cached_load_recipes
 from src.utils import _on_edit_recipe, save_changes, ensure_drive_connection, load_ingredient_db, compute_recipe_protein, compute_recipe_glucide, compute_recipe_lipide, compute_recipe_calorie
 
 
@@ -13,11 +13,12 @@ drive = st.session_state.drive
 folder_id = st.session_state.folder_id
 
 if "recipes" not in st.session_state:
-    st.session_state.recipes = load_recipes(drive, folder_id)
-else:
-    recipes = st.session_state.get("recipes", [])
+    st.session_state.recipes = cached_load_recipes(drive, folder_id)
 
-ingredient_db = load_ingredient_db(drive, folder_id)
+if "ingredient_db" not in st.session_state:
+    st.session_state.ingredient_db = load_ingredient_db(drive, folder_id)
+
+ingredient_db = st.session_state.ingredient_db
 
 
 st.title("Recipe Browser")

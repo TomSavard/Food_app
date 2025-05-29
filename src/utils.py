@@ -37,14 +37,13 @@ def ensure_drive_connection():
             st.error(f"Google Drive authentication failed: {e}")
             st.stop()
 
-
-def load_ingredient_db(drive, folder_id, filename="BDD.xlsx"):
-    file_list = drive.ListFile({'q': f"'{folder_id}' in parents and trashed=false and title='{filename}'"}).GetList()
+@st.cache_data(show_spinner="Loading ingredient database...")
+def load_ingredient_db(_drive, folder_id, filename="BDD.xlsx"):
+    """Load ingredient database with caching to avoid repeated downloads"""
+    file_list = _drive.ListFile({'q': f"'{folder_id}' in parents and trashed=false and title='{filename}'"}).GetList()
     if not file_list:
         return pd.DataFrame()
     file = file_list[0]
-    import pandas as pd
-    import tempfile
     with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=True) as tmp_file:
         file.GetContentFile(tmp_file.name)
         return pd.read_excel(tmp_file.name)

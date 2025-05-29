@@ -90,6 +90,11 @@ def load_recipes(drive: GoogleDrive, folder_id: str) -> List[Recipe]:
             os.remove(tmp_file_path)
             
         return []
+    
+@st.cache_data(show_spinner="Chargement des recettes...")
+def cached_load_recipes(_drive, folder_id):
+    """Cached version of load_recipes to avoid repeated downloads"""
+    return load_recipes(_drive, folder_id)
 
 def save_recipes(drive: GoogleDrive, folder_id: str, recipes: List[Recipe]) -> bool:
     """Save all recipes to the database file in Google Drive"""
