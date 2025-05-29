@@ -143,15 +143,49 @@ def debug_ingredient_db(drive, folder_id, filename="BDD.xlsx"):
 
 
 def safe_float_conversion(value):
-    """Safely convert a value to float, handling European decimal format"""
+    """Safely convert a value to float, handling European decimal format and special cases"""
     if pd.isna(value):
         return None
     
-    str_val = str(value).strip()
+    str_val = str(value).strip().lower()
     
-    # Check for invalid values
-    if str_val in ['-', '', 'nan', 'NaN']:
+    # Check for invalid values that should return None (no data)
+    if str_val in ['-', '', 'nan', 'n/a', 'na']:
         return None
+    
+    # Check for values that should be treated as 0
+    zero_values = ['traces', 'trace', 'tr', '<0.1', '<0,1', '0', '0.0', '0,0']
+    if str_val in zero_values:
+        return 0.0
+    
+    # Handle ranges (take the average)
+    if '-' in str_val and str_val not in ['-']:
+        try:
+            parts = str_val.split('-')
+            if len(parts) == 2:
+                # Convert both parts and take average
+                val1 = float(parts[0].strip().replace(',', '.'))
+                val2 = float(parts[1].strip().replace(',', '.'))
+                return (val1 + val2) / 2
+        except:
+            pass
+    
+    # Handle less than values (e.g., "<5" becomes 2.5)
+    if str_val.startswith('<'):
+        try:
+            numeric_part = str_val[1:].strip().replace(',', '.')
+            value = float(numeric_part)
+            return value / 2  # Take half of the upper limit
+        except:
+            return 0.0  # If we can't parse it, assume traces
+    
+    # Handle greater than values (e.g., ">50" becomes 50)
+    if str_val.startswith('>'):
+        try:
+            numeric_part = str_val[1:].strip().replace(',', '.')
+            return float(numeric_part)
+        except:
+            pass
     
     try:
         # Replace comma with dot for European decimal format
@@ -451,9 +485,8 @@ def debug_ingredient_nutrition_matching(recipe, ingredient_db):
         
         st.write("---")
 
-        
 def debug_database_data_quality(ingredient_db):
-    """Debug function to analyze overall database data quality"""
+    """Debug function to analyze overall database data quality using safe_float_conversion"""
     st.write("### 📊 Database Data Quality Analysis")
     
     if ingredient_db.empty:
@@ -470,58 +503,101 @@ def debug_database_data_quality(ingredient_db):
     total_rows = len(ingredient_db)
     st.write(f"**Total ingredients in database: {total_rows}**")
     
-    st.write("**Data availability by nutrient:**")
+    st.write("**Data availability by nutrient (using safe conversion):**")
     
     for nutrient_name, column_name in nutrition_columns.items():
         if column_name in ingredient_db.columns:
             col_data = ingredient_db[column_name]
             
-            # Count different types of values
+            # Count different types of values using safe_float_conversion
             total_values = len(col_data)
-            non_null = col_data.notna().sum()
             null_count = col_data.isna().sum()
             
-            # Count invalid values (-, empty, etc.)
-            invalid_count = 0
+            # Analyze each value using safe_float_conversion
             valid_numeric_count = 0
+            zero_values_count = 0
+            invalid_count = 0
+            sample_valid_values = []
+            sample_zero_values = []
+            sample_invalid_values = []
             
             for value in col_data.dropna():
-                str_val = str(value).strip()
-                if str_val in ['-', '', 'nan', 'NaN']:
+                converted = safe_float_conversion(value)
+                
+                if converted is None:
                     invalid_count += 1
+                    if len(sample_invalid_values) < 5:
+                        sample_invalid_values.append(str(value))
+                elif converted == 0.0:
+                    zero_values_count += 1
+                    if len(sample_zero_values) < 5:
+                        sample_zero_values.append(str(value))
                 else:
-                    try:
-                        float(value)
-                        valid_numeric_count += 1
-                    except:
-                        invalid_count += 1
+                    valid_numeric_count += 1
+                    if len(sample_valid_values) < 5:
+                        sample_valid_values.append(f"{value} → {converted}")
             
-            completeness = (valid_numeric_count / total_rows) * 100
+            # Calculate percentages
+            non_null_count = total_values - null_count
+            completeness = ((valid_numeric_count + zero_values_count) / total_rows) * 100
+            usable_data = ((valid_numeric_count + zero_values_count) / non_null_count) * 100 if non_null_count > 0 else 0
             
             st.write(f"**{nutrient_name}**:")
             st.write(f"  - Total entries: {total_values}")
-            st.write(f"  - Non-null: {non_null}")
             st.write(f"  - Null/NaN: {null_count}")
-            st.write(f"  - Invalid ('-', empty): {invalid_count}")
+            st.write(f"  - Non-null: {non_null_count}")
             st.write(f"  - Valid numeric: {valid_numeric_count}")
-            st.write(f"  - Completeness: {completeness:.1f}%")
+            st.write(f"  - Zero/traces: {zero_values_count}")
+            st.write(f"  - Invalid/unparseable: {invalid_count}")
+            st.write(f"  - **Overall completeness**: {completeness:.1f}%")
+            st.write(f"  - **Usable data rate**: {usable_data:.1f}%")
             
-            # Show sample of invalid values
-            if invalid_count > 0:
-                invalid_samples = []
-                for value in col_data.dropna():
-                    str_val = str(value).strip()
-                    if str_val in ['-', '', 'nan', 'NaN'] or not str_val.replace('.', '').replace('-', '').isdigit():
-                        try:
-                            float(value)
-                        except:
-                            invalid_samples.append(str_val)
-                            if len(invalid_samples) >= 5:
-                                break
-                
-                if invalid_samples:
-                    st.write(f"  - Sample invalid values: {invalid_samples}")
+            # Show sample values
+            if sample_valid_values:
+                st.write(f"  - Sample valid conversions: {sample_valid_values}")
+            
+            if sample_zero_values:
+                st.write(f"  - Sample zero/trace values: {sample_zero_values}")
+            
+            if sample_invalid_values:
+                st.write(f"  - Sample invalid values: {sample_invalid_values}")
             
             st.write("")
         else:
             st.write(f"**{nutrient_name}**: ❌ Column not found")
+    
+    # Overall database quality summary
+    st.write("### 📈 Overall Database Quality Summary")
+    
+    total_nutrition_data_points = 0
+    usable_nutrition_data_points = 0
+    
+    for nutrient_name, column_name in nutrition_columns.items():
+        if column_name in ingredient_db.columns:
+            col_data = ingredient_db[column_name]
+            non_null_count = col_data.notna().sum()
+            total_nutrition_data_points += non_null_count
+            
+            for value in col_data.dropna():
+                converted = safe_float_conversion(value)
+                if converted is not None:  # Includes both numeric values and zeros
+                    usable_nutrition_data_points += 1
+    
+    if total_nutrition_data_points > 0:
+        overall_quality = (usable_nutrition_data_points / total_nutrition_data_points) * 100
+        st.write(f"**Overall nutrition data quality**: {overall_quality:.1f}%")
+        st.write(f"- Total non-null nutrition values: {total_nutrition_data_points}")
+        st.write(f"- Successfully converted values: {usable_nutrition_data_points}")
+        st.write(f"- Failed conversions: {total_nutrition_data_points - usable_nutrition_data_points}")
+        
+        # Quality assessment
+        if overall_quality >= 90:
+            st.success("🎉 Excellent data quality!")
+        elif overall_quality >= 75:
+            st.info("👍 Good data quality")
+        elif overall_quality >= 50:
+            st.warning("⚠️ Moderate data quality - some nutrition calculations may be incomplete")
+        else:
+            st.error("❌ Poor data quality - many nutrition values cannot be processed")
+    else:
+        st.error("❌ No nutrition data found in database")
