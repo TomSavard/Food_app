@@ -50,8 +50,8 @@ def load_ingredient_db(_drive, folder_id, filename="BDD.xlsx"):
         file = file_list[0]
         
         # Get file metadata for debugging
-        file.FetchMetadata()
-        st.write(f"📁 Loading: {file['title']} (Modified: {file.get('modifiedDate', 'Unknown')})")
+        # file.FetchMetadata()
+        # st.write(f"📁 Loading: {file['title']} (Modified: {file.get('modifiedDate', 'Unknown')})")
         
         with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as tmp_file:
             file.GetContentFile(tmp_file.name)
