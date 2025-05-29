@@ -168,7 +168,6 @@ else:
                                 background: #1E1E1E;
                                 box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
                                 color: #FFFFFF;
-                                background: #2A2A2A;
                             }
                             </style>
                             """,
