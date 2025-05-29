@@ -152,7 +152,7 @@ else:
                     )
                     
                     # Start the container div
-                    st.markdown('<div class="recipe-detail-container">', unsafe_allow_html=True)
+                    # st.markdown('<div class="recipe-detail-container">', unsafe_allow_html=True)
                     
                     st.markdown(f"## 🍽️ {recipe.name}")
                     
