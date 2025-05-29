@@ -156,7 +156,7 @@ else:
                                 border-radius: 15px;
                                 padding: 20px;
                                 margin: 15px 0;
-                                background: #2A2A2A;
+                                background: #1E1E1E;
                                 box-shadow: 0 4px 12px rgba(74, 144, 226, 0.4);
                                 color: #FFFFFF;
                             }
