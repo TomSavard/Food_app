@@ -237,7 +237,6 @@ else:
                             )
 
                         # Action buttons
-                        st.markdown("### ⚡ Actions")
                         col1, col2, col3 = st.columns([1, 1, 1])
                         with col1:
                             if st.button("❌ Close Recipe", key=f"close_{recipe_idx}", use_container_width=True):
