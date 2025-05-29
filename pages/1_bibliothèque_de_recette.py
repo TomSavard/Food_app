@@ -119,12 +119,26 @@ else:
             recipe_idx = row + col_idx
             if recipe_idx < len(filtered_recipes):
                 recipe = filtered_recipes[recipe_idx]
-                
+
                 # If this recipe is selected, display its details below the row
                 if st.session_state.selected_recipe == recipe.recipe_id:
                     st.markdown("---")
-                    st.markdown(f"## {recipe.name} - Recipe Details")
-                    
+
+                    # Create a bordered container for the expanded view
+                    st.markdown(
+                        f"""
+                        <div style="
+                            border: 2px solid #4A90E2;
+                            border-radius: 15px;
+                            padding: 20px;
+                            margin: 15px 0;
+                            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+                            box-shadow: 0 4px 12px rgba(74, 144, 226, 0.2);
+                        ">
+                        """,
+                        unsafe_allow_html=True
+                    )
+                    st.markdown(f"## 🍽️ {recipe.name}")
                     col1, col2 = st.columns([2, 1])
 
                     with col1:
@@ -167,7 +181,6 @@ else:
                         st.write(f"**Glucides:** {glucide_total:.1f} g")
 
                     # Action buttons
-                    st.markdown("### Actions")
                     col1, col2, col3 = st.columns([1, 1, 1])
                     with col1:
                         if st.button("Close Recipe", key=f"close_{recipe_idx}", use_container_width=True):
