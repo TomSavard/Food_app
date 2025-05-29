@@ -6,8 +6,6 @@ from pydrive2.drive import GoogleDrive
 from src.utils import _on_edit_recipe, save_changes, ensure_drive_connection
 from src.recipe_manager import cached_load_recipes, save_recipes
 
-
-
 ensure_drive_connection()
 drive = st.session_state.drive
 folder_id = st.session_state.folder_id
