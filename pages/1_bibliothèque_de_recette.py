@@ -153,18 +153,18 @@ else:
                         unsafe_allow_html=True
                     )
                     
-                    st.markdown(f"## 🍽️ {recipe.name}")
+                    st.markdown(f"## {recipe.name}")
                     
                     col1, col2 = st.columns([2, 1])
 
                     with col1:
                         st.write(recipe.description)
 
-                        st.write("### 🥘 Ingredients")
+                        st.write("### Ingredients")
                         for ing in recipe.ingredients:
                             st.write(f"- {ing.formatted_quantity()} {ing.unit} {ing.name} {ing.notes}")
 
-                        st.write("### 📝 Instructions")
+                        st.write("### Instructions")
                         for j, step in enumerate(recipe.instructions, 1):
                             st.write(f"{j}. {step}")
                         
