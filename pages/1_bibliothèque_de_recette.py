@@ -165,7 +165,7 @@ else:
                                 padding: 20px;
                                 margin: 15px 0;
                                 background: #1E1E1E;
-                                box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+                                box-shadow: 0 4px 12px rgba(40, 167, 69, 0.5);
                                 color: #FFFFFF;
                                 background: #2A2A2A;
                             }
