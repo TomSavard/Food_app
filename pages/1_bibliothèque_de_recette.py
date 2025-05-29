@@ -171,28 +171,28 @@ else:
                         for j, step in enumerate(recipe.instructions, 1):
                             st.write(f"{j}. {step}")
                         
-                        # # Nutritional information in another dark-themed info box
-                        # calorie_total = compute_recipe_calorie(recipe.ingredients, ingredient_db)
-                        # protein_total = compute_recipe_protein(recipe.ingredients, ingredient_db)
-                        # lipide_total = compute_recipe_lipide(recipe.ingredients, ingredient_db)
-                        # glucide_total = compute_recipe_glucide(recipe.ingredients, ingredient_db)
+                        # Nutritional information in another dark-themed info box
+                        calorie_total = compute_recipe_calorie(recipe.ingredients, ingredient_db)
+                        protein_total = compute_recipe_protein(recipe.ingredients, ingredient_db)
+                        lipide_total = compute_recipe_lipide(recipe.ingredients, ingredient_db)
+                        glucide_total = compute_recipe_glucide(recipe.ingredients, ingredient_db)
                         
-                        # st.markdown(
-                        #     f"""
-                        #     <div class="nutrition-box">
-                        #         <h4 style="margin-top: 0; color: #28a745;">Nutrition Facts</h4>
-                        #         <p style="color: #E0E0E0; margin-bottom: 8px;">
-                        #             <strong>Calories:</strong> {calorie_total:.1f} kcal &nbsp;&nbsp;&nbsp;&nbsp;
-                        #             <strong>Protéines:</strong> {protein_total:.1f} g
-                        #         </p>
-                        #         <p style="color: #E0E0E0; margin-bottom: 0;">
-                        #             <strong>Lipides:</strong> {lipide_total:.1f} g &nbsp;&nbsp;&nbsp;&nbsp;
-                        #             <strong>Glucides:</strong> {glucide_total:.1f} g
-                        #         </p>
-                        #     </div>
-                        #     """,
-                        #     unsafe_allow_html=True
-                        # )
+                        st.markdown(
+                            f"""
+                            <div class="nutrition-box">
+                                <h4 style="margin-top: 0; color: #28a745;">Nutrition Facts</h4>
+                                <p style="color: #E0E0E0; margin-bottom: 8px;">
+                                    <strong>Calories:</strong> {calorie_total:.1f} kcal &nbsp;&nbsp;&nbsp;&nbsp;
+                                    <strong>Protéines:</strong> {protein_total:.1f} g
+                                </p>
+                                <p style="color: #E0E0E0; margin-bottom: 0;">
+                                    <strong>Lipides:</strong> {lipide_total:.1f} g &nbsp;&nbsp;&nbsp;&nbsp;
+                                    <strong>Glucides:</strong> {glucide_total:.1f} g
+                                </p>
+                            </div>
+                            """,
+                            unsafe_allow_html=True
+                        )
 
                     with col2:
                         if recipe.image_file_id:
@@ -216,33 +216,6 @@ else:
                                 <p style="color: #E0E0E0;"><strong>Cuisine:</strong> {recipe.cuisine_type}</p>
                                 <p style="color: #E0E0E0;"><strong>Tags:</strong> {', '.join(recipe.tags)}</p>
                                 <p style="color: #E0E0E0;"><strong>Ustensils:</strong> {', '.join(recipe.utensils)}</p>
-                            </div>
-                            """,
-                            unsafe_allow_html=True
-                        )
-
-                        # Nutritional information aligned at bottom
-                        calorie_total = compute_recipe_calorie(recipe.ingredients, ingredient_db)
-                        protein_total = compute_recipe_protein(recipe.ingredients, ingredient_db)
-                        lipide_total = compute_recipe_lipide(recipe.ingredients, ingredient_db)
-                        glucide_total = compute_recipe_glucide(recipe.ingredients, ingredient_db)
-                        
-                        st.markdown(
-                            f"""
-                            <div class="nutrition-box">
-                                <h4 style="margin-top: 0; color: #28a745;">Nutrition Facts</h4>
-                                <p style="color: #E0E0E0; margin-bottom: 8px;">
-                                    <strong>Calories:</strong> {calorie_total:.1f} kcal
-                                </p>
-                                <p style="color: #E0E0E0; margin-bottom: 8px;">
-                                    <strong>Protéines:</strong> {protein_total:.1f} g
-                                </p>
-                                <p style="color: #E0E0E0; margin-bottom: 8px;">
-                                    <strong>Lipides:</strong> {lipide_total:.1f} g
-                                </p>
-                                <p style="color: #E0E0E0; margin-bottom: 0;">
-                                    <strong>Glucides:</strong> {glucide_total:.1f} g
-                                </p>
                             </div>
                             """,
                             unsafe_allow_html=True
