@@ -148,11 +148,17 @@ else:
                             color: #FFFFFF;
                             height: fit-content;
                         }
-                        .column-container {
+                        .aligned-column {
                             display: flex;
                             flex-direction: column;
                             justify-content: flex-end;
-                            height: 100%;
+                            min-height: 400px;
+                        }
+                        .content-wrapper {
+                            flex-grow: 1;
+                        }
+                        .bottom-box {
+                            margin-top: auto;
                         }
                         </style>
                         """,
@@ -164,6 +170,10 @@ else:
                     col1, col2 = st.columns([2, 1])
 
                     with col1:
+                        # Wrap content in a flex container
+                        st.markdown('<div class="aligned-column">', unsafe_allow_html=True)
+                        st.markdown('<div class="content-wrapper">', unsafe_allow_html=True)
+                        
                         st.write(recipe.description)
 
                         st.write("### 🥘 Ingredients")
@@ -173,12 +183,10 @@ else:
                         st.write("### 📝 Instructions")
                         for j, step in enumerate(recipe.instructions, 1):
                             st.write(f"{j}. {step}")
-
-                        # Add some space before nutrition box to push it down
-                        st.write("")
-                        st.write("")
                         
-                        # Nutritional information in the left column, positioned at bottom
+                        st.markdown('</div>', unsafe_allow_html=True)  # Close content-wrapper
+                        
+                        # Nutritional information aligned at bottom
                         calorie_total = compute_recipe_calorie(recipe.ingredients, ingredient_db)
                         protein_total = compute_recipe_protein(recipe.ingredients, ingredient_db)
                         lipide_total = compute_recipe_lipide(recipe.ingredients, ingredient_db)
@@ -186,7 +194,7 @@ else:
                         
                         st.markdown(
                             f"""
-                            <div class="nutrition-box">
+                            <div class="nutrition-box bottom-box">
                                 <h4 style="margin-top: 0; color: #28a745;">Nutrition Facts</h4>
                                 <p style="color: #E0E0E0; margin-bottom: 8px;">
                                     <strong>Calories:</strong> {calorie_total:.1f} kcal &nbsp;&nbsp;&nbsp;&nbsp;
@@ -200,8 +208,14 @@ else:
                             """,
                             unsafe_allow_html=True
                         )
+                        
+                        st.markdown('</div>', unsafe_allow_html=True)  # Close aligned-column
 
                     with col2:
+                        # Wrap content in a flex container
+                        st.markdown('<div class="aligned-column">', unsafe_allow_html=True)
+                        st.markdown('<div class="content-wrapper">', unsafe_allow_html=True)
+                        
                         if recipe.image_file_id:
                             try:
                                 img_file = drive.CreateFile({'id': recipe.image_file_id})
@@ -211,14 +225,12 @@ else:
                             except:
                                 st.warning("Image not available")
                         
-                        # Add space to push info box to bottom (align with nutrition box)
-                        st.write("")
-                        st.write("")
+                        st.markdown('</div>', unsafe_allow_html=True)  # Close content-wrapper
                         
-                        # Recipe info in a dark-themed info box
+                        # Recipe info aligned at bottom
                         st.markdown(
                             f"""
-                            <div class="info-box">
+                            <div class="info-box bottom-box">
                                 <h4 style="margin-top: 0; color: #4A90E2;">Timing & Info</h4>
                                 <p style="color: #E0E0E0;"><strong>Preparation:</strong> {recipe.prep_time} min</p>
                                 <p style="color: #E0E0E0;"><strong>Cooking:</strong> {recipe.cook_time} min</p>
@@ -231,6 +243,8 @@ else:
                             """,
                             unsafe_allow_html=True
                         )
+                        
+                        st.markdown('</div>', unsafe_allow_html=True)  # Close aligned-column
 
                     # Action buttons
                     col1, col2, col3 = st.columns([1, 1, 1])
