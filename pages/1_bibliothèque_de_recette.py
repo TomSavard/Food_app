@@ -206,7 +206,7 @@ else:
                             st.markdown(
                                 f"""
                                 <div class="info-box">
-                                    <h4 style="margin-top: 0; color: #4A90E2;">⏱️ Timing & Info</h4>
+                                    <h4 style="margin-top: 0; color: #4A90E2;">Timing & Info</h4>
                                     <p style="color: #E0E0E0;"><strong>Preparation:</strong> {recipe.prep_time} min</p>
                                     <p style="color: #E0E0E0;"><strong>Cooking:</strong> {recipe.cook_time} min</p>
                                     <p style="color: #E0E0E0;"><strong>Total:</strong> {recipe.prep_time + recipe.cook_time} min</p>
@@ -228,7 +228,7 @@ else:
                             st.markdown(
                                 f"""
                                 <div class="nutrition-box">
-                                    <h4 style="margin-top: 0; color: #28a745;">🥗 Nutrition Facts</h4>
+                                    <h4 style="margin-top: 0; color: #28a745;">Nutrition Facts</h4>
                                     <p style="color: #E0E0E0;"><strong>Calories:</strong> {calorie_total:.1f} kcal</p>
                                     <p style="color: #E0E0E0;"><strong>Protéines:</strong> {protein_total:.1f} g</p>
                                     <p style="color: #E0E0E0;"><strong>Lipides:</strong> {lipide_total:.1f} g</p>
