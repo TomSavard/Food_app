@@ -152,12 +152,13 @@ else:
                                 color: #E0E0E0;
                             }
                             .info-box {
+                                border: 2px solid #4A90E2;
+                                border-radius: 15px;
+                                padding: 20px;
+                                margin: 15px 0;
                                 background: #2A2A2A;
-                                border-radius: 10px;
-                                padding: 15px;
-                                margin: 10px 0;
-                                border-left: 4px solid #4A90E2;
-                                box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+                                box-shadow: 0 4px 12px rgba(74, 144, 226, 0.4);
+                                color: #FFFFFF;
                             }
                             .nutrition-box {
                                 border: 2px solid #28a745;
@@ -165,7 +166,7 @@ else:
                                 padding: 20px;
                                 margin: 15px 0;
                                 background: #1E1E1E;
-                                box-shadow: 0 4px 12px rgba(40, 167, 69, 0.5);
+                                box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
                                 color: #FFFFFF;
                                 background: #2A2A2A;
                             }
