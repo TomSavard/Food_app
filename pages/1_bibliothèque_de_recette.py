@@ -128,21 +128,6 @@ else:
                     st.markdown(
                         """
                         <style>
-                        .recipe-detail-container {
-                            border: 2px solid #4A90E2;
-                            border-radius: 12px;
-                            padding: 20px;
-                            margin: 15px 0;
-                            background: rgba(30, 30, 30, 0.9);
-                            box-shadow: 0 2px 8px rgba(74, 144, 226, 0.3);
-                        }
-                        .recipe-detail-container h2 {
-                            color: #4A90E2;
-                            margin-top: 0;
-                        }
-                        .recipe-detail-container h3 {
-                            color: #E0E0E0;
-                        }
                         .recipe-detail-container p {
                             color: #E0E0E0;
                         }
