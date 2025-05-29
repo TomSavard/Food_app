@@ -17,6 +17,9 @@ def save_changes(drive, folder_id, save_recipes):
             if save_recipes(drive, folder_id, st.session_state.recipes):
                 st.success("Changes saved successfully!")
                 st.session_state.need_save = False
+                # Force reload recipes from cache-cleared source
+                from src.recipe_manager import cached_load_recipes
+                st.session_state.recipes = cached_load_recipes(drive, folder_id)
             else:
                 st.error("Failed to save changes")
 
@@ -48,7 +51,10 @@ def load_ingredient_db(_drive, folder_id, filename="BDD.xlsx"):
         file.GetContentFile(tmp_file.name)
         return pd.read_excel(tmp_file.name)
 
-
+def clear_ingredient_db_cache():
+    """Clear the cached ingredient database"""
+    load_ingredient_db.clear()
+    
 def compute_recipe_protein(ingredients, ingredient_db):
     total_protein = 0.0
     for ing in ingredients:
