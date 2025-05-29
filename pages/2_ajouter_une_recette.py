@@ -50,7 +50,7 @@ if st.sidebar.button("📊 Debug Data Quality"):
 # Add this to test nutrition calculation for an existing recipe
 if st.sidebar.button("🧮 Test Nutrition Calculation"):
     if st.session_state.recipes:
-        test_recipe = st.session_state.recipes[10]  # Test with first recipe
+        test_recipe = st.session_state.recipes[96]  # Test with first recipe
         debug_ingredient_nutrition_matching(test_recipe, ingredient_db)
     else:
         st.write("No recipes available for testing")
