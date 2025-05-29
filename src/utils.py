@@ -364,3 +364,242 @@ def debug_recipe_nutrition(recipe, ingredient_db):
     st.write(f"- **Proteins**: {total_proteins:.1f} g")
     st.write(f"- **Lipides**: {total_lipides:.1f} g")
     st.write(f"- **Glucides**: {total_glucides:.1f} g")
+
+
+
+def debug_ingredient_nutrition_matching(recipe, ingredient_db):
+    """Comprehensive debug function to analyze ingredient nutrition matching issues"""
+    st.write(f"### 🔍 Detailed Nutrition Debug for: {recipe.name}")
+    
+    # Define nutrition columns
+    nutrition_columns = {
+        "Calories": "Energie, Règlement UE N° 1169/2011 (kcal/100 g)",
+        "Proteins": "Protéines, N x facteur de Jones (g/100 g)",
+        "Lipides": "Lipides (g/100 g)",
+        "Glucides": "Glucides (g/100 g)"
+    }
+    
+    st.write("**Analyzing each ingredient:**")
+    
+    for i, ing in enumerate(recipe.ingredients):
+        st.write(f"**Ingredient {i+1}: {ing.name}**")
+        st.write(f"  - Quantity: {ing.formatted_quantity()} {ing.unit}")
+        
+        # Check exact name matching
+        exact_matches = ingredient_db[ingredient_db["alim_nom_fr"] == ing.name]
+        st.write(f"  - Exact matches found: {len(exact_matches)}")
+        
+        if exact_matches.empty:
+            st.write("  ❌ **No exact match found**")
+            
+            # Try fuzzy matching
+            st.write("  🔍 **Searching for similar names:**")
+            similar_names = ingredient_db[ingredient_db["alim_nom_fr"].str.contains(ing.name, case=False, na=False)]
+            if not similar_names.empty:
+                st.write(f"    Found {len(similar_names)} similar names:")
+                for idx, row in similar_names.head(5).iterrows():
+                    st.write(f"    - '{row['alim_nom_fr']}'")
+            else:
+                # Try partial matching
+                words = ing.name.split()
+                if len(words) > 1:
+                    for word in words:
+                        if len(word) > 3:  # Only search meaningful words
+                            partial_matches = ingredient_db[ingredient_db["alim_nom_fr"].str.contains(word, case=False, na=False)]
+                            if not partial_matches.empty:
+                                st.write(f"    Partial matches for '{word}': {len(partial_matches)} found")
+                                for idx, row in partial_matches.head(3).iterrows():
+                                    st.write(f"      - '{row['alim_nom_fr']}'")
+                                break
+                        
+            st.write("  💡 **Suggestions:**")
+            st.write("    - Check spelling of ingredient name")
+            st.write("    - Try using a more generic name")
+            st.write("    - Check if ingredient exists in database")
+            
+        else:
+            st.write("  ✅ **Exact match found**")
+            row = exact_matches.iloc[0]
+            
+            # Check each nutrient
+            nutrients_status = {}
+            for nutrient_name, column_name in nutrition_columns.items():
+                if column_name in ingredient_db.columns:
+                    value = row.get(column_name, None)
+                    st.write(f"    **{nutrient_name}**: ", end="")
+                    
+                    if pd.isna(value):
+                        st.write("❌ Value is NaN/missing")
+                        nutrients_status[nutrient_name] = "missing"
+                    elif str(value).strip() in ['-', '', 'nan', 'NaN']:
+                        st.write(f"❌ Value is '{value}' (invalid)")
+                        nutrients_status[nutrient_name] = "invalid"
+                    else:
+                        try:
+                            numeric_value = float(value)
+                            st.write(f"✅ {numeric_value} (valid)")
+                            nutrients_status[nutrient_name] = "valid"
+                        except (ValueError, TypeError):
+                            st.write(f"❌ Cannot convert '{value}' to number")
+                            nutrients_status[nutrient_name] = "conversion_error"
+                else:
+                    st.write(f"    **{nutrient_name}**: ❌ Column not found in database")
+                    nutrients_status[nutrient_name] = "column_missing"
+            
+            # Summary for this ingredient
+            valid_nutrients = sum(1 for status in nutrients_status.values() if status == "valid")
+            st.write(f"  📊 **Summary**: {valid_nutrients}/{len(nutrition_columns)} nutrients available")
+            
+            # Show data quality issues
+            issues = [nutrient for nutrient, status in nutrients_status.items() if status != "valid"]
+            if issues:
+                st.write(f"  ⚠️ **Issues with**: {', '.join(issues)}")
+        
+        st.write("---")
+    
+    # Overall analysis
+    st.write("**📊 Overall Analysis:**")
+    
+    total_ingredients = len(recipe.ingredients)
+    matched_ingredients = sum(1 for ing in recipe.ingredients 
+                            if not ingredient_db[ingredient_db["alim_nom_fr"] == ing.name].empty)
+    
+    st.write(f"- Total ingredients: {total_ingredients}")
+    st.write(f"- Matched in database: {matched_ingredients}")
+    st.write(f"- Not matched: {total_ingredients - matched_ingredients}")
+    st.write(f"- Match rate: {(matched_ingredients/total_ingredients)*100:.1f}%")
+    
+    # Check database completeness for matched ingredients
+    if matched_ingredients > 0:
+        st.write("**Database completeness for matched ingredients:**")
+        for nutrient_name, column_name in nutrition_columns.items():
+            valid_count = 0
+            for ing in recipe.ingredients:
+                row = ingredient_db[ingredient_db["alim_nom_fr"] == ing.name]
+                if not row.empty:
+                    value = row.iloc[0].get(column_name, None)
+                    if (pd.notna(value) and 
+                        str(value).strip() not in ['-', '', 'nan', 'NaN'] and
+                        str(value).replace('.', '').replace('-', '').isdigit()):
+                        try:
+                            float(value)
+                            valid_count += 1
+                        except:
+                            pass
+            
+            completeness = (valid_count / matched_ingredients) * 100 if matched_ingredients > 0 else 0
+            st.write(f"  - {nutrient_name}: {valid_count}/{matched_ingredients} ({completeness:.1f}%)")
+
+def debug_database_data_quality(ingredient_db):
+    """Debug function to analyze overall database data quality"""
+    st.write("### 📊 Database Data Quality Analysis")
+    
+    if ingredient_db.empty:
+        st.write("❌ Database is empty")
+        return
+    
+    nutrition_columns = {
+        "Calories": "Energie, Règlement UE N° 1169/2011 (kcal/100 g)",
+        "Proteins": "Protéines, N x facteur de Jones (g/100 g)",
+        "Lipides": "Lipides (g/100 g)",
+        "Glucides": "Glucides (g/100 g)"
+    }
+    
+    total_rows = len(ingredient_db)
+    st.write(f"**Total ingredients in database: {total_rows}**")
+    
+    st.write("**Data availability by nutrient:**")
+    
+    for nutrient_name, column_name in nutrition_columns.items():
+        if column_name in ingredient_db.columns:
+            col_data = ingredient_db[column_name]
+            
+            # Count different types of values
+            total_values = len(col_data)
+            non_null = col_data.notna().sum()
+            null_count = col_data.isna().sum()
+            
+            # Count invalid values (-, empty, etc.)
+            invalid_count = 0
+            valid_numeric_count = 0
+            
+            for value in col_data.dropna():
+                str_val = str(value).strip()
+                if str_val in ['-', '', 'nan', 'NaN']:
+                    invalid_count += 1
+                else:
+                    try:
+                        float(value)
+                        valid_numeric_count += 1
+                    except:
+                        invalid_count += 1
+            
+            completeness = (valid_numeric_count / total_rows) * 100
+            
+            st.write(f"**{nutrient_name}**:")
+            st.write(f"  - Total entries: {total_values}")
+            st.write(f"  - Non-null: {non_null}")
+            st.write(f"  - Null/NaN: {null_count}")
+            st.write(f"  - Invalid ('-', empty): {invalid_count}")
+            st.write(f"  - Valid numeric: {valid_numeric_count}")
+            st.write(f"  - Completeness: {completeness:.1f}%")
+            
+            # Show sample of invalid values
+            if invalid_count > 0:
+                invalid_samples = []
+                for value in col_data.dropna():
+                    str_val = str(value).strip()
+                    if str_val in ['-', '', 'nan', 'NaN'] or not str_val.replace('.', '').replace('-', '').isdigit():
+                        try:
+                            float(value)
+                        except:
+                            invalid_samples.append(str_val)
+                            if len(invalid_samples) >= 5:
+                                break
+                
+                if invalid_samples:
+                    st.write(f"  - Sample invalid values: {invalid_samples}")
+            
+            st.write("")
+        else:
+            st.write(f"**{nutrient_name}**: ❌ Column not found")
+
+def debug_ingredient_search(ingredient_db, search_term):
+    """Debug function to search for ingredients in the database"""
+    st.write(f"### 🔍 Searching for: '{search_term}'")
+    
+    if ingredient_db.empty:
+        st.write("❌ Database is empty")
+        return
+    
+    if "alim_nom_fr" not in ingredient_db.columns:
+        st.write("❌ Ingredient name column not found")
+        return
+    
+    # Exact match
+    exact_matches = ingredient_db[ingredient_db["alim_nom_fr"] == search_term]
+    st.write(f"**Exact matches: {len(exact_matches)}**")
+    
+    if not exact_matches.empty:
+        for idx, row in exact_matches.iterrows():
+            st.write(f"- {row['alim_nom_fr']}")
+    
+    # Case-insensitive partial match
+    partial_matches = ingredient_db[ingredient_db["alim_nom_fr"].str.contains(search_term, case=False, na=False)]
+    st.write(f"**Partial matches: {len(partial_matches)}**")
+    
+    if not partial_matches.empty:
+        for idx, row in partial_matches.head(10).iterrows():
+            st.write(f"- {row['alim_nom_fr']}")
+    
+    # Word-based search
+    words = search_term.split()
+    if len(words) > 1:
+        st.write("**Word-based search:**")
+        for word in words:
+            if len(word) > 2:
+                word_matches = ingredient_db[ingredient_db["alim_nom_fr"].str.contains(word, case=False, na=False)]
+                st.write(f"  Matches for '{word}': {len(word_matches)}")
+                if not word_matches.empty:
+                    for idx, row in word_matches.head(3).iterrows():
+                        st.write(f"    - {row['alim_nom_fr']}")
