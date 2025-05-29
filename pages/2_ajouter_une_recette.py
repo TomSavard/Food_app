@@ -30,7 +30,27 @@ if "ingredient_db" not in st.session_state:
 ingredient_db = st.session_state.ingredient_db
 
 
-ingredient_names = ingredient_db["alim_nom_fr"].dropna().unique().tolist() if not ingredient_db.empty else []
+
+# IMPROVED INGREDIENT PROCESSING
+ingredient_names = []
+if not ingredient_db.empty and "alim_nom_fr" in ingredient_db.columns:
+    # Get unique ingredient names, remove nulls, strip whitespace, and sort
+    raw_names = ingredient_db["alim_nom_fr"].dropna().unique()
+    ingredient_names = sorted([str(name).strip() for name in raw_names if name and str(name).strip()])
+    
+    # Remove any empty strings or invalid entries
+    ingredient_names = [name for name in ingredient_names if len(name) > 0]
+
+# DEBUG INFO (you can remove this after testing)
+if st.checkbox("🔍 Debug Ingredient Database"):
+    st.write("### Ingredient Database Debug")
+    st.write(f"Database shape: {ingredient_db.shape}")
+    st.write(f"Total ingredients found: {len(ingredient_names)}")
+    if ingredient_names:
+        st.write("First 10 ingredients:")
+        for i, ing in enumerate(ingredient_names[:10]):
+            st.write(f"{i+1}. '{ing}' (length: {len(ing)})")
+
 
 editing = "edit_recipe" in st.session_state
 
@@ -113,14 +133,36 @@ else:
 # Add new ingredient using a form
 st.write("Add New Ingredient:")
 
-# Use a form for adding ingredients
+# IMPROVED INGREDIENT SELECTION WITH SEARCH
 with st.form(key="ingredient_form"):
     ing_cols = st.columns([3, 1, 1, 2])
-    ing_name = ing_cols[0].selectbox(
-        "Nom",
-        options=ingredient_names,
-        key="form_ing_name"
+    
+    # Method 1: Selectbox with search (improved)
+    ing_name_select = ing_cols[0].selectbox(
+        "Select Ingredient",
+        options=[""] + ingredient_names,  # Add empty option at the beginning
+        index=0,  # Start with empty selection
+        help="Start typing to search for ingredients",
+        key="form_ing_name_select"
     )
+    
+    # Method 2: Text input for manual entry or custom ingredients
+    ing_name_text = ing_cols[0].text_input(
+        "Or type ingredient name",
+        placeholder="Type custom ingredient...",
+        key="form_ing_name_text",
+        help="Use this if ingredient not found in list above"
+    )
+    
+    # Use selectbox value if selected, otherwise use text input
+    ing_name = ing_name_select if ing_name_select else ing_name_text
+    
+    # Show suggestions if user is typing in text field
+    if ing_name_text and len(ing_name_text) > 2:
+        matches = [name for name in ingredient_names if ing_name_text.lower() in name.lower()]
+        if matches:
+            ing_cols[0].caption(f"💡 Suggestions: {', '.join(matches[:3])}{'...' if len(matches) > 3 else ''}")
+    
     ing_qty = ing_cols[1].number_input("Qty", min_value=0.0, step=0.1, format="%.1f", key="form_ing_qty")
     ing_unit = ing_cols[2].text_input("Unit", key="form_ing_unit")
     ing_notes = ing_cols[3].text_input("Notes", key="form_ing_notes")
@@ -128,10 +170,10 @@ with st.form(key="ingredient_form"):
     # Submit button inside form
     submitted = st.form_submit_button("Add Ingredient")
     
-    if submitted and ing_name:
+    if submitted and ing_name and ing_name.strip():
         # Create a new ingredient
         new_ing = Ingredient(
-            name=ing_name,
+            name=ing_name.strip(),
             quantity=ing_qty,
             unit=ing_unit,
             notes=ing_notes
@@ -263,14 +305,9 @@ if submit and name:  # Basic validation
         # Add new recipe
         st.session_state.recipes.append(new_recipe)
 
-    # Mark for saving and save immediately
-    st.session_state.need_save = True
-    
-    # Import and call save_changes directly
-    from src.recipe_manager import save_recipes, clear_recipes_cache
-    
-    # Save immediately with better error handling
-    success = save_recipes(drive, folder_id, st.session_state.recipes)
+   # IMPROVED SAVE PROCESS
+    with st.spinner("Saving recipe..."):
+        success = save_recipes(drive, folder_id, st.session_state.recipes)
     
     if success:
         st.success(f"Recipe {'updated' if editing else 'added'} successfully!")
