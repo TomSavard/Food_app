@@ -141,6 +141,25 @@ def debug_ingredient_db(drive, folder_id, filename="BDD.xlsx"):
     except Exception as e:
         st.error(f"Debug failed: {e}")
 
+
+def safe_float_conversion(value):
+    """Safely convert a value to float, handling European decimal format"""
+    if pd.isna(value):
+        return None
+    
+    str_val = str(value).strip()
+    
+    # Check for invalid values
+    if str_val in ['-', '', 'nan', 'NaN']:
+        return None
+    
+    try:
+        # Replace comma with dot for European decimal format
+        normalized_val = str_val.replace(',', '.')
+        return float(normalized_val)
+    except (ValueError, TypeError):
+        return None
+
 def compute_recipe_protein(ingredients, ingredient_db):
     total_protein = 0.0
     for ing in ingredients:
@@ -156,38 +175,10 @@ def compute_recipe_protein(ingredients, ingredient_db):
         row = ingredient_db[ingredient_db["alim_nom_fr"] == ing.name]
         if not row.empty:
             protein_per_100g = row.iloc[0].get("Protéines, N x facteur de Jones (g/100 g)", 0)
-            if pd.notna(protein_per_100g) and str(protein_per_100g).strip() not in ['-', '', 'nan', 'NaN']:
-                try:
-                    protein_value = float(protein_per_100g)
-                    total_protein += (protein_value * qty) / 100
-                except (ValueError, TypeError):
-                    # Skip if conversion fails
-                    continue
+            protein_value = safe_float_conversion(protein_per_100g)
+            if protein_value is not None:
+                total_protein += (protein_value * qty) / 100
     return total_protein
-
-def compute_recipe_calorie(ingredients, ingredient_db):
-    total_calorie = 0.0
-    for ing in ingredients:
-        # Check the unit
-        unit = ing.unit.lower().strip()
-        if unit == "g":
-            qty = ing.quantity
-        elif unit == "kg":
-            qty = ing.quantity * 1000
-        else:
-            continue
-        # Find the ingredient in the DB
-        row = ingredient_db[ingredient_db["alim_nom_fr"] == ing.name]
-        if not row.empty:
-            calorie_per_100g = row.iloc[0].get("Energie, Règlement UE N° 1169/2011 (kcal/100 g)", 0)
-            if pd.notna(calorie_per_100g) and str(calorie_per_100g).strip() not in ['-', '', 'nan', 'NaN']:
-                try:
-                    calorie_value = float(calorie_per_100g)
-                    total_calorie += (calorie_value * qty) / 100
-                except (ValueError, TypeError):
-                    # Skip if conversion fails
-                    continue
-    return total_calorie
 
 def compute_recipe_lipide(ingredients, ingredient_db):
     total_lipide = 0.0
@@ -204,13 +195,9 @@ def compute_recipe_lipide(ingredients, ingredient_db):
         row = ingredient_db[ingredient_db["alim_nom_fr"] == ing.name]
         if not row.empty:
             lipide_per_100g = row.iloc[0].get("Lipides (g/100 g)", 0)
-            if pd.notna(lipide_per_100g) and str(lipide_per_100g).strip() not in ['-', '', 'nan', 'NaN']:
-                try:
-                    lipide_value = float(lipide_per_100g)
-                    total_lipide += (lipide_value * qty) / 100
-                except (ValueError, TypeError):
-                    # Skip if conversion fails
-                    continue
+            lipide_value = safe_float_conversion(lipide_per_100g)
+            if lipide_value is not None:
+                total_lipide += (lipide_value * qty) / 100
     return total_lipide
 
 def compute_recipe_glucide(ingredients, ingredient_db):
@@ -228,14 +215,30 @@ def compute_recipe_glucide(ingredients, ingredient_db):
         row = ingredient_db[ingredient_db["alim_nom_fr"] == ing.name]
         if not row.empty:
             glucide_per_100g = row.iloc[0].get("Glucides (g/100 g)", 0)
-            if pd.notna(glucide_per_100g) and str(glucide_per_100g).strip() not in ['-', '', 'nan', 'NaN']:
-                try:
-                    glucide_value = float(glucide_per_100g)
-                    total_glucide += (glucide_value * qty) / 100
-                except (ValueError, TypeError):
-                    # Skip if conversion fails
-                    continue
+            glucide_value = safe_float_conversion(glucide_per_100g)
+            if glucide_value is not None:
+                total_glucide += (glucide_value * qty) / 100
     return total_glucide
+
+def compute_recipe_calorie(ingredients, ingredient_db):
+    total_calorie = 0.0
+    for ing in ingredients:
+        # Check the unit
+        unit = ing.unit.lower().strip()
+        if unit == "g":
+            qty = ing.quantity
+        elif unit == "kg":
+            qty = ing.quantity * 1000
+        else:
+            continue
+        # Find the ingredient in the DB
+        row = ingredient_db[ingredient_db["alim_nom_fr"] == ing.name]
+        if not row.empty:
+            calorie_per_100g = row.iloc[0].get("Energie, Règlement UE N° 1169/2011 (kcal/100 g)", 0)
+            calorie_value = safe_float_conversion(calorie_per_100g)
+            if calorie_value is not None:
+                total_calorie += (calorie_value * qty) / 100
+    return total_calorie
 
 def debug_nutrition_columns(ingredient_db):
     """Debug function to show nutrition-related columns and their sample values"""
@@ -412,35 +415,31 @@ def debug_ingredient_nutrition_matching(recipe, ingredient_db):
                                     st.write(f"      - '{row['alim_nom_fr']}'")
                                 break
                         
-            st.write("  💡 **Suggestions:**")
-            st.write("    - Check spelling of ingredient name")
-            st.write("    - Try using a more generic name")
-            st.write("    - Check if ingredient exists in database")
-            
         else:
             st.write("  ✅ **Exact match found**")
             row = exact_matches.iloc[0]
             
-            # Check each nutrient
+            # Check each nutrient with decimal conversion
             nutrients_status = {}
             for nutrient_name, column_name in nutrition_columns.items():
                 if column_name in ingredient_db.columns:
-                    value = row.get(column_name, None)
+                    raw_value = row.get(column_name, None)
                     st.write(f"    **{nutrient_name}**: ", end="")
                     
-                    if pd.isna(value):
+                    if pd.isna(raw_value):
                         st.write("❌ Value is NaN/missing")
                         nutrients_status[nutrient_name] = "missing"
-                    elif str(value).strip() in ['-', '', 'nan', 'NaN']:
-                        st.write(f"❌ Value is '{value}' (invalid)")
+                    elif str(raw_value).strip() in ['-', '', 'nan', 'NaN']:
+                        st.write(f"❌ Value is '{raw_value}' (invalid)")
                         nutrients_status[nutrient_name] = "invalid"
                     else:
-                        try:
-                            numeric_value = float(value)
-                            st.write(f"✅ {numeric_value} (valid)")
+                        # Show the conversion process
+                        converted_value = safe_float_conversion(raw_value)
+                        if converted_value is not None:
+                            st.write(f"✅ '{raw_value}' → {converted_value} (converted successfully)")
                             nutrients_status[nutrient_name] = "valid"
-                        except (ValueError, TypeError):
-                            st.write(f"❌ Cannot convert '{value}' to number")
+                        else:
+                            st.write(f"❌ Cannot convert '{raw_value}' to number")
                             nutrients_status[nutrient_name] = "conversion_error"
                 else:
                     st.write(f"    **{nutrient_name}**: ❌ Column not found in database")
@@ -449,47 +448,10 @@ def debug_ingredient_nutrition_matching(recipe, ingredient_db):
             # Summary for this ingredient
             valid_nutrients = sum(1 for status in nutrients_status.values() if status == "valid")
             st.write(f"  📊 **Summary**: {valid_nutrients}/{len(nutrition_columns)} nutrients available")
-            
-            # Show data quality issues
-            issues = [nutrient for nutrient, status in nutrients_status.items() if status != "valid"]
-            if issues:
-                st.write(f"  ⚠️ **Issues with**: {', '.join(issues)}")
         
         st.write("---")
-    
-    # Overall analysis
-    st.write("**📊 Overall Analysis:**")
-    
-    total_ingredients = len(recipe.ingredients)
-    matched_ingredients = sum(1 for ing in recipe.ingredients 
-                            if not ingredient_db[ingredient_db["alim_nom_fr"] == ing.name].empty)
-    
-    st.write(f"- Total ingredients: {total_ingredients}")
-    st.write(f"- Matched in database: {matched_ingredients}")
-    st.write(f"- Not matched: {total_ingredients - matched_ingredients}")
-    st.write(f"- Match rate: {(matched_ingredients/total_ingredients)*100:.1f}%")
-    
-    # Check database completeness for matched ingredients
-    if matched_ingredients > 0:
-        st.write("**Database completeness for matched ingredients:**")
-        for nutrient_name, column_name in nutrition_columns.items():
-            valid_count = 0
-            for ing in recipe.ingredients:
-                row = ingredient_db[ingredient_db["alim_nom_fr"] == ing.name]
-                if not row.empty:
-                    value = row.iloc[0].get(column_name, None)
-                    if (pd.notna(value) and 
-                        str(value).strip() not in ['-', '', 'nan', 'NaN'] and
-                        str(value).replace('.', '').replace('-', '').isdigit()):
-                        try:
-                            float(value)
-                            valid_count += 1
-                        except:
-                            pass
-            
-            completeness = (valid_count / matched_ingredients) * 100 if matched_ingredients > 0 else 0
-            st.write(f"  - {nutrient_name}: {valid_count}/{matched_ingredients} ({completeness:.1f}%)")
 
+        
 def debug_database_data_quality(ingredient_db):
     """Debug function to analyze overall database data quality"""
     st.write("### 📊 Database Data Quality Analysis")
@@ -563,43 +525,3 @@ def debug_database_data_quality(ingredient_db):
             st.write("")
         else:
             st.write(f"**{nutrient_name}**: ❌ Column not found")
-
-def debug_ingredient_search(ingredient_db, search_term):
-    """Debug function to search for ingredients in the database"""
-    st.write(f"### 🔍 Searching for: '{search_term}'")
-    
-    if ingredient_db.empty:
-        st.write("❌ Database is empty")
-        return
-    
-    if "alim_nom_fr" not in ingredient_db.columns:
-        st.write("❌ Ingredient name column not found")
-        return
-    
-    # Exact match
-    exact_matches = ingredient_db[ingredient_db["alim_nom_fr"] == search_term]
-    st.write(f"**Exact matches: {len(exact_matches)}**")
-    
-    if not exact_matches.empty:
-        for idx, row in exact_matches.iterrows():
-            st.write(f"- {row['alim_nom_fr']}")
-    
-    # Case-insensitive partial match
-    partial_matches = ingredient_db[ingredient_db["alim_nom_fr"].str.contains(search_term, case=False, na=False)]
-    st.write(f"**Partial matches: {len(partial_matches)}**")
-    
-    if not partial_matches.empty:
-        for idx, row in partial_matches.head(10).iterrows():
-            st.write(f"- {row['alim_nom_fr']}")
-    
-    # Word-based search
-    words = search_term.split()
-    if len(words) > 1:
-        st.write("**Word-based search:**")
-        for word in words:
-            if len(word) > 2:
-                word_matches = ingredient_db[ingredient_db["alim_nom_fr"].str.contains(word, case=False, na=False)]
-                st.write(f"  Matches for '{word}': {len(word_matches)}")
-                if not word_matches.empty:
-                    for idx, row in word_matches.head(3).iterrows():
-                        st.write(f"    - {row['alim_nom_fr']}")

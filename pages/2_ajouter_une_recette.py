@@ -55,12 +55,6 @@ if st.sidebar.button("🧮 Test Nutrition Calculation"):
     else:
         st.write("No recipes available for testing")
 
-# Add ingredient search tool
-st.sidebar.write("### 🔍 Ingredient Search")
-search_ingredient = st.sidebar.text_input("Search ingredient in database")
-if st.sidebar.button("Search") and search_ingredient:
-    debug_ingredient_search(ingredient_db, search_ingredient)
-
 # IMPROVED INGREDIENT PROCESSING
 ingredient_names = []
 if not ingredient_db.empty and "alim_nom_fr" in ingredient_db.columns:
