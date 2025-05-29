@@ -144,7 +144,7 @@ def debug_ingredient_db(drive, folder_id, filename="BDD.xlsx"):
 def compute_recipe_protein(ingredients, ingredient_db):
     total_protein = 0.0
     for ing in ingredients:
-        # on check l'unité
+        # Check the unit
         unit = ing.unit.lower().strip()
         if unit == "g":
             qty = ing.quantity
@@ -156,14 +156,19 @@ def compute_recipe_protein(ingredients, ingredient_db):
         row = ingredient_db[ingredient_db["alim_nom_fr"] == ing.name]
         if not row.empty:
             protein_per_100g = row.iloc[0].get("Protéines, N x facteur de Jones (g/100 g)", 0)
-            if pd.notna(protein_per_100g):
-                total_protein += (float(protein_per_100g) * qty) / 100
+            if pd.notna(protein_per_100g) and str(protein_per_100g).strip() not in ['-', '', 'nan', 'NaN']:
+                try:
+                    protein_value = float(protein_per_100g)
+                    total_protein += (protein_value * qty) / 100
+                except (ValueError, TypeError):
+                    # Skip if conversion fails
+                    continue
     return total_protein
 
 def compute_recipe_lipide(ingredients, ingredient_db):
     total_lipide = 0.0
     for ing in ingredients:
-        # on check l'unité
+        # Check the unit
         unit = ing.unit.lower().strip()
         if unit == "g":
             qty = ing.quantity
@@ -175,14 +180,19 @@ def compute_recipe_lipide(ingredients, ingredient_db):
         row = ingredient_db[ingredient_db["alim_nom_fr"] == ing.name]
         if not row.empty:
             lipide_per_100g = row.iloc[0].get("Lipides (g/100 g)", 0)
-            if pd.notna(lipide_per_100g):
-                total_lipide += (float(lipide_per_100g) * qty) / 100
+            if pd.notna(lipide_per_100g) and str(lipide_per_100g).strip() not in ['-', '', 'nan', 'NaN']:
+                try:
+                    lipide_value = float(lipide_per_100g)
+                    total_lipide += (lipide_value * qty) / 100
+                except (ValueError, TypeError):
+                    # Skip if conversion fails
+                    continue
     return total_lipide
 
 def compute_recipe_glucide(ingredients, ingredient_db):
     total_glucide = 0.0
     for ing in ingredients:
-        # on check l'unité
+        # Check the unit
         unit = ing.unit.lower().strip()
         if unit == "g":
             qty = ing.quantity
@@ -194,14 +204,19 @@ def compute_recipe_glucide(ingredients, ingredient_db):
         row = ingredient_db[ingredient_db["alim_nom_fr"] == ing.name]
         if not row.empty:
             glucide_per_100g = row.iloc[0].get("Glucides (g/100 g)", 0)
-            if pd.notna(glucide_per_100g):
-                total_glucide += (float(glucide_per_100g) * qty) / 100
+            if pd.notna(glucide_per_100g) and str(glucide_per_100g).strip() not in ['-', '', 'nan', 'NaN']:
+                try:
+                    glucide_value = float(glucide_per_100g)
+                    total_glucide += (glucide_value * qty) / 100
+                except (ValueError, TypeError):
+                    # Skip if conversion fails
+                    continue
     return total_glucide
 
 def compute_recipe_calorie(ingredients, ingredient_db):
     total_calorie = 0.0
     for ing in ingredients:
-        # on check l'unité
+        # Check the unit
         unit = ing.unit.lower().strip()
         if unit == "g":
             qty = ing.quantity
@@ -213,6 +228,11 @@ def compute_recipe_calorie(ingredients, ingredient_db):
         row = ingredient_db[ingredient_db["alim_nom_fr"] == ing.name]
         if not row.empty:
             calorie_per_100g = row.iloc[0].get("Energie, Règlement UE N° 1169/2011 (kcal/100 g)", 0)
-            if pd.notna(calorie_per_100g):
-                total_calorie += (float(calorie_per_100g) * qty) / 100
+            if pd.notna(calorie_per_100g) and str(calorie_per_100g).strip() not in ['-', '', 'nan', 'NaN']:
+                try:
+                    calorie_value = float(calorie_per_100g)
+                    total_calorie += (calorie_value * qty) / 100
+                except (ValueError, TypeError):
+                    # Skip if conversion fails
+                    continue
     return total_calorie
