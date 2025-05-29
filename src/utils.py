@@ -64,11 +64,11 @@ def load_ingredient_db(_drive, folder_id, filename="BDD.xlsx"):
             if os.path.exists(tmp_file.name):
                 os.remove(tmp_file.name)
             
-            st.write(f"✅ Loaded ingredient database: {df.shape[0]} rows, {df.shape[1]} columns")
+            # st.write(f"✅ Loaded ingredient database: {df.shape[0]} rows, {df.shape[1]} columns")
             
-            # Show column names for debugging
-            if not df.empty:
-                st.write(f"📋 Columns: {list(df.columns)}")
+            # # Show column names for debugging
+            # if not df.empty:
+            #     st.write(f"📋 Columns: {list(df.columns)}")
             
             return df
             
