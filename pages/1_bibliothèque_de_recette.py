@@ -129,7 +129,7 @@ else:
                         """
                         <style>
                         .info-box {
-                            border: 2px solid #4A90E2;
+                            border: 2px solid #FF6B6B;
                             border-radius: 15px;
                             padding: 20px;
                             margin: 15px 0;
@@ -139,7 +139,7 @@ else:
                             height: fit-content;
                         }
                         .nutrition-box {
-                            border: 2px solid #28a745;
+                            border: 2px solid #FF8E53;
                             border-radius: 15px;
                             padding: 20px;
                             margin: 15px 0;
@@ -177,7 +177,7 @@ else:
                         st.markdown(
                             f"""
                             <div class="nutrition-box">
-                                <h4 style="margin-top: 0; color: #28a745;">Nutrition Facts</h4>
+                                <h4 style="margin-top: 0; color: #FF8E53;">Nutrition Facts</h4>
                                 <p style="color: #E0E0E0; margin-bottom: 8px;">
                                     <strong>Calories:</strong> {calorie_total:.1f} kcal &nbsp;&nbsp;&nbsp;&nbsp;
                                     <strong>Protéines:</strong> {protein_total:.1f} g
@@ -205,7 +205,7 @@ else:
                         st.markdown(
                             f"""
                             <div class="info-box">
-                                <h4 style="margin-top: 0; color: #4A90E2;">Timing & Info</h4>
+                                <h4 style="margin-top: 0; color: #FF6B6B;">Timing & Info</h4>
                                 <p style="color: #E0E0E0;"><strong>Preparation:</strong> {recipe.prep_time} min</p>
                                 <p style="color: #E0E0E0;"><strong>Cooking:</strong> {recipe.cook_time} min</p>
                                 <p style="color: #E0E0E0;"><strong>Total:</strong> {recipe.prep_time + recipe.cook_time} min</p>
