@@ -11,10 +11,10 @@ from pydrive2.auth import GoogleAuth
 from pydrive2.drive import GoogleDrive
 
 from src.recipe_manager import save_recipes, cached_load_recipes, clear_recipes_cache
-from src.utils import ensure_drive_connection, load_ingredient_db, clear_ingredient_db_cache, debug_ingredient_db, debug_nutrition_columns, debug_recipe_nutrition
+from src.utils import ensure_drive_connection, load_ingredient_db, clear_ingredient_db_cache, debug_ingredient_db, debug_nutrition_columns
 from src.models.recipe import Recipe, Ingredient
 
-from src.utils import debug_ingredient_nutrition_matching, debug_database_data_quality, debug_ingredient_search
+from src.utils import debug_ingredient_nutrition_matching, debug_database_data_quality
 
 st.title("Add / Edit Recipe")
 ensure_drive_connection()
