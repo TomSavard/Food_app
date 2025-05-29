@@ -124,16 +124,50 @@ else:
                 if st.session_state.selected_recipe == recipe.recipe_id:
                     st.markdown("---")
                     
-                    # Create a bordered container for the expanded view that matches dark theme
-                    with st.container():
-                        # Use Streamlit's native container with custom CSS
+                    # Create a bordered container for the expanded view
+                    st.markdown(
+                        f"""
+                        <div style="
+                            border: 2px solid #4A90E2;
+                            border-radius: 15px;
+                            padding: 20px;
+                            margin: 15px 0;
+                            background: #1E1E1E;
+                            box-shadow: 0 4px 12px rgba(74, 144, 226, 0.3);
+                            color: #FFFFFF;
+                        ">
+                        <h2 style="color: #4A90E2; margin-top: 0;">🍽️ {recipe.name}</h2>
+                        """,
+                        unsafe_allow_html=True
+                    )
+                    
+                    col1, col2 = st.columns([2, 1])
+
+                    with col1:
+                        st.markdown(f'<p style="color: #E0E0E0;">{recipe.description}</p>', unsafe_allow_html=True)
+
+                        st.markdown('<h3 style="color: #66B2FF; border-bottom: 1px solid #333; padding-bottom: 5px;">🥘 Ingredients</h3>', unsafe_allow_html=True)
+                        for ing in recipe.ingredients:
+                            st.markdown(f'<p style="color: #E0E0E0;">- {ing.formatted_quantity()} {ing.unit} {ing.name} {ing.notes}</p>', unsafe_allow_html=True)
+
+                        st.markdown('<h3 style="color: #66B2FF; border-bottom: 1px solid #333; padding-bottom: 5px;">📝 Instructions</h3>', unsafe_allow_html=True)
+                        for j, step in enumerate(recipe.instructions, 1):
+                            st.markdown(f'<p style="color: #E0E0E0;">{j}. {step}</p>', unsafe_allow_html=True)
+
+                    with col2:
+                        if recipe.image_file_id:
+                            try:
+                                img_file = drive.CreateFile({'id': recipe.image_file_id})
+                                img_content = BytesIO(img_file.GetContentString(content_type="image/jpeg").encode())
+                                image = Image.open(img_content)
+                                st.image(image, use_column_width=True, caption="Recipe Image")
+                            except:
+                                st.warning("Image not available")
+                        
+                        # Recipe info box
                         st.markdown(
-                            """
-                            <style>
-                            .recipe-detail-container p {
-                                color: #E0E0E0;
-                            }
-                            .info-box {
+                            f"""
+                            <div style="
                                 border: 2px solid #4A90E2;
                                 border-radius: 15px;
                                 padding: 20px;
@@ -141,8 +175,29 @@ else:
                                 background: #1E1E1E;
                                 box-shadow: 0 4px 12px rgba(74, 144, 226, 0.4);
                                 color: #FFFFFF;
-                            }
-                            .nutrition-box {
+                            ">
+                                <h4 style="margin-top: 0; color: #4A90E2;">⏱️ Timing & Info</h4>
+                                <p style="color: #E0E0E0;"><strong>Preparation:</strong> {recipe.prep_time} min</p>
+                                <p style="color: #E0E0E0;"><strong>Cooking:</strong> {recipe.cook_time} min</p>
+                                <p style="color: #E0E0E0;"><strong>Total:</strong> {recipe.prep_time + recipe.cook_time} min</p>
+                                <p style="color: #E0E0E0;"><strong>Servings:</strong> {recipe.servings}</p>
+                                <p style="color: #E0E0E0;"><strong>Cuisine:</strong> {recipe.cuisine_type}</p>
+                                <p style="color: #E0E0E0;"><strong>Tags:</strong> {', '.join(recipe.tags)}</p>
+                                <p style="color: #E0E0E0;"><strong>Ustensils:</strong> {', '.join(recipe.utensils)}</p>
+                            </div>
+                            """,
+                            unsafe_allow_html=True
+                        )
+
+                        # Nutritional information
+                        calorie_total = compute_recipe_calorie(recipe.ingredients, ingredient_db)
+                        protein_total = compute_recipe_protein(recipe.ingredients, ingredient_db)
+                        lipide_total = compute_recipe_lipide(recipe.ingredients, ingredient_db)
+                        glucide_total = compute_recipe_glucide(recipe.ingredients, ingredient_db)
+                        
+                        st.markdown(
+                            f"""
+                            <div style="
                                 border: 2px solid #28a745;
                                 border-radius: 15px;
                                 padding: 20px;
@@ -150,147 +205,88 @@ else:
                                 background: #1E1E1E;
                                 box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
                                 color: #FFFFFF;
-                            }
-                            </style>
+                            ">
+                                <h4 style="margin-top: 0; color: #28a745;">🥗 Nutrition Facts</h4>
+                                <p style="color: #E0E0E0;"><strong>Calories:</strong> {calorie_total:.1f} kcal</p>
+                                <p style="color: #E0E0E0;"><strong>Protéines:</strong> {protein_total:.1f} g</p>
+                                <p style="color: #E0E0E0;"><strong>Lipides:</strong> {lipide_total:.1f} g</p>
+                                <p style="color: #E0E0E0;"><strong>Glucides:</strong> {glucide_total:.1f} g</p>
+                            </div>
+                            """,
+                            unsafe_allow_html=True
+                        )
+
+                    # Action buttons
+                    st.markdown('<h3 style="color: #66B2FF;">⚡ Actions</h3>', unsafe_allow_html=True)
+                    col1, col2, col3 = st.columns([1, 1, 1])
+                    with col1:
+                        if st.button("❌ Close Recipe", key=f"close_{recipe_idx}", use_container_width=True):
+                            st.session_state.selected_recipe = None
+                            st.rerun()
+                    with col2:
+                        if st.button("✏️ Edit Recipe", key=f"edit_{recipe_idx}", use_container_width=True):
+                            _on_edit_recipe(recipe)
+                    with col3:
+                        if st.button("🗑️ Delete Recipe", key=f"delete_{recipe_idx}", type="primary", use_container_width=True):
+                            # Store a reference to the specific recipe index to delete
+                            recipe_index = next((idx for idx, r in enumerate(st.session_state.recipes)
+                                                if r.recipe_id == recipe.recipe_id), None)
+
+                            if recipe_index is not None:
+                                st.session_state.confirm_delete = True
+                                st.session_state.recipe_to_delete = recipe
+                                st.session_state.recipe_index_to_delete = recipe_index
+                            else:
+                                st.error("Recipe not found in the list.")
+
+                    # Delete confirmation
+                    if ("confirm_delete" in st.session_state and st.session_state.confirm_delete and 
+                        st.session_state.recipe_to_delete.recipe_id == recipe.recipe_id):
+
+                        st.markdown(
+                            f"""
+                            <div style="
+                                background: #3D2914;
+                                border: 1px solid #D4A574;
+                                border-radius: 8px;
+                                padding: 15px;
+                                margin: 15px 0;
+                                border-left: 4px solid #e17055;
+                            ">
+                                <h4 style="margin-top: 0; color: #D4A574;">⚠️ Confirm Deletion</h4>
+                                <p style="margin-bottom: 0; color: #D4A574;">
+                                    Are you sure you want to delete '<strong>{st.session_state.recipe_to_delete.name}</strong>'? 
+                                    This action cannot be undone.
+                                </p>
+                            </div>
                             """,
                             unsafe_allow_html=True
                         )
                         
-                        # Container div
-                        st.markdown('<div class="recipe-detail-container">', unsafe_allow_html=True)
-                        
-                        st.markdown(f"## 🍽️ {recipe.name}")
-                        
-                        col1, col2 = st.columns([2, 1])
+                        col1, col2 = st.columns([1, 1])
 
                         with col1:
-                            st.write(recipe.description)
-
-                            st.write("### 🥘 Ingredients")
-                            for ing in recipe.ingredients:
-                                st.write(f"- {ing.formatted_quantity()} {ing.unit} {ing.name} {ing.notes}")
-
-                            st.write("### 📝 Instructions")
-                            for j, step in enumerate(recipe.instructions, 1):
-                                st.write(f"{j}. {step}")
-
-                        with col2:
-                            if recipe.image_file_id:
-                                try:
-                                    img_file = drive.CreateFile({'id': recipe.image_file_id})
-                                    img_content = BytesIO(img_file.GetContentString(content_type="image/jpeg").encode())
-                                    image = Image.open(img_content)
-                                    st.image(image, use_column_width=True, caption="Recipe Image")
-                                except:
-                                    st.warning("Image not available")
-                            
-                            # Recipe info in a dark-themed info box
-                            st.markdown(
-                                f"""
-                                <div class="info-box">
-                                    <h4 style="margin-top: 0; color: #4A90E2;">Timing & Info</h4>
-                                    <p style="color: #E0E0E0;"><strong>Preparation:</strong> {recipe.prep_time} min</p>
-                                    <p style="color: #E0E0E0;"><strong>Cooking:</strong> {recipe.cook_time} min</p>
-                                    <p style="color: #E0E0E0;"><strong>Total:</strong> {recipe.prep_time + recipe.cook_time} min</p>
-                                    <p style="color: #E0E0E0;"><strong>Servings:</strong> {recipe.servings}</p>
-                                    <p style="color: #E0E0E0;"><strong>Cuisine:</strong> {recipe.cuisine_type}</p>
-                                    <p style="color: #E0E0E0;"><strong>Tags:</strong> {', '.join(recipe.tags)}</p>
-                                    <p style="color: #E0E0E0;"><strong>Ustensils:</strong> {', '.join(recipe.utensils)}</p>
-                                </div>
-                                """,
-                                unsafe_allow_html=True
-                            )
-
-                            # Nutritional information in another dark-themed info box
-                            calorie_total = compute_recipe_calorie(recipe.ingredients, ingredient_db)
-                            protein_total = compute_recipe_protein(recipe.ingredients, ingredient_db)
-                            lipide_total = compute_recipe_lipide(recipe.ingredients, ingredient_db)
-                            glucide_total = compute_recipe_glucide(recipe.ingredients, ingredient_db)
-                            
-                            st.markdown(
-                                f"""
-                                <div class="nutrition-box">
-                                    <h4 style="margin-top: 0; color: #28a745;">Nutrition Facts</h4>
-                                    <p style="color: #E0E0E0;"><strong>Calories:</strong> {calorie_total:.1f} kcal</p>
-                                    <p style="color: #E0E0E0;"><strong>Protéines:</strong> {protein_total:.1f} g</p>
-                                    <p style="color: #E0E0E0;"><strong>Lipides:</strong> {lipide_total:.1f} g</p>
-                                    <p style="color: #E0E0E0;"><strong>Glucides:</strong> {glucide_total:.1f} g</p>
-                                </div>
-                                """,
-                                unsafe_allow_html=True
-                            )
-
-                        # Action buttons
-                        col1, col2, col3 = st.columns([1, 1, 1])
-                        with col1:
-                            if st.button("❌ Close Recipe", key=f"close_{recipe_idx}", use_container_width=True):
-                                st.session_state.selected_recipe = None
-                                st.rerun()
-                        with col2:
-                            if st.button("✏️ Edit Recipe", key=f"edit_{recipe_idx}", use_container_width=True):
-                                _on_edit_recipe(recipe)
-                        with col3:
-                            if st.button("🗑️ Delete Recipe", key=f"delete_{recipe_idx}", type="primary", use_container_width=True):
-                                # Store a reference to the specific recipe index to delete
-                                recipe_index = next((idx for idx, r in enumerate(st.session_state.recipes)
-                                                    if r.recipe_id == recipe.recipe_id), None)
-
-                                if recipe_index is not None:
-                                    st.session_state.confirm_delete = True
-                                    st.session_state.recipe_to_delete = recipe
-                                    st.session_state.recipe_index_to_delete = recipe_index
-                                else:
-                                    st.error("Recipe not found in the list.")
-
-                        # Delete confirmation with dark-themed warning
-                        if ("confirm_delete" in st.session_state and st.session_state.confirm_delete and 
-                            st.session_state.recipe_to_delete.recipe_id == recipe.recipe_id):
-
-                            st.markdown(
-                                f"""
-                                <div style="
-                                    background: #3D2914;
-                                    border: 1px solid #D4A574;
-                                    border-radius: 8px;
-                                    padding: 15px;
-                                    margin: 15px 0;
-                                    border-left: 4px solid #e17055;
-                                ">
-                                    <h4 style="margin-top: 0; color: #D4A574;">⚠️ Confirm Deletion</h4>
-                                    <p style="margin-bottom: 0; color: #D4A574;">
-                                        Are you sure you want to delete '<strong>{st.session_state.recipe_to_delete.name}</strong>'? 
-                                        This action cannot be undone.
-                                    </p>
-                                </div>
-                                """,
-                                unsafe_allow_html=True
-                            )
-                            
-                            col1, col2 = st.columns([1, 1])
-
-                            with col1:
-                                if st.button("✅ Yes, Delete", key=f"confirm_delete_{recipe_idx}", type="primary", use_container_width=True):
-                                    if "recipe_index_to_delete" in st.session_state:
-                                        # Delete by index instead of filtering by ID
-                                        st.session_state.recipes.pop(st.session_state.recipe_index_to_delete)
-                                        st.session_state.need_save = True
-                                        st.session_state.selected_recipe = None
-                                        del st.session_state.confirm_delete
-                                        del st.session_state.recipe_to_delete
-                                        del st.session_state.recipe_index_to_delete
-                                        save_changes(drive, folder_id, save_recipes)
-                                        st.success("Recipe deleted successfully!")
-                                        st.rerun()
-
-                            with col2:
-                                if st.button("❌ Cancel", key=f"cancel_delete_{recipe_idx}", use_container_width=True):
+                            if st.button("✅ Yes, Delete", key=f"confirm_delete_{recipe_idx}", type="primary", use_container_width=True):
+                                if "recipe_index_to_delete" in st.session_state:
+                                    # Delete by index instead of filtering by ID
+                                    st.session_state.recipes.pop(st.session_state.recipe_index_to_delete)
+                                    st.session_state.need_save = True
+                                    st.session_state.selected_recipe = None
                                     del st.session_state.confirm_delete
-                                    if "recipe_to_delete" in st.session_state:
-                                        del st.session_state.recipe_to_delete
+                                    del st.session_state.recipe_to_delete
+                                    del st.session_state.recipe_index_to_delete
+                                    save_changes(drive, folder_id, save_recipes)
+                                    st.success("Recipe deleted successfully!")
                                     st.rerun()
-                        
-                        # Close the container div
-                        st.markdown('</div>', unsafe_allow_html=True)
+
+                        with col2:
+                            if st.button("❌ Cancel", key=f"cancel_delete_{recipe_idx}", use_container_width=True):
+                                del st.session_state.confirm_delete
+                                if "recipe_to_delete" in st.session_state:
+                                    del st.session_state.recipe_to_delete
+                                st.rerun()
                     
+                    # Close the main container
+                    st.markdown('</div>', unsafe_allow_html=True)
                     st.markdown("---")
                     break  # Only show one expanded recipe at a time
