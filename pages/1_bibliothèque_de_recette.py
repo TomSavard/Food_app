@@ -181,10 +181,14 @@ else:
                             f"""
                             <div class="nutrition-box">
                                 <h4 style="margin-top: 0; color: #28a745;">Nutrition Facts</h4>
-                                <p style="color: #E0E0E0;"><strong>Calories:</strong> {calorie_total:.1f} kcal</p>
-                                <p style="color: #E0E0E0;"><strong>Protéines:</strong> {protein_total:.1f} g</p>
-                                <p style="color: #E0E0E0;"><strong>Lipides:</strong> {lipide_total:.1f} g</p>
-                                <p style="color: #E0E0E0;"><strong>Glucides:</strong> {glucide_total:.1f} g</p>
+                                <p style="color: #E0E0E0; margin-bottom: 8px;">
+                                    <strong>Calories:</strong> {calorie_total:.1f} kcal &nbsp;&nbsp;&nbsp;&nbsp;
+                                    <strong>Protéines:</strong> {protein_total:.1f} g
+                                </p>
+                                <p style="color: #E0E0E0; margin-bottom: 0;">
+                                    <strong>Lipides:</strong> {lipide_total:.1f} g &nbsp;&nbsp;&nbsp;&nbsp;
+                                    <strong>Glucides:</strong> {glucide_total:.1f} g
+                                </p>
                             </div>
                             """,
                             unsafe_allow_html=True
