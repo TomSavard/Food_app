@@ -136,6 +136,7 @@ else:
                             background: #1E1E1E;
                             box-shadow: 0 4px 12px rgba(74, 144, 226, 0.4);
                             color: #FFFFFF;
+                            height: fit-content;
                         }
                         .nutrition-box {
                             border: 2px solid #28a745;
@@ -145,6 +146,7 @@ else:
                             background: #1E1E1E;
                             box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
                             color: #FFFFFF;
+                            height: fit-content;
                         }
                         </style>
                         """,
