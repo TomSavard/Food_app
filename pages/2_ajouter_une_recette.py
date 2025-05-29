@@ -10,9 +10,8 @@ from PIL import Image
 from pydrive2.auth import GoogleAuth
 from pydrive2.drive import GoogleDrive
 
-
 from src.recipe_manager import save_recipes, cached_load_recipes, clear_recipes_cache
-from src.utils import save_changes, ensure_drive_connection, load_ingredient_db
+from src.utils import ensure_drive_connection, load_ingredient_db, clear_ingredient_db_cache, debug_ingredient_db  # ADD THIS LINE
 from src.models.recipe import Recipe, Ingredient
 
 
@@ -29,7 +28,17 @@ if "ingredient_db" not in st.session_state:
 
 ingredient_db = st.session_state.ingredient_db
 
+# ADD THE DATABASE CONTROLS HERE (after loading the ingredient database)
+st.sidebar.write("### 🔄 Database Controls")
 
+if st.sidebar.button("🔄 Refresh Ingredient Database"):
+    clear_ingredient_db_cache()
+    st.session_state.ingredient_db = load_ingredient_db(drive, folder_id)
+    st.sidebar.success("Database refreshed!")
+    st.rerun()
+
+if st.sidebar.button("🔍 Debug Database"):
+    debug_ingredient_db(drive, folder_id)
 
 # IMPROVED INGREDIENT PROCESSING
 ingredient_names = []
