@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from app.db.session import get_engine
 from sqlalchemy import text
+from app.api import recipes
 
 # Load environment variables from .env file
 load_dotenv()
@@ -21,6 +22,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include API routers
+app.include_router(recipes.router)
 
 @app.get("/")
 def root():
