@@ -14,6 +14,7 @@ from app.schemas import (
     IngredientCreate,
     InstructionCreate
 )
+from app.utils.nutrition import compute_recipe_nutrition
 
 router = APIRouter(prefix="/api/recipes", tags=["recipes"])
 
@@ -77,6 +78,35 @@ def get_recipe(recipe_id: UUID, db: Session = Depends(get_db)):
         )
     
     return recipe
+
+
+@router.get("/{recipe_id}/nutrition")
+def get_recipe_nutrition(recipe_id: UUID, db: Session = Depends(get_db)):
+    """Get nutrition information for a recipe"""
+    recipe = db.query(Recipe).options(
+        selectinload(Recipe.ingredients)
+    ).filter(Recipe.recipe_id == recipe_id).first()
+    
+    if not recipe:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Recipe with id {recipe_id} not found"
+        )
+    
+    # Calculate nutrition
+    nutrition = compute_recipe_nutrition(recipe.ingredients, db)
+    
+    # Add per-serving values
+    servings = recipe.servings if recipe.servings > 0 else 1
+    nutrition["per_serving"] = {
+        "calories": round(nutrition["calories"] / servings, 1),
+        "proteins": round(nutrition["proteins"] / servings, 1),
+        "lipides": round(nutrition["lipides"] / servings, 1),
+        "glucides": round(nutrition["glucides"] / servings, 1)
+    }
+    nutrition["servings"] = servings
+    
+    return nutrition
 
 
 @router.post("", response_model=RecipeResponse, status_code=status.HTTP_201_CREATED)

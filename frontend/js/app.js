@@ -44,7 +44,7 @@ function setupEventListeners() {
     
     // Modal close
     document.getElementById('closeModal').addEventListener('click', () => {
-        recipeModal.style.display = 'none';
+        closeRecipeModal();
     });
     
     document.getElementById('closeAddModal').addEventListener('click', () => {
@@ -58,7 +58,7 @@ function setupEventListeners() {
     // Close modal on outside click
     recipeModal.addEventListener('click', (e) => {
         if (e.target === recipeModal) {
-            recipeModal.style.display = 'none';
+            closeRecipeModal();
         }
     });
     
@@ -127,14 +127,93 @@ function renderRecipes() {
     `).join('');
 }
 
+// Close Recipe Modal and ensure recipes are visible
+function closeRecipeModal() {
+    recipeModal.style.display = 'none';
+    // Ensure loading and error states are hidden
+    hideLoading();
+    errorState.style.display = 'none';
+    // Ensure recipes are still rendered with current filters
+    if (filteredRecipes.length === 0 && allRecipes.length > 0) {
+        // If no filtered recipes but we have recipes, reapply filters
+        applyFilters();
+    } else if (filteredRecipes.length > 0) {
+        // Just re-render to ensure visibility
+        renderRecipes();
+    } else if (allRecipes.length === 0) {
+        // No recipes at all, show empty state
+        recipeList.innerHTML = '';
+        emptyState.style.display = 'block';
+    }
+}
+
 // Show Recipe Detail
 let currentRecipeId = null;
 async function showRecipeDetail(recipeId) {
     try {
         showLoading();
-        const recipe = await api.getRecipe(recipeId);
+        const [recipe, nutrition] = await Promise.all([
+            api.getRecipe(recipeId),
+            api.getRecipeNutrition(recipeId).catch(() => null) // Nutrition is optional
+        ]);
         hideLoading();
         currentRecipeId = recipeId;
+        
+        // Build nutrition HTML if available
+        let nutritionHtml = '';
+        if (nutrition && nutrition.calories > 0) {
+            nutritionHtml = `
+                <section class="nutrition-section">
+                    <h3>📊 Valeurs Nutritionnelles</h3>
+                    <div class="nutrition-box">
+                        <div class="nutrition-total">
+                            <h4>Total (${nutrition.servings} portion${nutrition.servings > 1 ? 's' : ''})</h4>
+                            <div class="nutrition-grid">
+                                <div class="nutrition-item">
+                                    <span class="nutrition-label">Calories</span>
+                                    <span class="nutrition-value">${nutrition.calories} kcal</span>
+                                </div>
+                                <div class="nutrition-item">
+                                    <span class="nutrition-label">Protéines</span>
+                                    <span class="nutrition-value">${nutrition.proteins} g</span>
+                                </div>
+                                <div class="nutrition-item">
+                                    <span class="nutrition-label">Lipides</span>
+                                    <span class="nutrition-value">${nutrition.lipides} g</span>
+                                </div>
+                                <div class="nutrition-item">
+                                    <span class="nutrition-label">Glucides</span>
+                                    <span class="nutrition-value">${nutrition.glucides} g</span>
+                                </div>
+                            </div>
+                        </div>
+                        ${nutrition.per_serving ? `
+                        <div class="nutrition-per-serving">
+                            <h4>Par portion</h4>
+                            <div class="nutrition-grid">
+                                <div class="nutrition-item">
+                                    <span class="nutrition-label">Calories</span>
+                                    <span class="nutrition-value">${nutrition.per_serving.calories} kcal</span>
+                                </div>
+                                <div class="nutrition-item">
+                                    <span class="nutrition-label">Protéines</span>
+                                    <span class="nutrition-value">${nutrition.per_serving.proteins} g</span>
+                                </div>
+                                <div class="nutrition-item">
+                                    <span class="nutrition-label">Lipides</span>
+                                    <span class="nutrition-value">${nutrition.per_serving.lipides} g</span>
+                                </div>
+                                <div class="nutrition-item">
+                                    <span class="nutrition-label">Glucides</span>
+                                    <span class="nutrition-value">${nutrition.per_serving.glucides} g</span>
+                                </div>
+                            </div>
+                        </div>
+                        ` : ''}
+                    </div>
+                </section>
+            `;
+        }
         
         recipeDetail.innerHTML = `
             <div class="recipe-detail-header">
@@ -156,6 +235,8 @@ async function showRecipeDetail(recipeId) {
                 ${recipe.servings > 0 ? `<div class="meta-item">👥 Portions: ${recipe.servings}</div>` : ''}
                 ${recipe.cuisine_type ? `<div class="meta-item">🌍 ${escapeHtml(recipe.cuisine_type)}</div>` : ''}
             </div>
+            
+            ${nutritionHtml}
             
             ${recipe.ingredients && recipe.ingredients.length > 0 ? `
                 <section>
@@ -243,7 +324,7 @@ async function editRecipe(recipeId) {
         recipeForm.dataset.recipeId = recipeId;
         
         // Close detail modal and open form modal
-        recipeModal.style.display = 'none';
+        closeRecipeModal();
         addRecipeModal.style.display = 'flex';
     } catch (error) {
         alert('Erreur lors du chargement de la recette: ' + error.message);
@@ -258,7 +339,7 @@ async function deleteRecipe(recipeId) {
     
     try {
         await api.deleteRecipe(recipeId);
-        recipeModal.style.display = 'none';
+        closeRecipeModal();
         loadRecipes(); // Reload list
     } catch (error) {
         alert('Erreur lors de la suppression: ' + error.message);
@@ -297,13 +378,28 @@ async function handleFormSubmit(e) {
     // Collect ingredients
     const ingredients = [];
     document.querySelectorAll('.ingredient-row').forEach(row => {
-        const name = row.querySelector('.ingredient-name-input').value.trim();
+        const nameInput = row.querySelector('.ingredient-name-input');
+        const qtyInput = row.querySelector('.ingredient-quantity-input');
+        const unitInput = row.querySelector('.ingredient-unit-input');
+        const notesInput = row.querySelector('.ingredient-notes-input');
+        
+        const name = nameInput ? nameInput.value.trim() : '';
         if (name) {
+            // Get unit value - handle both select and input
+            let unit = '';
+            if (unitInput) {
+                if (unitInput.tagName === 'SELECT') {
+                    unit = unitInput.value || '';
+                } else {
+                    unit = unitInput.value.trim() || '';
+                }
+            }
+            
             ingredients.push({
                 name: name,
-                quantity: parseFloat(row.querySelector('.ingredient-quantity-input').value) || 0,
-                unit: row.querySelector('.ingredient-unit-input').value.trim() || null,
-                notes: row.querySelector('.ingredient-notes-input').value.trim() || null
+                quantity: qtyInput ? (parseFloat(qtyInput.value) || 0) : 0,
+                unit: unit || "",
+                notes: notesInput ? (notesInput.value.trim() || "") : ""
             });
         }
     });
@@ -333,11 +429,27 @@ async function handleFormSubmit(e) {
     };
     
     try {
+        let savedRecipe;
         if (recipeForm.dataset.mode === 'edit') {
-            await api.updateRecipe(recipeForm.dataset.recipeId, formData);
+            savedRecipe = await api.updateRecipe(recipeForm.dataset.recipeId, formData);
         } else {
-            await api.createRecipe(formData);
+            savedRecipe = await api.createRecipe(formData);
         }
+        
+        // Get nutrition info after saving
+        try {
+            const nutrition = await api.getRecipeNutrition(savedRecipe.recipe_id).catch(() => null);
+            if (nutrition && nutrition.calories > 0) {
+                const servings = savedRecipe.servings || 1;
+                const perServing = nutrition.per_serving || {};
+                alert(`✅ Recette enregistrée!\n\n📊 Valeurs nutritionnelles (total pour ${servings} portion${servings > 1 ? 's' : ''}):\n- Calories: ${nutrition.calories} kcal\n- Protéines: ${nutrition.proteins} g\n- Lipides: ${nutrition.lipides} g\n- Glucides: ${nutrition.glucides} g\n\nPar portion:\n- Calories: ${perServing.calories || 0} kcal\n- Protéines: ${perServing.proteins || 0} g\n- Lipides: ${perServing.lipides || 0} g\n- Glucides: ${perServing.glucides || 0} g`);
+            } else {
+                alert('✅ Recette enregistrée!\n\n⚠️ Aucune donnée nutritionnelle disponible. Vérifiez que les ingrédients correspondent exactement aux noms de la base de données.');
+            }
+        } catch (e) {
+            alert('✅ Recette enregistrée!');
+        }
+        
         addRecipeModal.style.display = 'none';
         recipeForm.reset();
         recipeForm.dataset.mode = 'create';
@@ -348,33 +460,174 @@ async function handleFormSubmit(e) {
         addInstructionField();
         loadRecipes(); // Reload recipes
     } catch (error) {
-        alert('Erreur: ' + error.message);
+        // Better error handling - handle different error types
+        let errorMessage = 'Une erreur est survenue';
+        if (error instanceof Error) {
+            errorMessage = error.message;
+        } else if (typeof error === 'string') {
+            errorMessage = error;
+        } else if (error && error.detail) {
+            errorMessage = error.detail;
+        } else if (error && typeof error === 'object') {
+            errorMessage = JSON.stringify(error);
+        }
+        console.error('Recipe save error:', error);
+        alert('Erreur: ' + errorMessage);
     }
 }
 
-// Add Ingredient Field
+// Add Ingredient Field with Autocomplete
 function addIngredientField(name = '', quantity = '', unit = '', notes = '') {
     const container = document.getElementById('ingredientsContainer');
     const row = document.createElement('div');
     row.className = 'ingredient-row';
+    const rowId = `ingredient-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    row.id = rowId;
+    
     row.innerHTML = `
         <div class="form-row">
-            <div class="form-group" style="flex: 2;">
-                <input type="text" class="ingredient-name-input" placeholder="Nom de l'ingrédient" value="${escapeHtml(name)}" required>
+            <div class="form-group autocomplete-wrapper" style="flex: 2;">
+                <input 
+                    type="text" 
+                    class="ingredient-name-input" 
+                    placeholder="Rechercher un ingrédient..." 
+                    value="${escapeHtml(name)}" 
+                    autocomplete="off"
+                    data-row-id="${rowId}"
+                    required>
+                <div class="autocomplete-dropdown" id="${rowId}-dropdown" style="display: none;"></div>
             </div>
             <div class="form-group" style="flex: 1;">
                 <input type="number" class="ingredient-quantity-input" placeholder="Quantité" step="0.1" value="${quantity}">
             </div>
             <div class="form-group" style="flex: 1;">
-                <input type="text" class="ingredient-unit-input" placeholder="Unité (g, ml...)" value="${escapeHtml(unit)}">
+                <select class="ingredient-unit-input">
+                    <option value="g" ${unit === 'g' ? 'selected' : ''}>g</option>
+                    <option value="kg" ${unit === 'kg' ? 'selected' : ''}>kg</option>
+                    <option value="mg" ${unit === 'mg' ? 'selected' : ''}>mg</option>
+                    <option value="ml" ${unit === 'ml' ? 'selected' : ''}>ml</option>
+                    <option value="cl" ${unit === 'cl' ? 'selected' : ''}>cl</option>
+                    <option value="l" ${unit === 'l' ? 'selected' : ''}>l</option>
+                    <option value="" ${!unit ? 'selected' : ''}>-</option>
+                </select>
             </div>
             <div class="form-group" style="flex: 1;">
                 <input type="text" class="ingredient-notes-input" placeholder="Notes" value="${escapeHtml(notes)}">
             </div>
-            <button type="button" class="btn-remove" onclick="this.closest('.ingredient-row').remove()">×</button>
+            <button type="button" class="btn-remove" onclick="this.closest('.ingredient-row').remove(); updateNutritionPreview();">×</button>
         </div>
     `;
     container.appendChild(row);
+    
+    // Setup autocomplete for this input
+    setupIngredientAutocomplete(row.querySelector('.ingredient-name-input'));
+    
+    // Add event listeners for nutrition calculation
+    const nameInput = row.querySelector('.ingredient-name-input');
+    const qtyInput = row.querySelector('.ingredient-quantity-input');
+    const unitInput = row.querySelector('.ingredient-unit-input');
+    
+    // Update nutrition preview when ingredient name changes (after autocomplete selection)
+    nameInput.addEventListener('blur', () => {
+        setTimeout(updateNutritionPreview, 100);
+    });
+    qtyInput.addEventListener('input', debounce(updateNutritionPreview, 300));
+    unitInput.addEventListener('change', updateNutritionPreview);
+}
+
+// Setup autocomplete for ingredient input
+function setupIngredientAutocomplete(input) {
+    let searchTimeout;
+    const dropdown = document.getElementById(input.dataset.rowId + '-dropdown');
+    let selectedIndex = -1;
+    
+    input.addEventListener('input', (e) => {
+        const query = e.target.value.trim();
+        
+        clearTimeout(searchTimeout);
+        
+        if (query.length < 2) {
+            dropdown.style.display = 'none';
+            return;
+        }
+        
+        searchTimeout = setTimeout(async () => {
+            const results = await api.searchIngredients(query, 10);
+            displayAutocompleteResults(dropdown, results, input);
+        }, 300);
+    });
+    
+    input.addEventListener('keydown', (e) => {
+        const items = dropdown.querySelectorAll('.autocomplete-item');
+        
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
+            updateSelection(items, selectedIndex);
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            selectedIndex = Math.max(selectedIndex - 1, -1);
+            updateSelection(items, selectedIndex);
+        } else if (e.key === 'Enter' && selectedIndex >= 0) {
+            e.preventDefault();
+            items[selectedIndex].click();
+        } else if (e.key === 'Escape') {
+            dropdown.style.display = 'none';
+        }
+    });
+    
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+            dropdown.style.display = 'none';
+        }
+    });
+}
+
+function displayAutocompleteResults(dropdown, results, input) {
+    if (results.length === 0) {
+        dropdown.style.display = 'none';
+        return;
+    }
+    
+    dropdown.innerHTML = results.map((ing, index) => `
+        <div class="autocomplete-item" data-index="${index}" onclick="selectIngredient('${escapeHtml(ing.name)}', '${input.dataset.rowId}')">
+            ${escapeHtml(ing.name)}
+            ${ing.has_nutrition_data ? '<span class="nutrition-badge">📊</span>' : ''}
+        </div>
+    `).join('');
+    
+    dropdown.style.display = 'block';
+}
+
+function selectIngredient(name, rowId) {
+    const row = document.getElementById(rowId);
+    const input = row.querySelector('.ingredient-name-input');
+    input.value = name;
+    const dropdown = document.getElementById(rowId + '-dropdown');
+    dropdown.style.display = 'none';
+    
+    // Trigger input event to ensure form validation
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    
+    // Trigger nutrition preview update
+    setTimeout(updateNutritionPreview, 100);
+}
+
+function updateSelection(items, index) {
+    items.forEach((item, i) => {
+        item.classList.toggle('selected', i === index);
+    });
+}
+
+// Update nutrition preview (calculated on server when saving)
+async function updateNutritionPreview() {
+    // For now, we'll show nutrition after saving
+    // Could be enhanced with real-time calculation
+    const nutritionPreview = document.getElementById('nutritionPreview');
+    if (nutritionPreview) {
+        nutritionPreview.innerHTML = '<p class="text-muted">Les valeurs nutritionnelles seront calculées lors de l\'enregistrement</p>';
+    }
 }
 
 // Add Instruction Field
@@ -433,4 +686,6 @@ window.editRecipe = editRecipe;
 window.deleteRecipe = deleteRecipe;
 window.addIngredientField = addIngredientField;
 window.addInstructionField = addInstructionField;
+window.selectIngredient = selectIngredient;
+window.updateNutritionPreview = updateNutritionPreview;
 

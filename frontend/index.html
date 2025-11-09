@@ -19,56 +19,160 @@
     <!-- Header -->
     <header class="header">
         <div class="container">
-            <h1 class="logo">🍽️ Food App</h1>
+            <h1 class="logo">Food App</h1>
             <button class="btn-icon" id="addRecipeBtn" aria-label="Ajouter une recette">
                 <span>+</span>
             </button>
         </div>
     </header>
 
-    <!-- Search Bar -->
-    <div class="search-container">
+    <!-- Tab Navigation -->
+    <div class="tab-navigation">
         <div class="container">
-            <input 
-                type="text" 
-                id="searchInput" 
-                class="search-input" 
-                placeholder="Rechercher une recette..."
-                autocomplete="off"
-            >
-            <div class="filter-buttons">
-                <button class="filter-btn active" data-filter="all">Toutes</button>
-                <button class="filter-btn" data-filter="plat">Plats</button>
-                <button class="filter-btn" data-filter="dessert">Desserts</button>
-                <button class="filter-btn" data-filter="entrée">Entrées</button>
-            </div>
+            <button class="tab-btn active" data-tab="recipes" id="tabRecipes">
+                📖 Recettes
+            </button>
+            <button class="tab-btn" data-tab="shopping" id="tabShopping">
+                🛒 Liste de courses
+            </button>
         </div>
     </div>
 
-    <!-- Main Content -->
-    <main class="main">
-        <div class="container">
-            <!-- Loading State -->
-            <div id="loadingState" class="loading">
-                <div class="spinner"></div>
-                <p>Chargement des recettes...</p>
-            </div>
-
-            <!-- Error State -->
-            <div id="errorState" class="error-state" style="display: none;">
-                <p>❌ Erreur lors du chargement des recettes</p>
-                <button class="btn-primary" onclick="loadRecipes()">Réessayer</button>
-            </div>
-
-            <!-- Recipe List -->
-            <div id="recipeList" class="recipe-grid"></div>
-
-            <!-- Empty State -->
-            <div id="emptyState" class="empty-state" style="display: none;">
-                <p>🔍 Aucune recette trouvée</p>
+    <!-- Recipes Tab Content -->
+    <div id="recipesTab" class="tab-content active">
+        <!-- Search Bar -->
+        <div class="search-container">
+            <div class="container">
+                <input 
+                    type="text" 
+                    id="searchInput" 
+                    class="search-input" 
+                    placeholder="Rechercher une recette..."
+                    autocomplete="off"
+                >
+                <div class="filter-buttons">
+                    <button class="filter-btn active" data-filter="all">Toutes</button>
+                    <button class="filter-btn" data-filter="plat">Plats</button>
+                    <button class="filter-btn" data-filter="dessert">Desserts</button>
+                    <button class="filter-btn" data-filter="entrée">Entrées</button>
+                </div>
             </div>
         </div>
-    </main>
+
+        <!-- Main Content -->
+        <main class="main">
+            <div class="container">
+                <!-- Loading State -->
+                <div id="loadingState" class="loading">
+                    <div class="spinner"></div>
+                    <p>Chargement des recettes...</p>
+                </div>
+
+                <!-- Error State -->
+                <div id="errorState" class="error-state" style="display: none;">
+                    <p>❌ Erreur lors du chargement des recettes</p>
+                    <button class="btn-primary" onclick="loadRecipes()">Réessayer</button>
+                </div>
+
+                <!-- Recipe List -->
+                <div id="recipeList" class="recipe-grid"></div>
+
+                <!-- Empty State -->
+                <div id="emptyState" class="empty-state" style="display: none;">
+                    <p>🔍 Aucune recette trouvée</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Shopping List Tab Content -->
+    <div id="shoppingTab" class="tab-content">
+        <main class="main">
+            <div class="container">
+                <!-- Add Recipe to Shopping List -->
+                <div class="shopping-add-section">
+                    <h3>Ajouter une recette</h3>
+                    <div class="form-row" style="margin-bottom: 1rem;">
+                        <div class="form-group" style="flex: 2;">
+                            <div class="autocomplete-wrapper">
+                                <input 
+                                    type="text" 
+                                    id="recipeSearchInput" 
+                                    class="search-input" 
+                                    placeholder="Rechercher une recette..."
+                                    autocomplete="off"
+                                >
+                                <div class="autocomplete-dropdown" id="recipeSearchDropdown" style="display: none;"></div>
+                            </div>
+                        </div>
+                        <div class="form-group" style="flex: 1;">
+                            <input 
+                                type="number" 
+                                id="recipeServings" 
+                                class="form-control" 
+                                placeholder="Portions" 
+                                min="1" 
+                                value="1"
+                            >
+                        </div>
+                        <div class="form-group" style="flex: 0 0 auto;">
+                            <button class="btn-primary" id="addRecipeToShoppingBtn" disabled>
+                                Ajouter
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Add Manual Ingredient -->
+                <div class="shopping-add-section">
+                    <h3>Ajouter un ingrédient</h3>
+                    <div class="form-row" style="margin-bottom: 1rem;">
+                        <div class="form-group" style="flex: 2;">
+                            <div class="autocomplete-wrapper">
+                                <input 
+                                    type="text" 
+                                    id="manualIngredientInput" 
+                                    class="search-input" 
+                                    placeholder="Nom de l'ingrédient..."
+                                    autocomplete="off"
+                                >
+                                <div class="autocomplete-dropdown" id="manualIngredientDropdown" style="display: none;"></div>
+                            </div>
+                        </div>
+                        <div class="form-group" style="flex: 1;">
+                            <input 
+                                type="text" 
+                                id="manualIngredientQuantity" 
+                                class="form-control" 
+                                placeholder="Quantité (ex: 500g)"
+                            >
+                        </div>
+                        <div class="form-group" style="flex: 0 0 auto;">
+                            <button class="btn-primary" id="addManualIngredientBtn">
+                                Ajouter
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Shopping List -->
+                <div class="shopping-list-container">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h3>Ma liste de courses</h3>
+                        <button class="btn-small" id="clearShoppingListBtn" style="display: none;">
+                            Tout effacer
+                        </button>
+                    </div>
+                    <div id="shoppingList" class="shopping-list">
+                        <div class="empty-state" id="shoppingEmptyState">
+                            <p>🛒 Votre liste de courses est vide</p>
+                            <p class="text-muted">Ajoutez des ingrédients ou des recettes ci-dessus</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
 
     <!-- Recipe Detail Modal -->
     <div id="recipeModal" class="modal" style="display: none;">
@@ -117,6 +221,9 @@
                         <button type="button" class="btn-small" onclick="addIngredientField()">+ Ajouter</button>
                     </div>
                     <div id="ingredientsContainer"></div>
+                    <div id="nutritionPreview" class="nutrition-preview" style="margin-top: 1rem; padding: 1rem; background: var(--surface-elevated); border-radius: 8px; display: none;">
+                        <p class="text-muted">Les valeurs nutritionnelles seront calculées lors de l'enregistrement</p>
+                    </div>
                 </div>
                 
                 <div class="form-group">
@@ -137,6 +244,7 @@
 
     <!-- Scripts -->
     <script src="js/api.js"></script>
+    <script src="js/shopping-list.js"></script>
     <script src="js/app.js"></script>
     
     <!-- Service Worker Registration -->

@@ -64,8 +64,30 @@ const api = {
             });
             
             if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+                let errorMessage = `HTTP error! status: ${response.status}`;
+                try {
+                    const errorData = await response.json();
+                    // FastAPI returns errors in 'detail' field, can be string or array
+                    if (errorData.detail) {
+                        if (typeof errorData.detail === 'string') {
+                            errorMessage = errorData.detail;
+                        } else if (Array.isArray(errorData.detail)) {
+                            // Validation errors - format them nicely
+                            errorMessage = errorData.detail.map(err => {
+                                if (typeof err === 'object' && err.msg) {
+                                    return `${err.loc ? err.loc.join('.') : 'Erreur'}: ${err.msg}`;
+                                }
+                                return String(err);
+                            }).join('\n');
+                        } else {
+                            errorMessage = JSON.stringify(errorData.detail);
+                        }
+                    }
+                } catch (e) {
+                    // If JSON parsing fails, use status text
+                    errorMessage = response.statusText || errorMessage;
+                }
+                throw new Error(errorMessage);
             }
             
             const data = await response.json();
@@ -90,8 +112,30 @@ const api = {
             });
             
             if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+                let errorMessage = `HTTP error! status: ${response.status}`;
+                try {
+                    const errorData = await response.json();
+                    // FastAPI returns errors in 'detail' field, can be string or array
+                    if (errorData.detail) {
+                        if (typeof errorData.detail === 'string') {
+                            errorMessage = errorData.detail;
+                        } else if (Array.isArray(errorData.detail)) {
+                            // Validation errors - format them nicely
+                            errorMessage = errorData.detail.map(err => {
+                                if (typeof err === 'object' && err.msg) {
+                                    return `${err.loc ? err.loc.join('.') : 'Erreur'}: ${err.msg}`;
+                                }
+                                return String(err);
+                            }).join('\n');
+                        } else {
+                            errorMessage = JSON.stringify(errorData.detail);
+                        }
+                    }
+                } catch (e) {
+                    // If JSON parsing fails, use status text
+                    errorMessage = response.statusText || errorMessage;
+                }
+                throw new Error(errorMessage);
             }
             
             const data = await response.json();
@@ -120,6 +164,53 @@ const api = {
             console.error('Error deleting recipe:', error);
             throw error;
         }
+    },
+
+    /**
+     * Get nutrition information for a recipe
+     */
+    async getRecipeNutrition(recipeId) {
+        try {
+            const response = await fetch(`${API_BASE}/recipes/${recipeId}/nutrition`);
+            if (!response.ok) {
+                if (response.status === 404) {
+                    throw new Error('Recipe not found');
+                }
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.error('Error fetching recipe nutrition:', error);
+            throw error;
+        }
+    },
+
+    /**
+     * Search ingredients by name (autocomplete)
+     */
+    async searchIngredients(query, limit = 20) {
+        try {
+            const response = await fetch(`${API_BASE}/ingredients/search?q=${encodeURIComponent(query)}&limit=${limit}`);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.error('Error searching ingredients:', error);
+            return [];
+        }
+    },
+
+    /**
+     * Calculate nutrition for ingredients (client-side preview)
+     * This is a preview - actual calculation happens on server
+     */
+    async calculateNutritionPreview(ingredients) {
+        // For now, we'll calculate on the server when saving
+        // This could be enhanced with client-side calculation
+        return null;
     }
 };
 
