@@ -51,15 +51,20 @@ Food_app/
    alembic upgrade head
    ```
 
-4. **Start server**:
+4. **Start server** (choose one):
    ```bash
+   # Option 1: Quick script
+   ./start_local.sh
+   
+   # Option 2: Manual
    uvicorn app.main:app --reload
    ```
 
 5. **Access**:
    - API: http://127.0.0.1:8000
+   - Recipes: http://127.0.0.1:8000/api/recipes
    - Health: http://127.0.0.1:8000/health
-   - Docs: http://127.0.0.1:8000/docs
+   - Docs: http://127.0.0.1:8000/docs (interactive API testing)
 
 ## 📚 Documentation
 
@@ -69,9 +74,10 @@ Food_app/
 ## 🔄 Migration Status
 
 **Phase 1**: ✅ Infrastructure setup complete  
-**Phase 2**: ⏳ Deployment & verification (in progress)  
-**Phase 3**: ⏳ API endpoints (pending)  
-**Phase 4**: ⏳ Frontend PWA (pending)
+**Phase 2**: ✅ Deployment & verification complete  
+**Phase 3**: ✅ API endpoints implemented  
+**Phase 4**: ✅ Data migration complete (102 recipes migrated)  
+**Phase 5**: ⏳ Frontend PWA (next step)
 
 ## 📝 Notes
 

@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 from sqlalchemy import desc
 from typing import List, Optional
 from uuid import UUID
@@ -27,7 +27,12 @@ def list_recipes(
     db: Session = Depends(get_db)
 ):
     """List all recipes with optional filtering"""
-    query = db.query(Recipe)
+    # Use selectinload to eagerly load ingredients and instructions (fixes N+1 query problem)
+    # selectinload is faster than joinedload for one-to-many relationships
+    query = db.query(Recipe).options(
+        selectinload(Recipe.ingredients),
+        selectinload(Recipe.instructions)
+    )
     
     # Apply filters
     if search:
@@ -39,8 +44,16 @@ def list_recipes(
     if cuisine:
         query = query.filter(Recipe.cuisine_type.ilike(f"%{cuisine}%"))
     
-    # Get total count before pagination
-    total = query.count()
+    # Get total count before pagination (count before applying joins to avoid duplicates)
+    count_query = db.query(Recipe)
+    if search:
+        count_query = count_query.filter(
+            Recipe.name.ilike(f"%{search}%") |
+            Recipe.description.ilike(f"%{search}%")
+        )
+    if cuisine:
+        count_query = count_query.filter(Recipe.cuisine_type.ilike(f"%{cuisine}%"))
+    total = count_query.count()
     
     # Apply pagination and ordering
     recipes = query.order_by(desc(Recipe.created_at)).offset(skip).limit(limit).all()
@@ -51,7 +64,11 @@ def list_recipes(
 @router.get("/{recipe_id}", response_model=RecipeResponse)
 def get_recipe(recipe_id: UUID, db: Session = Depends(get_db)):
     """Get a single recipe by ID"""
-    recipe = db.query(Recipe).filter(Recipe.recipe_id == recipe_id).first()
+    # Eagerly load ingredients and instructions
+    recipe = db.query(Recipe).options(
+        selectinload(Recipe.ingredients),
+        selectinload(Recipe.instructions)
+    ).filter(Recipe.recipe_id == recipe_id).first()
     
     if not recipe:
         raise HTTPException(
@@ -102,7 +119,11 @@ def create_recipe(recipe_data: RecipeCreate, db: Session = Depends(get_db)):
         db.add(instruction)
     
     db.commit()
+    # Eagerly load relationships for response
     db.refresh(recipe)
+    # Explicitly load relationships
+    recipe.ingredients  # Trigger lazy load if not already loaded
+    recipe.instructions  # Trigger lazy load if not already loaded
     
     return recipe
 
@@ -156,7 +177,11 @@ def update_recipe(
             db.add(instruction)
     
     db.commit()
+    # Eagerly load relationships for response
     db.refresh(recipe)
+    # Explicitly load relationships
+    recipe.ingredients  # Trigger lazy load if not already loaded
+    recipe.instructions  # Trigger lazy load if not already loaded
     
     return recipe
 
