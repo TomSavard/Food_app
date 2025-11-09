@@ -30,7 +30,16 @@ app.add_middleware(
 app.include_router(recipes.router)
 
 # Serve static files (frontend)
-frontend_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend")
+# Try multiple possible paths for frontend
+current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+frontend_path = os.path.join(current_dir, "frontend")
+
+# Debug: log the path (will show in Render logs)
+import logging
+logger = logging.getLogger(__name__)
+logger.info(f"Looking for frontend at: {frontend_path}")
+logger.info(f"Frontend exists: {os.path.exists(frontend_path)}")
+
 if os.path.exists(frontend_path):
     # Mount static files (CSS, JS, images)
     app.mount("/css", StaticFiles(directory=os.path.join(frontend_path, "css")), name="css")
@@ -38,25 +47,28 @@ if os.path.exists(frontend_path):
     app.mount("/images", StaticFiles(directory=os.path.join(frontend_path, "images")), name="images")
     
     # Serve manifest and service worker
-    @app.get("/manifest.json")
+    @app.get("/manifest.json", include_in_schema=False)
     async def serve_manifest():
         manifest_path = os.path.join(frontend_path, "manifest.json")
         if os.path.exists(manifest_path):
-            return FileResponse(manifest_path)
+            return FileResponse(manifest_path, media_type="application/manifest+json")
+        return {"error": "Manifest not found"}
     
-    @app.get("/sw.js")
+    @app.get("/sw.js", include_in_schema=False)
     async def serve_sw():
         sw_path = os.path.join(frontend_path, "sw.js")
         if os.path.exists(sw_path):
             return FileResponse(sw_path, media_type="application/javascript")
+        return {"error": "Service worker not found"}
     
     # Serve frontend index.html at root
-    @app.get("/")
+    @app.get("/", include_in_schema=False)
+    @app.head("/", include_in_schema=False)
     async def serve_frontend():
         """Serve the frontend index.html"""
         index_path = os.path.join(frontend_path, "index.html")
         if os.path.exists(index_path):
-            return FileResponse(index_path)
+            return FileResponse(index_path, media_type="text/html")
         return {"message": "Frontend not found. API is available at /docs"}
 else:
     @app.get("/")
