@@ -91,15 +91,14 @@ class ShoppingList(Base):
     
     item_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = Column(String(255), nullable=False, index=True)
-    quantity = Column(Float, default=0.0)
-    unit = Column(String(50), default="")
-    is_checked = Column(Boolean, default=False)
-    is_extra = Column(Boolean, default=False)  # True for manually added items (not from recipes)
+    quantity = Column(String(100), default="")  # Store as string to support "500g", "2 cups", etc.
+    is_checked = Column(Boolean, default=False, index=True)
+    source = Column(String(500), default="")  # Source: recipe name or "Ajouté manuellement"
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     def __repr__(self):
-        return f"<ShoppingList(name='{self.name}', quantity={self.quantity} {self.unit})>"
+        return f"<ShoppingList(name='{self.name}', quantity={self.quantity}, checked={self.is_checked})>"
 
 
 class IngredientDatabase(Base):

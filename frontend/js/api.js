@@ -203,16 +203,105 @@ const api = {
         }
     },
 
-    /**
-     * Calculate nutrition for ingredients (client-side preview)
-     * This is a preview - actual calculation happens on server
-     */
-    async calculateNutritionPreview(ingredients) {
-        // For now, we'll calculate on the server when saving
-        // This could be enhanced with client-side calculation
-        return null;
-    }
-};
+           /**
+            * Calculate nutrition for ingredients (client-side preview)
+            * This is a preview - actual calculation happens on server
+            */
+           async calculateNutritionPreview(ingredients) {
+               // For now, we'll calculate on the server when saving
+               // This could be enhanced with client-side calculation
+               return null;
+           },
+
+           /**
+            * Shopping List API
+            */
+           async getShoppingList(includeChecked = true) {
+               try {
+                   const response = await fetch(`${API_BASE}/shopping-list?include_checked=${includeChecked}`);
+                   if (!response.ok) {
+                       throw new Error(`HTTP error! status: ${response.status}`);
+                   }
+                   const data = await response.json();
+                   return data.items || [];
+               } catch (error) {
+                   console.error('Error fetching shopping list:', error);
+                   throw error;
+               }
+           },
+
+           async createShoppingListItem(item) {
+               try {
+                   const response = await fetch(`${API_BASE}/shopping-list`, {
+                       method: 'POST',
+                       headers: {
+                           'Content-Type': 'application/json',
+                       },
+                       body: JSON.stringify(item)
+                   });
+                   if (!response.ok) {
+                       const errorData = await response.json().catch(() => ({}));
+                       throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+                   }
+                   return await response.json();
+               } catch (error) {
+                   console.error('Error creating shopping list item:', error);
+                   throw error;
+               }
+           },
+
+           async updateShoppingListItem(itemId, updates) {
+               try {
+                   const response = await fetch(`${API_BASE}/shopping-list/${itemId}`, {
+                       method: 'PUT',
+                       headers: {
+                           'Content-Type': 'application/json',
+                       },
+                       body: JSON.stringify(updates)
+                   });
+                   if (!response.ok) {
+                       const errorData = await response.json().catch(() => ({}));
+                       throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+                   }
+                   return await response.json();
+               } catch (error) {
+                   console.error('Error updating shopping list item:', error);
+                   throw error;
+               }
+           },
+
+           async deleteShoppingListItem(itemId) {
+               try {
+                   const response = await fetch(`${API_BASE}/shopping-list/${itemId}`, {
+                       method: 'DELETE'
+                   });
+                   if (!response.ok) {
+                       const errorData = await response.json().catch(() => ({}));
+                       throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+                   }
+                   return true;
+               } catch (error) {
+                   console.error('Error deleting shopping list item:', error);
+                   throw error;
+               }
+           },
+
+           async clearShoppingList() {
+               try {
+                   const response = await fetch(`${API_BASE}/shopping-list`, {
+                       method: 'DELETE'
+                   });
+                   if (!response.ok) {
+                       const errorData = await response.json().catch(() => ({}));
+                       throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+                   }
+                   return true;
+               } catch (error) {
+                   console.error('Error clearing shopping list:', error);
+                   throw error;
+               }
+           }
+       };
 
 // Export for use in other scripts
 if (typeof module !== 'undefined' && module.exports) {

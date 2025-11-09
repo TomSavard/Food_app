@@ -27,9 +27,10 @@ app.add_middleware(
 )
 
 # Include API routers
-from app.api import recipes, ingredients
+from app.api import recipes, ingredients, shopping_list
 app.include_router(recipes.router)
 app.include_router(ingredients.router)
+app.include_router(shopping_list.router)
 
 # Serve static files (frontend)
 # Try multiple possible paths for frontend

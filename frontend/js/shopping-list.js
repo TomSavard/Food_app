@@ -135,13 +135,13 @@ function setupShoppingList() {
 
     // Add manual ingredient
     if (addManualIngredientBtn) {
-        addManualIngredientBtn.addEventListener('click', () => {
+        addManualIngredientBtn.addEventListener('click', async () => {
             const name = manualIngredientInput.value.trim();
             const quantity = manualIngredientQuantity.value.trim();
             
             if (!name) return;
             
-            addManualIngredient(name, quantity);
+            await addManualIngredient(name, quantity);
             
             // Reset form
             manualIngredientInput.value = '';
@@ -171,11 +171,16 @@ function setupShoppingList() {
 
     // Clear shopping list
     if (clearShoppingListBtn) {
-        clearShoppingListBtn.addEventListener('click', () => {
+        clearShoppingListBtn.addEventListener('click', async () => {
             if (confirm('Êtes-vous sûr de vouloir effacer toute la liste de courses ?')) {
-                shoppingListItems = [];
-                saveShoppingList();
-                renderShoppingList();
+                try {
+                    await api.clearShoppingList();
+                    shoppingListItems = [];
+                    renderShoppingList();
+                } catch (error) {
+                    console.error('Error clearing shopping list:', error);
+                    alert('Erreur lors de l\'effacement de la liste: ' + error.message);
+                }
             }
         });
     }
@@ -233,65 +238,46 @@ async function addRecipeToShoppingList(recipeId, servings) {
         const recipe = await api.getRecipe(recipeId);
         const baseServings = recipe.servings || 1;
         const multiplier = servings / baseServings;
+        const source = `Recette: ${recipe.name} (${servings} portion${servings > 1 ? 's' : ''})`;
 
         if (recipe.ingredients && recipe.ingredients.length > 0) {
-            recipe.ingredients.forEach(ingredient => {
+            // Add all ingredients to shopping list via API
+            const promises = recipe.ingredients.map(async (ingredient) => {
                 const quantity = ingredient.quantity * multiplier;
                 const unit = ingredient.unit || '';
                 const quantityStr = quantity > 0 ? `${quantity}${unit ? ' ' + unit : ''}` : '';
                 
-                addShoppingListItem({
+                return api.createShoppingListItem({
                     name: ingredient.name,
                     quantity: quantityStr,
-                    source: `Recette: ${recipe.name} (${servings} portion${servings > 1 ? 's' : ''})`,
-                    checked: false
+                    source: source,
+                    is_checked: false
                 });
             });
+            
+            await Promise.all(promises);
         }
 
-        saveShoppingList();
-        renderShoppingList();
+        await loadShoppingList();
     } catch (error) {
         console.error('Error adding recipe to shopping list:', error);
-        alert('Erreur lors de l\'ajout de la recette à la liste de courses');
+        alert('Erreur lors de l\'ajout de la recette à la liste de courses: ' + error.message);
     }
 }
 
 // Add manual ingredient
-function addManualIngredient(name, quantity) {
-    addShoppingListItem({
-        name: name,
-        quantity: quantity || '',
-        source: 'Ajouté manuellement',
-        checked: false
-    });
-    saveShoppingList();
-    renderShoppingList();
-}
-
-// Add shopping list item (merge duplicates)
-function addShoppingListItem(newItem) {
-    // Check if item with same name exists
-    const existingIndex = shoppingListItems.findIndex(
-        item => item.name.toLowerCase() === newItem.name.toLowerCase() && !item.checked
-    );
-
-    if (existingIndex !== -1) {
-        // Merge quantities if both have quantities
-        const existing = shoppingListItems[existingIndex];
-        if (existing.quantity && newItem.quantity) {
-            // Try to parse and combine quantities
-            // For now, just append
-            existing.quantity = `${existing.quantity} + ${newItem.quantity}`;
-        } else if (newItem.quantity) {
-            existing.quantity = newItem.quantity;
-        }
-        // Update source if different
-        if (existing.source !== newItem.source) {
-            existing.source = `${existing.source}, ${newItem.source}`;
-        }
-    } else {
-        shoppingListItems.push(newItem);
+async function addManualIngredient(name, quantity) {
+    try {
+        await api.createShoppingListItem({
+            name: name,
+            quantity: quantity || '',
+            source: 'Ajouté manuellement',
+            is_checked: false
+        });
+        await loadShoppingList();
+    } catch (error) {
+        console.error('Error adding manual ingredient:', error);
+        alert('Erreur lors de l\'ajout de l\'ingrédient: ' + error.message);
     }
 }
 
@@ -307,13 +293,13 @@ function renderShoppingList() {
     shoppingEmptyState.style.display = 'none';
     if (clearShoppingListBtn) clearShoppingListBtn.style.display = 'block';
 
-    shoppingList.innerHTML = shoppingListItems.map((item, index) => `
-        <div class="shopping-item ${item.checked ? 'checked' : ''}" data-index="${index}">
+    shoppingList.innerHTML = shoppingListItems.map((item) => `
+        <div class="shopping-item ${item.is_checked ? 'checked' : ''}" data-item-id="${item.item_id}">
             <input 
                 type="checkbox" 
                 class="shopping-item-checkbox" 
-                ${item.checked ? 'checked' : ''}
-                onchange="toggleShoppingItem(${index})"
+                ${item.is_checked ? 'checked' : ''}
+                onchange="toggleShoppingItem('${item.item_id}')"
             >
             <div class="shopping-item-content">
                 <span class="shopping-item-name">${escapeHtml(item.name)}</span>
@@ -321,7 +307,7 @@ function renderShoppingList() {
                 <span class="shopping-item-source">${escapeHtml(item.source)}</span>
             </div>
             <div class="shopping-item-actions">
-                <button class="shopping-item-delete" onclick="deleteShoppingItem(${index})" aria-label="Supprimer">
+                <button class="shopping-item-delete" onclick="deleteShoppingItem('${item.item_id}')" aria-label="Supprimer">
                     🗑️
                 </button>
             </div>
@@ -330,41 +316,55 @@ function renderShoppingList() {
 }
 
 // Toggle shopping item
-window.toggleShoppingItem = function(index) {
-    if (shoppingListItems[index]) {
-        shoppingListItems[index].checked = !shoppingListItems[index].checked;
-        saveShoppingList();
-        renderShoppingList();
+window.toggleShoppingItem = async function(itemId) {
+    try {
+        const item = shoppingListItems.find(i => i.item_id === itemId);
+        if (item) {
+            const updated = await api.updateShoppingListItem(itemId, {
+                is_checked: !item.is_checked
+            });
+            // Update local array
+            const index = shoppingListItems.findIndex(i => i.item_id === itemId);
+            if (index !== -1) {
+                shoppingListItems[index] = updated;
+            }
+            renderShoppingList();
+        }
+    } catch (error) {
+        console.error('Error toggling shopping item:', error);
+        alert('Erreur lors de la mise à jour de l\'élément: ' + error.message);
     }
 };
 
 // Delete shopping item
-window.deleteShoppingItem = function(index) {
-    shoppingListItems.splice(index, 1);
-    saveShoppingList();
-    renderShoppingList();
+window.deleteShoppingItem = async function(itemId) {
+    try {
+        await api.deleteShoppingListItem(itemId);
+        // Remove from local array
+        shoppingListItems = shoppingListItems.filter(item => item.item_id !== itemId);
+        renderShoppingList();
+    } catch (error) {
+        console.error('Error deleting shopping item:', error);
+        alert('Erreur lors de la suppression: ' + error.message);
+    }
 };
 
-// Save shopping list to localStorage
-function saveShoppingList() {
+// Load shopping list from API
+async function loadShoppingList() {
     try {
-        localStorage.setItem('shoppingList', JSON.stringify(shoppingListItems));
-    } catch (error) {
-        console.error('Error saving shopping list:', error);
-    }
-}
-
-// Load shopping list from localStorage
-function loadShoppingList() {
-    try {
-        const saved = localStorage.getItem('shoppingList');
-        if (saved) {
-            shoppingListItems = JSON.parse(saved);
-            renderShoppingList();
-        }
+        shoppingListItems = await api.getShoppingList(true); // Include checked items
+        renderShoppingList();
     } catch (error) {
         console.error('Error loading shopping list:', error);
         shoppingListItems = [];
+        renderShoppingList();
+        // Show error but don't block the UI
+        if (shoppingListItems.length === 0) {
+            shoppingEmptyState.innerHTML = `
+                <p>🛒 Erreur lors du chargement de la liste</p>
+                <p class="text-muted">Vérifiez votre connexion internet</p>
+            `;
+        }
     }
 }
 

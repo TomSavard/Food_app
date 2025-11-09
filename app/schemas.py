@@ -87,3 +87,36 @@ class RecipeListResponse(BaseModel):
     recipes: List[RecipeResponse]
     total: int
 
+
+# Shopping List schemas
+class ShoppingListItemBase(BaseModel):
+    name: str
+    quantity: str = ""
+    source: str = ""
+
+
+class ShoppingListItemCreate(ShoppingListItemBase):
+    is_checked: bool = False
+
+
+class ShoppingListItemUpdate(BaseModel):
+    name: Optional[str] = None
+    quantity: Optional[str] = None
+    source: Optional[str] = None
+    is_checked: Optional[bool] = None
+
+
+class ShoppingListItemResponse(ShoppingListItemBase):
+    item_id: UUID
+    is_checked: bool
+    created_at: datetime
+    updated_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+
+class ShoppingListResponse(BaseModel):
+    items: List[ShoppingListItemResponse]
+    total: int
+
