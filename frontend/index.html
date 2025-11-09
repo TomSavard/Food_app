@@ -50,6 +50,36 @@
                     placeholder="Rechercher une recette..."
                     autocomplete="off"
                 >
+                <input 
+                    type="text" 
+                    id="ingredientSearchInput" 
+                    class="search-input" 
+                    placeholder="Rechercher par ingrédient (ex: poulet)..."
+                    autocomplete="off"
+                    style="margin-top: 0.5rem;"
+                >
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <label class="filter-label">Type de cuisine:</label>
+                        <input 
+                            type="text" 
+                            id="cuisineFilterInput" 
+                            class="filter-input" 
+                            placeholder="Ex: Italienne, Française..."
+                            autocomplete="off"
+                        >
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">Tag:</label>
+                        <input 
+                            type="text" 
+                            id="tagFilterInput" 
+                            class="filter-input" 
+                            placeholder="Ex: végétarien, rapide..."
+                            autocomplete="off"
+                        >
+                    </div>
+                </div>
                 <div class="filter-buttons">
                     <button class="filter-btn active" data-filter="all">Toutes</button>
                     <button class="filter-btn" data-filter="plat">Plats</button>

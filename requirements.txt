@@ -1,6 +1,0 @@
-streamlit
-pandas
-pydrive2
-openpyxl
-pillow
-dataclasses_json

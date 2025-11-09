@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session, selectinload
-from sqlalchemy import desc
+from sqlalchemy import desc, String, func
 from typing import List, Optional
 from uuid import UUID
 
@@ -25,9 +25,19 @@ def list_recipes(
     limit: int = 100,
     search: Optional[str] = None,
     cuisine: Optional[str] = None,
+    ingredient: Optional[str] = None,
+    tag: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
-    """List all recipes with optional filtering"""
+    """List all recipes with optional filtering
+    
+    - search: Search in recipe name and description
+    - cuisine: Filter by cuisine type
+    - ingredient: Filter by ingredient name (partial match, e.g., "poulet" matches "poulet cru")
+    - tag: Filter by tag
+    """
+    from sqlalchemy import or_, and_
+    
     # Use selectinload to eagerly load ingredients and instructions (fixes N+1 query problem)
     # selectinload is faster than joinedload for one-to-many relationships
     query = db.query(Recipe).options(
@@ -45,6 +55,21 @@ def list_recipes(
     if cuisine:
         query = query.filter(Recipe.cuisine_type.ilike(f"%{cuisine}%"))
     
+    # Filter by ingredient (partial match in ingredient names)
+    if ingredient:
+        # Join with ingredients table and filter by ingredient name
+        query = query.join(Ingredient).filter(
+            Ingredient.name.ilike(f"%{ingredient}%")
+        ).distinct()
+    
+    # Filter by tag
+    if tag:
+        # Filter by tag in the tags array (case-insensitive)
+        tag_lower = tag.lower()
+        query = query.filter(
+            func.lower(func.cast(Recipe.tags, String)).contains(tag_lower)
+        )
+    
     # Get total count before pagination (count before applying joins to avoid duplicates)
     count_query = db.query(Recipe)
     if search:
@@ -54,6 +79,16 @@ def list_recipes(
         )
     if cuisine:
         count_query = count_query.filter(Recipe.cuisine_type.ilike(f"%{cuisine}%"))
+    if ingredient:
+        count_query = count_query.join(Ingredient).filter(
+            Ingredient.name.ilike(f"%{ingredient}%")
+        ).distinct()
+    if tag:
+        tag_lower = tag.lower()
+        count_query = count_query.filter(
+            func.lower(func.cast(Recipe.tags, String)).contains(tag_lower)
+        )
+    
     total = count_query.count()
     
     # Apply pagination and ordering

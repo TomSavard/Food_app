@@ -12,6 +12,8 @@ const api = {
         const queryParams = new URLSearchParams();
         if (params.search) queryParams.append('search', params.search);
         if (params.cuisine) queryParams.append('cuisine', params.cuisine);
+        if (params.ingredient) queryParams.append('ingredient', params.ingredient);
+        if (params.tag) queryParams.append('tag', params.tag);
         if (params.skip) queryParams.append('skip', params.skip);
         if (params.limit) queryParams.append('limit', params.limit);
         

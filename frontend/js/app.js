@@ -2,6 +2,9 @@
 let allRecipes = [];
 let filteredRecipes = [];
 let currentFilter = 'all';
+let currentCuisineFilter = '';
+let currentTagFilter = '';
+let currentIngredientFilter = '';
 
 // DOM Elements
 const recipeList = document.getElementById('recipeList');
@@ -9,6 +12,9 @@ const loadingState = document.getElementById('loadingState');
 const errorState = document.getElementById('errorState');
 const emptyState = document.getElementById('emptyState');
 const searchInput = document.getElementById('searchInput');
+const ingredientSearchInput = document.getElementById('ingredientSearchInput');
+const cuisineFilterInput = document.getElementById('cuisineFilterInput');
+const tagFilterInput = document.getElementById('tagFilterInput');
 const filterButtons = document.querySelectorAll('.filter-btn');
 const recipeModal = document.getElementById('recipeModal');
 const recipeDetail = document.getElementById('recipeDetail');
@@ -31,6 +37,21 @@ document.addEventListener('DOMContentLoaded', () => {
 function setupEventListeners() {
     // Search
     searchInput.addEventListener('input', debounce(handleSearch, 300));
+    
+    // Ingredient search
+    if (ingredientSearchInput) {
+        ingredientSearchInput.addEventListener('input', debounce(handleSearch, 300));
+    }
+    
+    // Cuisine filter
+    if (cuisineFilterInput) {
+        cuisineFilterInput.addEventListener('input', debounce(handleSearch, 300));
+    }
+    
+    // Tag filter
+    if (tagFilterInput) {
+        tagFilterInput.addEventListener('input', debounce(handleSearch, 300));
+    }
     
     // Filter buttons
     filterButtons.forEach(btn => {
@@ -89,13 +110,11 @@ function setupEventListeners() {
 async function loadRecipes() {
     try {
         showLoading();
-        const data = await api.getRecipes({ limit: 200 });
-        allRecipes = data.recipes || [];
-        filteredRecipes = allRecipes;
+        await applyFilters();
         hideLoading();
-        renderRecipes();
     } catch (error) {
         console.error('Failed to load recipes:', error);
+        hideLoading();
         showError();
     }
 }
@@ -352,23 +371,46 @@ function handleSearch() {
 }
 
 // Apply Filters
-function applyFilters() {
-    const searchTerm = searchInput.value.toLowerCase().trim();
-    
-    filteredRecipes = allRecipes.filter(recipe => {
-        // Search filter
-        const matchesSearch = !searchTerm || 
-            recipe.name.toLowerCase().includes(searchTerm) ||
-            (recipe.description && recipe.description.toLowerCase().includes(searchTerm));
+async function applyFilters() {
+    try {
+        const searchTerm = searchInput.value.trim();
+        const ingredientTerm = ingredientSearchInput ? ingredientSearchInput.value.trim() : '';
+        const cuisineTerm = cuisineFilterInput ? cuisineFilterInput.value.trim() : '';
+        const tagTerm = tagFilterInput ? tagFilterInput.value.trim() : '';
         
-        // Tag filter
-        const matchesFilter = currentFilter === 'all' || 
-            (recipe.tags && recipe.tags.some(tag => tag.toLowerCase() === currentFilter));
+        // Build API params
+        const params = {
+            limit: 200
+        };
         
-        return matchesSearch && matchesFilter;
-    });
-    
-    renderRecipes();
+        if (searchTerm) {
+            params.search = searchTerm;
+        }
+        
+        if (ingredientTerm) {
+            params.ingredient = ingredientTerm;
+        }
+        
+        if (cuisineTerm) {
+            params.cuisine = cuisineTerm;
+        }
+        
+        // Tag filter: use API tag filter OR client-side tag filter button
+        if (tagTerm) {
+            params.tag = tagTerm;
+        } else if (currentFilter !== 'all') {
+            params.tag = currentFilter;
+        }
+        
+        // Fetch recipes from API with filters
+        const data = await api.getRecipes(params);
+        filteredRecipes = data.recipes || [];
+        
+        renderRecipes();
+    } catch (error) {
+        console.error('Error applying filters:', error);
+        alert('Erreur lors de la recherche: ' + error.message);
+    }
 }
 
 // Handle Form Submit

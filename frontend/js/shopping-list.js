@@ -281,7 +281,55 @@ async function addManualIngredient(name, quantity) {
     }
 }
 
-// Render shopping list
+// Categorize ingredient by name
+function categorizeIngredient(ingredientName) {
+    const name = ingredientName.toLowerCase();
+    
+    // Fruits
+    if (name.match(/\b(pomme|banane|orange|citron|fraise|framboise|myrtille|cerise|raisin|pêche|abricot|mangue|ananas|kiwi|avocat|tomate|concombre|poivron|courgette|aubergine|citrouille|potiron)\b/)) {
+        return 'Fruits & Légumes';
+    }
+    
+    // Viandes
+    if (name.match(/\b(poulet|boeuf|porc|agneau|veau|dinde|canard|saucisse|jambon|bacon|lard|viande)\b/)) {
+        return 'Viandes & Poissons';
+    }
+    
+    // Poissons
+    if (name.match(/\b(saumon|thon|cabillaud|crevette|moule|huître|crabe|poisson|sardine|maquereau)\b/)) {
+        return 'Viandes & Poissons';
+    }
+    
+    // Produits laitiers
+    if (name.match(/\b(lait|fromage|yaourt|crème|beurre|fromage blanc|mozzarella|parmesan|cheddar|emmental)\b/)) {
+        return 'Produits Laitiers';
+    }
+    
+    // Épicerie
+    if (name.match(/\b(farine|sucre|sel|poivre|huile|vinaigre|riz|pâtes|semoule|couscous|quinoa|boulgour)\b/)) {
+        return 'Épicerie';
+    }
+    
+    // Épices & Herbes
+    if (name.match(/\b(basilic|thym|romarin|persil|ciboulette|ail|oignon|échalote|gingembre|curcuma|cumin|paprika|curry)\b/)) {
+        return 'Épices & Herbes';
+    }
+    
+    // Boissons
+    if (name.match(/\b(vin|bière|jus|eau|soda|thé|café|champagne)\b/)) {
+        return 'Boissons';
+    }
+    
+    // Sucreries
+    if (name.match(/\b(chocolat|bonbon|gâteau|biscuit|confiture|miel|sirop)\b/)) {
+        return 'Sucreries';
+    }
+    
+    // Autres
+    return 'Autres';
+}
+
+// Render shopping list grouped by categories
 function renderShoppingList() {
     if (shoppingListItems.length === 0) {
         shoppingList.innerHTML = '';
@@ -293,26 +341,107 @@ function renderShoppingList() {
     shoppingEmptyState.style.display = 'none';
     if (clearShoppingListBtn) clearShoppingListBtn.style.display = 'block';
 
-    shoppingList.innerHTML = shoppingListItems.map((item) => `
-        <div class="shopping-item ${item.is_checked ? 'checked' : ''}" data-item-id="${item.item_id}">
-            <input 
-                type="checkbox" 
-                class="shopping-item-checkbox" 
-                ${item.is_checked ? 'checked' : ''}
-                onchange="toggleShoppingItem('${item.item_id}')"
-            >
-            <div class="shopping-item-content">
-                <span class="shopping-item-name">${escapeHtml(item.name)}</span>
-                ${item.quantity ? `<span class="shopping-item-quantity">${escapeHtml(item.quantity)}</span>` : ''}
-                <span class="shopping-item-source">${escapeHtml(item.source)}</span>
-            </div>
-            <div class="shopping-item-actions">
-                <button class="shopping-item-delete" onclick="deleteShoppingItem('${item.item_id}')" aria-label="Supprimer">
-                    🗑️
-                </button>
-            </div>
-        </div>
-    `).join('');
+    // Group items by category
+    const itemsByCategory = {};
+    shoppingListItems.forEach(item => {
+        const category = categorizeIngredient(item.name);
+        if (!itemsByCategory[category]) {
+            itemsByCategory[category] = [];
+        }
+        itemsByCategory[category].push(item);
+    });
+
+    // Sort categories (checked items last within each category)
+    const categoryOrder = [
+        'Fruits & Légumes',
+        'Viandes & Poissons',
+        'Produits Laitiers',
+        'Épicerie',
+        'Épices & Herbes',
+        'Boissons',
+        'Sucreries',
+        'Autres'
+    ];
+
+    // Render by category
+    let html = '';
+    categoryOrder.forEach(category => {
+        if (itemsByCategory[category] && itemsByCategory[category].length > 0) {
+            // Sort: unchecked items first
+            const sortedItems = itemsByCategory[category].sort((a, b) => {
+                if (a.is_checked === b.is_checked) return 0;
+                return a.is_checked ? 1 : -1;
+            });
+
+            html += `
+                <div class="shopping-category">
+                    <h4 class="shopping-category-title">${escapeHtml(category)}</h4>
+                    <div class="shopping-category-items">
+                        ${sortedItems.map((item) => `
+                            <div class="shopping-item ${item.is_checked ? 'checked' : ''}" data-item-id="${item.item_id}">
+                                <input 
+                                    type="checkbox" 
+                                    class="shopping-item-checkbox" 
+                                    ${item.is_checked ? 'checked' : ''}
+                                    onchange="toggleShoppingItem('${item.item_id}')"
+                                >
+                                <div class="shopping-item-content">
+                                    <span class="shopping-item-name">${escapeHtml(item.name)}</span>
+                                    ${item.quantity ? `<span class="shopping-item-quantity">${escapeHtml(item.quantity)}</span>` : ''}
+                                    <span class="shopping-item-source">${escapeHtml(item.source)}</span>
+                                </div>
+                                <div class="shopping-item-actions">
+                                    <button class="shopping-item-delete" onclick="deleteShoppingItem('${item.item_id}')" aria-label="Supprimer">
+                                        🗑️
+                                    </button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+    });
+
+    // Add any categories not in the predefined order
+    Object.keys(itemsByCategory).forEach(category => {
+        if (!categoryOrder.includes(category)) {
+            const sortedItems = itemsByCategory[category].sort((a, b) => {
+                if (a.is_checked === b.is_checked) return 0;
+                return a.is_checked ? 1 : -1;
+            });
+
+            html += `
+                <div class="shopping-category">
+                    <h4 class="shopping-category-title">${escapeHtml(category)}</h4>
+                    <div class="shopping-category-items">
+                        ${sortedItems.map((item) => `
+                            <div class="shopping-item ${item.is_checked ? 'checked' : ''}" data-item-id="${item.item_id}">
+                                <input 
+                                    type="checkbox" 
+                                    class="shopping-item-checkbox" 
+                                    ${item.is_checked ? 'checked' : ''}
+                                    onchange="toggleShoppingItem('${item.item_id}')"
+                                >
+                                <div class="shopping-item-content">
+                                    <span class="shopping-item-name">${escapeHtml(item.name)}</span>
+                                    ${item.quantity ? `<span class="shopping-item-quantity">${escapeHtml(item.quantity)}</span>` : ''}
+                                    <span class="shopping-item-source">${escapeHtml(item.source)}</span>
+                                </div>
+                                <div class="shopping-item-actions">
+                                    <button class="shopping-item-delete" onclick="deleteShoppingItem('${item.item_id}')" aria-label="Supprimer">
+                                        🗑️
+                                    </button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+    });
+
+    shoppingList.innerHTML = html;
 }
 
 // Toggle shopping item
