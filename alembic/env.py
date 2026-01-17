@@ -8,7 +8,6 @@ from alembic import context
 
 # Import models and Base
 from app.db.session import Base
-from app.db.models import Recipe, Ingredient, Instruction, WeekMenu, ShoppingList, IngredientDatabase
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

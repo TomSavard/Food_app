@@ -16,7 +16,6 @@ def safe_float_conversion(value) -> Optional[float]:
     if value is None:
         return None
     
-    import pandas as pd
     if pd.isna(value):
         return None
     
@@ -40,7 +39,7 @@ def safe_float_conversion(value) -> Optional[float]:
                 val1 = float(parts[0].strip().replace(',', '.'))
                 val2 = float(parts[1].strip().replace(',', '.'))
                 return (val1 + val2) / 2
-        except:
+        except (ValueError, IndexError):
             pass
     
     # Handle less than values (e.g., "<5" becomes 2.5)
@@ -49,7 +48,7 @@ def safe_float_conversion(value) -> Optional[float]:
             numeric_part = str_val[1:].strip().replace(',', '.')
             value = float(numeric_part)
             return value / 2  # Take half of the upper limit
-        except:
+        except ValueError:
             return 0.0  # If we can't parse it, assume traces
     
     # Handle greater than values (e.g., ">50" becomes 50)
@@ -57,7 +56,7 @@ def safe_float_conversion(value) -> Optional[float]:
         try:
             numeric_part = str_val[1:].strip().replace(',', '.')
             return float(numeric_part)
-        except:
+        except ValueError:
             pass
     
     try:

@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
-from typing import List, Optional
 from uuid import UUID
 
 from app.db.session import get_db
@@ -25,7 +24,7 @@ def get_shopping_list(
     query = db.query(ShoppingList)
     
     if not include_checked:
-        query = query.filter(ShoppingList.is_checked == False)
+        query = query.filter(ShoppingList.is_checked.is_(False))
     
     items = query.order_by(desc(ShoppingList.created_at)).all()
     total = len(items)
@@ -42,7 +41,7 @@ def create_shopping_list_item(
     # Check if item with same name already exists and is not checked
     existing = db.query(ShoppingList).filter(
         ShoppingList.name.ilike(item.name),
-        ShoppingList.is_checked == False
+        ShoppingList.is_checked.is_(False)
     ).first()
     
     if existing:

@@ -5,6 +5,7 @@ let selectedRecipeId = null;
 // DOM Elements
 const tabRecipes = document.getElementById('tabRecipes');
 const tabShopping = document.getElementById('tabShopping');
+const tabIngredients = document.getElementById('tabIngredients');
 const recipesTab = document.getElementById('recipesTab');
 const shoppingTab = document.getElementById('shoppingTab');
 const recipeSearchInput = document.getElementById('recipeSearchInput');
@@ -34,6 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
 function setupTabNavigation() {
     tabRecipes.addEventListener('click', () => switchTab('recipes'));
     tabShopping.addEventListener('click', () => switchTab('shopping'));
+    if (tabIngredients) tabIngredients.addEventListener('click', () => switchTab('ingredients'));
 }
 
 function switchTab(tabName) {
@@ -51,6 +53,10 @@ function switchTab(tabName) {
     } else if (tabName === 'shopping') {
         tabShopping.classList.add('active');
         shoppingTab.classList.add('active');
+    } else if (tabName === 'ingredients') {
+        if (tabIngredients) tabIngredients.classList.add('active');
+        const ingredientsTab = document.getElementById('ingredientsTab');
+        if (ingredientsTab) ingredientsTab.classList.add('active');
     }
 }
 
@@ -62,7 +68,7 @@ function setupShoppingList() {
         recipeSearchInput.addEventListener('input', (e) => {
             clearTimeout(recipeSearchTimeout);
             const query = e.target.value.trim();
-            
+
             if (query.length < 2) {
                 recipeSearchDropdown.style.display = 'none';
                 selectedRecipeId = null;
@@ -85,16 +91,28 @@ function setupShoppingList() {
                 recipeSearchDropdown.style.display = 'none';
             }, 200);
         });
+
+        // Handle recipe selection via click (Event Delegation)
+        recipeSearchDropdown.addEventListener('click', (e) => {
+            const item = e.target.closest('.autocomplete-item');
+            if (item) {
+                const index = parseInt(item.dataset.index);
+                if (recipeSearchDropdown._results && recipeSearchDropdown._results[index]) {
+                    const recipe = recipeSearchDropdown._results[index];
+                    selectRecipe(recipe.recipe_id, recipe.name);
+                }
+            }
+        });
     }
 
     // Add recipe to shopping list
     if (addRecipeToShoppingBtn) {
         addRecipeToShoppingBtn.addEventListener('click', async () => {
             if (!selectedRecipeId) return;
-            
+
             const servings = parseInt(recipeServings.value) || 1;
             await addRecipeToShoppingList(selectedRecipeId, servings);
-            
+
             // Reset form
             recipeSearchInput.value = '';
             recipeServings.value = '1';
@@ -110,7 +128,7 @@ function setupShoppingList() {
         manualIngredientInput.addEventListener('input', (e) => {
             clearTimeout(ingredientSearchTimeout);
             const query = e.target.value.trim();
-            
+
             if (query.length < 2) {
                 manualIngredientDropdown.style.display = 'none';
                 return;
@@ -131,6 +149,18 @@ function setupShoppingList() {
                 manualIngredientDropdown.style.display = 'none';
             }, 200);
         });
+
+        // Handle ingredient selection via click (Event Delegation)
+        manualIngredientDropdown.addEventListener('click', (e) => {
+            const item = e.target.closest('.autocomplete-item');
+            if (item) {
+                const index = parseInt(item.dataset.index);
+                if (manualIngredientDropdown._results && manualIngredientDropdown._results[index]) {
+                    const ing = manualIngredientDropdown._results[index];
+                    selectIngredientForShopping(ing.name);
+                }
+            }
+        });
     }
 
     // Add manual ingredient
@@ -138,11 +168,11 @@ function setupShoppingList() {
         addManualIngredientBtn.addEventListener('click', async () => {
             const name = manualIngredientInput.value.trim();
             const quantity = manualIngredientQuantity.value.trim();
-            
+
             if (!name) return;
-            
+
             await addManualIngredient(name, quantity);
-            
+
             // Reset form
             manualIngredientInput.value = '';
             manualIngredientQuantity.value = '';
@@ -193,8 +223,11 @@ function displayRecipeSearchResults(recipes) {
         return;
     }
 
-    recipeSearchDropdown.innerHTML = recipes.map(recipe => `
-        <div class="autocomplete-item" onclick="selectRecipe('${recipe.recipe_id}', '${escapeHtml(recipe.name)}')">
+    // Store results for click handler
+    recipeSearchDropdown._results = recipes;
+
+    recipeSearchDropdown.innerHTML = recipes.map((recipe, index) => `
+        <div class="autocomplete-item" data-index="${index}">
             <span>${escapeHtml(recipe.name)}</span>
         </div>
     `).join('');
@@ -202,7 +235,7 @@ function displayRecipeSearchResults(recipes) {
 }
 
 // Select recipe from search
-window.selectRecipe = function(recipeId, recipeName) {
+window.selectRecipe = function (recipeId, recipeName) {
     selectedRecipeId = recipeId;
     recipeSearchInput.value = recipeName;
     recipeSearchDropdown.style.display = 'none';
@@ -216,8 +249,11 @@ function displayIngredientSearchResults(ingredients) {
         return;
     }
 
-    manualIngredientDropdown.innerHTML = ingredients.map(ing => `
-        <div class="autocomplete-item" onclick="selectIngredientForShopping('${escapeHtml(ing.name)}')">
+    // Store results for click handler
+    manualIngredientDropdown._results = ingredients;
+
+    manualIngredientDropdown.innerHTML = ingredients.map((ing, index) => `
+        <div class="autocomplete-item" data-index="${index}">
             <span>${escapeHtml(ing.name)}</span>
             ${ing.has_nutrition_data ? '<span class="nutrition-badge">📊</span>' : ''}
         </div>
@@ -226,7 +262,7 @@ function displayIngredientSearchResults(ingredients) {
 }
 
 // Select ingredient from search
-window.selectIngredientForShopping = function(ingredientName) {
+window.selectIngredientForShopping = function (ingredientName) {
     manualIngredientInput.value = ingredientName;
     manualIngredientDropdown.style.display = 'none';
     manualIngredientQuantity.focus();
@@ -246,7 +282,7 @@ async function addRecipeToShoppingList(recipeId, servings) {
                 const quantity = ingredient.quantity * multiplier;
                 const unit = ingredient.unit || '';
                 const quantityStr = quantity > 0 ? `${quantity}${unit ? ' ' + unit : ''}` : '';
-                
+
                 return api.createShoppingListItem({
                     name: ingredient.name,
                     quantity: quantityStr,
@@ -254,7 +290,7 @@ async function addRecipeToShoppingList(recipeId, servings) {
                     is_checked: false
                 });
             });
-            
+
             await Promise.all(promises);
         }
 
@@ -284,47 +320,47 @@ async function addManualIngredient(name, quantity) {
 // Categorize ingredient by name
 function categorizeIngredient(ingredientName) {
     const name = ingredientName.toLowerCase();
-    
+
     // Fruits
     if (name.match(/\b(pomme|banane|orange|citron|fraise|framboise|myrtille|cerise|raisin|pêche|abricot|mangue|ananas|kiwi|avocat|tomate|concombre|poivron|courgette|aubergine|citrouille|potiron)\b/)) {
         return 'Fruits & Légumes';
     }
-    
+
     // Viandes
     if (name.match(/\b(poulet|boeuf|porc|agneau|veau|dinde|canard|saucisse|jambon|bacon|lard|viande)\b/)) {
         return 'Viandes & Poissons';
     }
-    
+
     // Poissons
     if (name.match(/\b(saumon|thon|cabillaud|crevette|moule|huître|crabe|poisson|sardine|maquereau)\b/)) {
         return 'Viandes & Poissons';
     }
-    
+
     // Produits laitiers
     if (name.match(/\b(lait|fromage|yaourt|crème|beurre|fromage blanc|mozzarella|parmesan|cheddar|emmental)\b/)) {
         return 'Produits Laitiers';
     }
-    
+
     // Épicerie
     if (name.match(/\b(farine|sucre|sel|poivre|huile|vinaigre|riz|pâtes|semoule|couscous|quinoa|boulgour)\b/)) {
         return 'Épicerie';
     }
-    
+
     // Épices & Herbes
     if (name.match(/\b(basilic|thym|romarin|persil|ciboulette|ail|oignon|échalote|gingembre|curcuma|cumin|paprika|curry)\b/)) {
         return 'Épices & Herbes';
     }
-    
+
     // Boissons
     if (name.match(/\b(vin|bière|jus|eau|soda|thé|café|champagne)\b/)) {
         return 'Boissons';
     }
-    
+
     // Sucreries
     if (name.match(/\b(chocolat|bonbon|gâteau|biscuit|confiture|miel|sirop)\b/)) {
         return 'Sucreries';
     }
-    
+
     // Autres
     return 'Autres';
 }
@@ -445,7 +481,7 @@ function renderShoppingList() {
 }
 
 // Toggle shopping item
-window.toggleShoppingItem = async function(itemId) {
+window.toggleShoppingItem = async function (itemId) {
     try {
         const item = shoppingListItems.find(i => i.item_id === itemId);
         if (item) {
@@ -466,7 +502,7 @@ window.toggleShoppingItem = async function(itemId) {
 };
 
 // Delete shopping item
-window.deleteShoppingItem = async function(itemId) {
+window.deleteShoppingItem = async function (itemId) {
     try {
         await api.deleteShoppingListItem(itemId);
         // Remove from local array

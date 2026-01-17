@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session, selectinload
 from sqlalchemy import desc, String, func
-from typing import List, Optional
+from typing import Optional
 from uuid import UUID
 
 from app.db.session import get_db
@@ -10,9 +10,7 @@ from app.schemas import (
     RecipeCreate,
     RecipeUpdate,
     RecipeResponse,
-    RecipeListResponse,
-    IngredientCreate,
-    InstructionCreate
+    RecipeListResponse
 )
 from app.utils.nutrition import compute_recipe_nutrition
 
@@ -36,7 +34,6 @@ def list_recipes(
     - ingredient: Filter by ingredient name (partial match, e.g., "poulet" matches "poulet cru")
     - tag: Filter by tag
     """
-    from sqlalchemy import or_, and_
     
     # Use selectinload to eagerly load ingredients and instructions (fixes N+1 query problem)
     # selectinload is faster than joinedload for one-to-many relationships

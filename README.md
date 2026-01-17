@@ -15,7 +15,7 @@ A modern recipe management and meal planning application with shopping list gene
 
 **Backend**: FastAPI + PostgreSQL (Neon) + Render  
 **Frontend**: (To be built - PWA)  
-**Legacy**: Streamlit app (being migrated)
+**Legacy**: None (Streamlit app removed)
 
 ## 📁 Project Structure
 
@@ -25,8 +25,7 @@ Food_app/
 │   ├── main.py            # API endpoints
 │   └── db/                # Database models & session
 ├── alembic/               # Database migrations
-├── pages/                 # Legacy Streamlit pages
-└── src/                   # Legacy Streamlit code
+└── scripts/               # Utility scripts
 ```
 
 ## 🚀 Quick Start
@@ -77,10 +76,10 @@ Food_app/
 **Phase 2**: ✅ Deployment & verification complete  
 **Phase 3**: ✅ API endpoints implemented  
 **Phase 4**: ✅ Data migration complete (102 recipes migrated)  
-**Phase 5**: ⏳ Frontend PWA (next step)
+**Phase 5**: 🚧 Frontend PWA (In Progress)
 
 ## 📝 Notes
 
-- Legacy Streamlit app still exists in `pages/` and `src/` (will be replaced)
+- Legacy Streamlit app has been removed.
 - Database models ready, migrations need to be run
 - Backend ready for deployment to Render

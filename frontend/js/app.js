@@ -37,22 +37,22 @@ document.addEventListener('DOMContentLoaded', () => {
 function setupEventListeners() {
     // Search
     searchInput.addEventListener('input', debounce(handleSearch, 300));
-    
+
     // Ingredient search
     if (ingredientSearchInput) {
         ingredientSearchInput.addEventListener('input', debounce(handleSearch, 300));
     }
-    
+
     // Cuisine filter
     if (cuisineFilterInput) {
         cuisineFilterInput.addEventListener('input', debounce(handleSearch, 300));
     }
-    
+
     // Tag filter
     if (tagFilterInput) {
         tagFilterInput.addEventListener('input', debounce(handleSearch, 300));
     }
-    
+
     // Filter buttons
     filterButtons.forEach(btn => {
         btn.addEventListener('click', () => {
@@ -62,33 +62,33 @@ function setupEventListeners() {
             applyFilters();
         });
     });
-    
+
     // Modal close
     document.getElementById('closeModal').addEventListener('click', () => {
         closeRecipeModal();
     });
-    
+
     document.getElementById('closeAddModal').addEventListener('click', () => {
         addRecipeModal.style.display = 'none';
     });
-    
+
     document.getElementById('cancelAdd').addEventListener('click', () => {
         addRecipeModal.style.display = 'none';
     });
-    
+
     // Close modal on outside click
     recipeModal.addEventListener('click', (e) => {
         if (e.target === recipeModal) {
             closeRecipeModal();
         }
     });
-    
+
     addRecipeModal.addEventListener('click', (e) => {
         if (e.target === addRecipeModal) {
             addRecipeModal.style.display = 'none';
         }
     });
-    
+
     // Add recipe button
     addRecipeBtn.addEventListener('click', () => {
         document.querySelector('#addRecipeModal h2').textContent = 'Nouvelle Recette';
@@ -101,7 +101,7 @@ function setupEventListeners() {
         addInstructionField();
         addRecipeModal.style.display = 'flex';
     });
-    
+
     // Form submit
     recipeForm.addEventListener('submit', handleFormSubmit);
 }
@@ -126,7 +126,7 @@ function renderRecipes() {
         emptyState.style.display = 'block';
         return;
     }
-    
+
     emptyState.style.display = 'none';
     recipeList.innerHTML = filteredRecipes.map(recipe => `
         <div class="recipe-card" onclick="showRecipeDetail('${recipe.recipe_id}')">
@@ -177,7 +177,7 @@ async function showRecipeDetail(recipeId) {
         ]);
         hideLoading();
         currentRecipeId = recipeId;
-        
+
         // Build nutrition HTML if available
         let nutritionHtml = '';
         if (nutrition && nutrition.calories > 0) {
@@ -233,7 +233,7 @@ async function showRecipeDetail(recipeId) {
                 </section>
             `;
         }
-        
+
         recipeDetail.innerHTML = `
             <div class="recipe-detail-header">
                 <h2>${escapeHtml(recipe.name)}</h2>
@@ -257,21 +257,10 @@ async function showRecipeDetail(recipeId) {
             
             ${nutritionHtml}
             
-            ${recipe.ingredients && recipe.ingredients.length > 0 ? `
-                <section>
-                    <h3>Ingrédients</h3>
-                    <ul class="ingredient-list">
-                        ${recipe.ingredients.map(ing => `
-                            <li>
-                                <span class="ingredient-name">${escapeHtml(ing.name)}</span>
-                                <span class="ingredient-quantity">
-                                    ${ing.quantity > 0 ? ing.quantity : ''} ${ing.unit || ''} ${ing.notes ? `(${escapeHtml(ing.notes)})` : ''}
-                                </span>
-                            </li>
-                        `).join('')}
-                    </ul>
-                </section>
-            ` : '<section><p class="text-muted">Aucun ingrédient</p></section>'}
+            ${recipe.ingredients && recipe.ingredients.length > 0 ? (() => {
+                // We'll build ingredient HTML asynchronously later. Placeholder for now.
+                return '<section>\n                    <h3>Ingrédients</h3>\n                    <ul class="ingredient-list" id="recipe-ingredient-list">\n                        <li class="text-muted">Chargement des ingrédients...</li>\n                    </ul>\n                </section>';
+            })() : '<section><p class="text-muted">Aucun ingrédient</p></section>'}
             
             ${recipe.instructions && recipe.instructions.length > 0 ? `
                 <section>
@@ -293,8 +282,130 @@ async function showRecipeDetail(recipeId) {
                 </section>
             ` : ''}
         `;
-        
+
         recipeModal.style.display = 'flex';
+
+        // Populate per-ingredient weighted nutrition lines asynchronously
+        (async () => {
+            const listEl = document.getElementById('recipe-ingredient-list');
+            if (!listEl) return;
+            // Helper: convert units to grams (same rules as server)
+            function convertToGrams(qty, unit) {
+                if (qty == null) return null;
+                // Handle comma for decimals (French locale)
+                const normalizedQty = String(qty).replace(',', '.');
+                if (isNaN(Number(normalizedQty))) return null;
+                const quantity = Number(normalizedQty);
+                const u = (unit || '').toLowerCase().trim();
+                if (u === 'g' || u === '') return quantity;
+                if (u === 'kg') return quantity * 1000;
+                if (u === 'mg') return quantity / 1000;
+                // volume units not supported without density
+                if (['ml', 'cl', 'l'].includes(u)) return null;
+                return null; // unsupported unit
+            }
+
+            // Helper: read numeric value from nutrition JSON with fallbacks
+            function getNutritionValue(nutData, key) {
+                if (!nutData) return null;
+                // keys used on server
+                const keys = {
+                    calories: 'Energie, Règlement UE N° 1169/2011 (kcal/100 g)',
+                    proteins: 'Protéines, N x facteur de Jones (g/100 g)',
+                    lipides: 'Lipides (g/100 g)',
+                    glucides: 'Glucides (g/100 g)'
+                };
+
+                const getValue = (k) => {
+                    if (nutData[k] !== undefined && nutData[k] !== null) {
+                        const val = parseFloat(String(nutData[k]).replace(',', '.'));
+                        return isNaN(val) ? null : val;
+                    }
+                    return null;
+                };
+
+                const preferred = keys[key];
+                let val = getValue(preferred);
+                if (val !== null) return val;
+
+                // common fallbacks
+                val = getValue(key);
+                if (val !== null) return val;
+
+                // try lowercase keys
+                const lowerKeys = Object.keys(nutData).reduce((acc, k) => { acc[k.toLowerCase()] = nutData[k]; return acc; }, {});
+                if (lowerKeys[key] !== undefined && lowerKeys[key] !== null) {
+                    const v = parseFloat(String(lowerKeys[key]).replace(',', '.'));
+                    return isNaN(v) ? null : v;
+                }
+                return null;
+            }
+
+            // Build items
+            const parts = [];
+            for (const ing of recipe.ingredients) {
+                const name = ing.name || '';
+                const qty = ing.quantity || 0;
+                const unit = ing.unit || '';
+
+                let lineHtml = `<li><span class="ingredient-name">${escapeHtml(name)}</span> <span class="ingredient-quantity">${qty > 0 ? qty : ''} ${escapeHtml(unit || '')} ${ing.notes ? `(${escapeHtml(ing.notes)})` : ''}</span>`;
+
+                try {
+                    // search ingredient in DB
+                    const results = await api.searchIngredients(name, 5);
+                    let matched = null;
+                    if (results && results.length > 0) {
+                        // try to find exact name match (case-insensitive)
+                        const lowerName = name.toLowerCase();
+                        matched = results.find(r => r.name && r.name.toLowerCase() === lowerName) || results[0];
+                    }
+
+                    if (matched && matched.id) {
+                        const detail = await api.getIngredient(matched.id);
+                        const nut = detail ? detail.nutrition_data : null;
+                        const grams = convertToGrams(qty, unit);
+                        if (nut && grams != null) {
+                            const kcal100 = getNutritionValue(nut, 'calories');
+                            const p100 = getNutritionValue(nut, 'proteins');
+                            const l100 = getNutritionValue(nut, 'lipides');
+                            const g100 = getNutritionValue(nut, 'glucides');
+
+                            const factor = grams / 100;
+                            const kcal = (kcal100 != null) ? Math.round((kcal100 * factor) * 10) / 10 : null;
+                            const prot = (p100 != null) ? Math.round((p100 * factor) * 10) / 10 : null;
+                            const lip = (l100 != null) ? Math.round((l100 * factor) * 10) / 10 : null;
+                            const glu = (g100 != null) ? Math.round((g100 * factor) * 10) / 10 : null;
+
+                            const partsArr = [];
+                            if (kcal != null) partsArr.push(`${kcal} kcal`);
+                            if (prot != null) partsArr.push(`${prot} g prot`);
+                            if (lip != null) partsArr.push(`${lip} g lip`);
+                            if (glu != null) partsArr.push(`${glu} g gluc`);
+
+                            if (partsArr.length > 0) {
+                                lineHtml += `<div class="nutri-line" style="font-size:0.85rem;color:#666;margin-top:4px;">(${partsArr.join(' · ')})</div>`;
+                            } else {
+                                lineHtml += `<div class="nutri-line" style="font-size:0.85rem;color:#999;margin-top:4px;">(données nutritionnelles incomplètes)</div>`;
+                            }
+                        } else if (nut && grams == null) {
+                            lineHtml += `<div class="nutri-line" style="font-size:0.85rem;color:#999;margin-top:4px;">(unités non convertibles pour le calcul)</div>`;
+                        } else {
+                            lineHtml += `<div class="nutri-line" style="font-size:0.85rem;color:#999;margin-top:4px;">(aucune donnée nutritionnelle trouvée)</div>`;
+                        }
+                    } else {
+                        lineHtml += `<div class="nutri-line" style="font-size:0.85rem;color:#999;margin-top:4px;">(ingrédient introuvable dans la base)</div>`;
+                    }
+                } catch (e) {
+                    console.error('Error fetching ingredient nutrition for', name, e);
+                    lineHtml += `<div class="nutri-line" style="font-size:0.85rem;color:#c00;margin-top:4px;">(erreur lors de la récupération des données)</div>`;
+                }
+
+                lineHtml += `</li>`;
+                parts.push(lineHtml);
+            }
+
+            listEl.innerHTML = parts.join('\n') || '<li class="text-muted">Aucun ingrédient</li>';
+        })();
     } catch (error) {
         hideLoading();
         alert('Erreur lors du chargement de la recette: ' + error.message);
@@ -306,7 +417,7 @@ async function editRecipe(recipeId) {
     try {
         const recipe = await api.getRecipe(recipeId);
         currentRecipeId = recipeId;
-        
+
         // Populate form
         document.getElementById('recipeName').value = recipe.name;
         document.getElementById('recipeDescription').value = recipe.description || '';
@@ -314,7 +425,7 @@ async function editRecipe(recipeId) {
         document.getElementById('cookTime').value = recipe.cook_time || 0;
         document.getElementById('servings').value = recipe.servings || 1;
         document.getElementById('cuisineType').value = recipe.cuisine_type || '';
-        
+
         // Populate ingredients
         const ingredientsContainer = document.getElementById('ingredientsContainer');
         ingredientsContainer.innerHTML = '';
@@ -325,7 +436,7 @@ async function editRecipe(recipeId) {
         } else {
             addIngredientField();
         }
-        
+
         // Populate instructions
         const instructionsContainer = document.getElementById('instructionsContainer');
         instructionsContainer.innerHTML = '';
@@ -336,12 +447,12 @@ async function editRecipe(recipeId) {
         } else {
             addInstructionField();
         }
-        
+
         // Update form title and submit handler
         document.querySelector('#addRecipeModal h2').textContent = 'Modifier la Recette';
         recipeForm.dataset.mode = 'edit';
         recipeForm.dataset.recipeId = recipeId;
-        
+
         // Close detail modal and open form modal
         closeRecipeModal();
         addRecipeModal.style.display = 'flex';
@@ -355,7 +466,7 @@ async function deleteRecipe(recipeId) {
     if (!confirm('Êtes-vous sûr de vouloir supprimer cette recette ?')) {
         return;
     }
-    
+
     try {
         await api.deleteRecipe(recipeId);
         closeRecipeModal();
@@ -377,35 +488,35 @@ async function applyFilters() {
         const ingredientTerm = ingredientSearchInput ? ingredientSearchInput.value.trim() : '';
         const cuisineTerm = cuisineFilterInput ? cuisineFilterInput.value.trim() : '';
         const tagTerm = tagFilterInput ? tagFilterInput.value.trim() : '';
-        
+
         // Build API params
         const params = {
             limit: 200
         };
-        
+
         if (searchTerm) {
             params.search = searchTerm;
         }
-        
+
         if (ingredientTerm) {
             params.ingredient = ingredientTerm;
         }
-        
+
         if (cuisineTerm) {
             params.cuisine = cuisineTerm;
         }
-        
+
         // Tag filter: use API tag filter OR client-side tag filter button
         if (tagTerm) {
             params.tag = tagTerm;
         } else if (currentFilter !== 'all') {
             params.tag = currentFilter;
         }
-        
+
         // Fetch recipes from API with filters
         const data = await api.getRecipes(params);
         filteredRecipes = data.recipes || [];
-        
+
         renderRecipes();
     } catch (error) {
         console.error('Error applying filters:', error);
@@ -416,7 +527,7 @@ async function applyFilters() {
 // Handle Form Submit
 async function handleFormSubmit(e) {
     e.preventDefault();
-    
+
     // Collect ingredients
     const ingredients = [];
     document.querySelectorAll('.ingredient-row').forEach(row => {
@@ -424,7 +535,7 @@ async function handleFormSubmit(e) {
         const qtyInput = row.querySelector('.ingredient-quantity-input');
         const unitInput = row.querySelector('.ingredient-unit-input');
         const notesInput = row.querySelector('.ingredient-notes-input');
-        
+
         const name = nameInput ? nameInput.value.trim() : '';
         if (name) {
             // Get unit value - handle both select and input
@@ -436,7 +547,7 @@ async function handleFormSubmit(e) {
                     unit = unitInput.value.trim() || '';
                 }
             }
-            
+
             ingredients.push({
                 name: name,
                 quantity: qtyInput ? (parseFloat(qtyInput.value) || 0) : 0,
@@ -445,7 +556,7 @@ async function handleFormSubmit(e) {
             });
         }
     });
-    
+
     // Collect instructions
     const instructions = [];
     document.querySelectorAll('.instruction-row').forEach(row => {
@@ -456,7 +567,7 @@ async function handleFormSubmit(e) {
             });
         }
     });
-    
+
     const formData = {
         name: document.getElementById('recipeName').value,
         description: document.getElementById('recipeDescription').value || null,
@@ -469,7 +580,7 @@ async function handleFormSubmit(e) {
         ingredients: ingredients,
         instructions: instructions
     };
-    
+
     try {
         let savedRecipe;
         if (recipeForm.dataset.mode === 'edit') {
@@ -477,7 +588,7 @@ async function handleFormSubmit(e) {
         } else {
             savedRecipe = await api.createRecipe(formData);
         }
-        
+
         // Get nutrition info after saving
         try {
             const nutrition = await api.getRecipeNutrition(savedRecipe.recipe_id).catch(() => null);
@@ -491,7 +602,7 @@ async function handleFormSubmit(e) {
         } catch (e) {
             alert('✅ Recette enregistrée!');
         }
-        
+
         addRecipeModal.style.display = 'none';
         recipeForm.reset();
         recipeForm.dataset.mode = 'create';
@@ -525,7 +636,7 @@ function addIngredientField(name = '', quantity = '', unit = '', notes = '') {
     row.className = 'ingredient-row';
     const rowId = `ingredient-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     row.id = rowId;
-    
+
     row.innerHTML = `
         <div class="form-row">
             <div class="form-group autocomplete-wrapper" style="flex: 2;">
@@ -560,15 +671,15 @@ function addIngredientField(name = '', quantity = '', unit = '', notes = '') {
         </div>
     `;
     container.appendChild(row);
-    
+
     // Setup autocomplete for this input
     setupIngredientAutocomplete(row.querySelector('.ingredient-name-input'));
-    
+
     // Add event listeners for nutrition calculation
     const nameInput = row.querySelector('.ingredient-name-input');
     const qtyInput = row.querySelector('.ingredient-quantity-input');
     const unitInput = row.querySelector('.ingredient-unit-input');
-    
+
     // Update nutrition preview when ingredient name changes (after autocomplete selection)
     nameInput.addEventListener('blur', () => {
         setTimeout(updateNutritionPreview, 100);
@@ -582,26 +693,32 @@ function setupIngredientAutocomplete(input) {
     let searchTimeout;
     const dropdown = document.getElementById(input.dataset.rowId + '-dropdown');
     let selectedIndex = -1;
-    
+
     input.addEventListener('input', (e) => {
         const query = e.target.value.trim();
-        
+
         clearTimeout(searchTimeout);
-        
+
         if (query.length < 2) {
             dropdown.style.display = 'none';
             return;
         }
-        
+
         searchTimeout = setTimeout(async () => {
             const results = await api.searchIngredients(query, 10);
             displayAutocompleteResults(dropdown, results, input);
         }, 300);
     });
-    
+
+    input.addEventListener('blur', () => {
+        setTimeout(() => {
+            dropdown.style.display = 'none';
+        }, 200);
+    });
+
     input.addEventListener('keydown', (e) => {
         const items = dropdown.querySelectorAll('.autocomplete-item');
-        
+
         if (e.key === 'ArrowDown') {
             e.preventDefault();
             selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
@@ -617,11 +734,23 @@ function setupIngredientAutocomplete(input) {
             dropdown.style.display = 'none';
         }
     });
-    
+
     // Close dropdown when clicking outside
     document.addEventListener('click', (e) => {
         if (!input.contains(e.target) && !dropdown.contains(e.target)) {
             dropdown.style.display = 'none';
+        }
+    });
+
+    // Handle selection via click (Event Delegation)
+    dropdown.addEventListener('click', (e) => {
+        const item = e.target.closest('.autocomplete-item');
+        if (item) {
+            const index = parseInt(item.dataset.index);
+            if (dropdown._results && dropdown._results[index]) {
+                const ing = dropdown._results[index];
+                selectIngredient(ing.name, input.dataset.rowId);
+            }
         }
     });
 }
@@ -631,14 +760,17 @@ function displayAutocompleteResults(dropdown, results, input) {
         dropdown.style.display = 'none';
         return;
     }
-    
+
+    // Store results for click handler
+    dropdown._results = results;
+
     dropdown.innerHTML = results.map((ing, index) => `
-        <div class="autocomplete-item" data-index="${index}" onclick="selectIngredient('${escapeHtml(ing.name)}', '${input.dataset.rowId}')">
+        <div class="autocomplete-item" data-index="${index}">
             ${escapeHtml(ing.name)}
             ${ing.has_nutrition_data ? '<span class="nutrition-badge">📊</span>' : ''}
         </div>
     `).join('');
-    
+
     dropdown.style.display = 'block';
 }
 
@@ -648,10 +780,10 @@ function selectIngredient(name, rowId) {
     input.value = name;
     const dropdown = document.getElementById(rowId + '-dropdown');
     dropdown.style.display = 'none';
-    
+
     // Trigger input event to ensure form validation
-    input.dispatchEvent(new Event('input', { bubbles: true }));
-    
+    // input.dispatchEvent(new Event('input', { bubbles: true }));
+
     // Trigger nutrition preview update
     setTimeout(updateNutritionPreview, 100);
 }

@@ -205,6 +205,22 @@ const api = {
         }
     },
 
+    /**
+     * Get a single ingredient by ID
+     */
+    async getIngredient(ingredientId) {
+        try {
+            const response = await fetch(`${API_BASE}/ingredients/${ingredientId}`);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching ingredient:', error);
+            return null;
+        }
+    },
+
            /**
             * Calculate nutrition for ingredients (client-side preview)
             * This is a preview - actual calculation happens on server

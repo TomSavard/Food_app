@@ -7,6 +7,8 @@ from app.db.session import get_engine
 from sqlalchemy import text
 from app.api import recipes
 import os
+import logging
+from app.api import ingredients, shopping_list
 
 # Load environment variables from .env file
 load_dotenv()
@@ -27,7 +29,6 @@ app.add_middleware(
 )
 
 # Include API routers
-from app.api import recipes, ingredients, shopping_list
 app.include_router(recipes.router)
 app.include_router(ingredients.router)
 app.include_router(shopping_list.router)
@@ -38,7 +39,6 @@ current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 frontend_path = os.path.join(current_dir, "frontend")
 
 # Debug: log the path (will show in Render logs)
-import logging
 logger = logging.getLogger(__name__)
 logger.info(f"Looking for frontend at: {frontend_path}")
 logger.info(f"Frontend exists: {os.path.exists(frontend_path)}")
