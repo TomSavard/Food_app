@@ -31,7 +31,26 @@ document.addEventListener('DOMContentLoaded', () => {
         addIngredientField();
         addInstructionField();
     }
+    setupTabSwitching();
 });
+
+function setupTabSwitching() {
+    const tabButtons = document.querySelectorAll('.tab-btn');
+    const tabContents = document.querySelectorAll('.tab-content');
+    tabButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            // Remove active from all buttons and contents
+            tabButtons.forEach(b => b.classList.remove('active'));
+            tabContents.forEach(tc => tc.classList.remove('active'));
+            // Add active to clicked button
+            btn.classList.add('active');
+            // Show the corresponding tab content
+            const tabName = btn.getAttribute('data-tab');
+            const content = document.getElementById(tabName + 'Tab');
+            if (content) content.classList.add('active');
+        });
+    });
+}
 
 // Event Listeners
 function setupEventListeners() {
