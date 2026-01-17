@@ -576,7 +576,7 @@ async function handleFormSubmit(e) {
         servings: parseInt(document.getElementById('servings').value) || 1,
         cuisine_type: document.getElementById('cuisineType').value || null,
         tags: [],
-        utensils: [],
+        utensils: (typeof currentUtensils !== 'undefined' && Array.isArray(currentUtensils)) ? currentUtensils.slice() : [],
         ingredients: ingredients,
         instructions: instructions
     };
