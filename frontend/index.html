@@ -35,6 +35,9 @@
             <button class="tab-btn" data-tab="shopping" id="tabShopping">
                 🛒 Liste de courses
             </button>
+            <button class="tab-btn" data-tab="ingredients" id="tabIngredients">
+                🧾 Ingrédients
+            </button>
         </div>
     </div>
 
@@ -200,6 +203,17 @@
                         </div>
                     </div>
                 </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Ingredients Tab Content -->
+    <div id="ingredientsTab" class="tab-content">
+        <main class="main">
+            <div class="container">
+                <h2>Explorateur d'ingrédients</h2>
+                <input type="text" id="ingredientBrowserSearch" class="search-input" placeholder="Rechercher un ingrédient (ex: crème)..." autocomplete="off">
+                <div id="ingredientBrowserResults" style="margin-top:1rem;"></div>
             </div>
         </main>
     </div>
