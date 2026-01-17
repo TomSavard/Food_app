@@ -304,14 +304,14 @@ async function showRecipeDetail(recipeId) {
 
         recipeModal.style.display = 'flex';
 
-        // Populate per-ingredient weighted nutrition lines asynchronously
+        // Populate per-ingredient weighted nutrition lines asynchronously (PARALLEL)
         (async () => {
             const listEl = document.getElementById('recipe-ingredient-list');
             if (!listEl) return;
+            
             // Helper: convert units to grams (same rules as server)
             function convertToGrams(qty, unit) {
                 if (qty == null) return null;
-                // Handle comma for decimals (French locale)
                 const normalizedQty = String(qty).replace(',', '.');
                 if (isNaN(Number(normalizedQty))) return null;
                 const quantity = Number(normalizedQty);
@@ -319,15 +319,13 @@ async function showRecipeDetail(recipeId) {
                 if (u === 'g' || u === '') return quantity;
                 if (u === 'kg') return quantity * 1000;
                 if (u === 'mg') return quantity / 1000;
-                // volume units not supported without density
                 if (['ml', 'cl', 'l'].includes(u)) return null;
-                return null; // unsupported unit
+                return null;
             }
 
             // Helper: read numeric value from nutrition JSON with fallbacks
             function getNutritionValue(nutData, key) {
                 if (!nutData) return null;
-                // keys used on server
                 const keys = {
                     calories: 'Energie, Règlement UE N° 1169/2011 (kcal/100 g)',
                     proteins: 'Protéines, N x facteur de Jones (g/100 g)',
@@ -347,12 +345,13 @@ async function showRecipeDetail(recipeId) {
                 let val = getValue(preferred);
                 if (val !== null) return val;
 
-                // common fallbacks
                 val = getValue(key);
                 if (val !== null) return val;
 
-                // try lowercase keys
-                const lowerKeys = Object.keys(nutData).reduce((acc, k) => { acc[k.toLowerCase()] = nutData[k]; return acc; }, {});
+                const lowerKeys = Object.keys(nutData).reduce((acc, k) => { 
+                    acc[k.toLowerCase()] = nutData[k]; 
+                    return acc; 
+                }, {});
                 if (lowerKeys[key] !== undefined && lowerKeys[key] !== null) {
                     const v = parseFloat(String(lowerKeys[key]).replace(',', '.'));
                     return isNaN(v) ? null : v;
@@ -360,9 +359,8 @@ async function showRecipeDetail(recipeId) {
                 return null;
             }
 
-            // Build items
-            const parts = [];
-            for (const ing of recipe.ingredients) {
+            // Build items IN PARALLEL
+            const ingredientPromises = recipe.ingredients.map(async (ing) => {
                 const name = ing.name || '';
                 const qty = ing.quantity || 0;
                 const unit = ing.unit || '';
@@ -370,11 +368,10 @@ async function showRecipeDetail(recipeId) {
                 let lineHtml = `<li><span class="ingredient-name">${escapeHtml(name)}</span> <span class="ingredient-quantity">${qty > 0 ? qty : ''} ${escapeHtml(unit || '')} ${ing.notes ? `(${escapeHtml(ing.notes)})` : ''}</span>`;
 
                 try {
-                    // search ingredient in DB
+                    // Search ingredient in DB
                     const results = await api.searchIngredients(name, 5);
                     let matched = null;
                     if (results && results.length > 0) {
-                        // try to find exact name match (case-insensitive)
                         const lowerName = name.toLowerCase();
                         matched = results.find(r => r.name && r.name.toLowerCase() === lowerName) || results[0];
                     }
@@ -383,6 +380,7 @@ async function showRecipeDetail(recipeId) {
                         const detail = await api.getIngredient(matched.id);
                         const nut = detail ? detail.nutrition_data : null;
                         const grams = convertToGrams(qty, unit);
+                        
                         if (nut && grams != null) {
                             const kcal100 = getNutritionValue(nut, 'calories');
                             const p100 = getNutritionValue(nut, 'proteins');
@@ -419,10 +417,11 @@ async function showRecipeDetail(recipeId) {
                     lineHtml += `<div class="nutri-line" style="font-size:0.85rem;color:#c00;margin-top:4px;">(erreur lors de la récupération des données)</div>`;
                 }
 
-                lineHtml += `</li>`;
-                parts.push(lineHtml);
-            }
+                return lineHtml + `</li>`;
+            });
 
+            // Wait for ALL ingredients to finish loading IN PARALLEL
+            const parts = await Promise.all(ingredientPromises);
             listEl.innerHTML = parts.join('\n') || '<li class="text-muted">Aucun ingrédient</li>';
         })();
     } catch (error) {
