@@ -18,7 +18,6 @@ class Recipe(Base):
     servings = Column(Integer, default=1)
     cuisine_type = Column(String(100), index=True)
     tags = Column(ARRAY(String), default=[])
-    utensils = Column(ARRAY(String), default=[])
     image_url = Column(String(500))  # URL or path to image (replacing Google Drive file ID)
     is_favorite = Column(Boolean, default=False, index=True)  # Star/favorite flag
     created_at = Column(DateTime, default=datetime.utcnow)

@@ -153,7 +153,6 @@ def create_recipe(recipe_data: RecipeCreate, db: Session = Depends(get_db)):
         servings=recipe_data.servings,
         cuisine_type=recipe_data.cuisine_type,
         tags=recipe_data.tags,
-        utensils=recipe_data.utensils,
         image_url=recipe_data.image_url,
         is_favorite=recipe_data.is_favorite
     )

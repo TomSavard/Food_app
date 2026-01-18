@@ -49,7 +49,6 @@ class RecipeBase(BaseModel):
     servings: int = 1
     cuisine_type: Optional[str] = None
     tags: List[str] = []
-    utensils: List[str] = []
     image_url: Optional[str] = None
     is_favorite: bool = False
 
@@ -67,7 +66,6 @@ class RecipeUpdate(BaseModel):
     servings: Optional[int] = None
     cuisine_type: Optional[str] = None
     tags: Optional[List[str]] = None
-    utensils: Optional[List[str]] = None
     image_url: Optional[str] = None
     is_favorite: Optional[bool] = None
     ingredients: Optional[List[IngredientCreate]] = None

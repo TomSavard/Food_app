@@ -5,6 +5,7 @@ let currentFilter = 'all';
 let currentCuisineFilter = '';
 let currentTagFilter = '';
 let currentIngredientFilter = '';
+let currentTags = []; // Tags for the current recipe being created/edited
 
 // DOM Elements
 const recipeList = document.getElementById('recipeList');
@@ -116,6 +117,7 @@ function setupEventListeners() {
         // Clear dynamic fields
         document.getElementById('ingredientsContainer').innerHTML = '';
         document.getElementById('instructionsContainer').innerHTML = '';
+        clearTags(); // Clear tags
         addIngredientField();
         addInstructionField();
         addRecipeModal.style.display = 'flex';
@@ -123,6 +125,49 @@ function setupEventListeners() {
 
     // Form submit
     recipeForm.addEventListener('submit', handleFormSubmit);
+
+    // Tags input
+    setupTagsInput();
+}
+
+// Tags Management
+function setupTagsInput() {
+    const tagsInput = document.getElementById('tagsInput');
+    if (!tagsInput) return;
+
+    tagsInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const tag = tagsInput.value.trim();
+            if (tag && !currentTags.includes(tag)) {
+                currentTags.push(tag);
+                displayTags();
+                tagsInput.value = '';
+            }
+        }
+    });
+}
+
+function displayTags() {
+    const tagsList = document.getElementById('tagsList');
+    if (!tagsList) return;
+
+    tagsList.innerHTML = currentTags.map(tag => `
+        <span class="tag-chip">
+            ${escapeHtml(tag)}
+            <button type="button" class="tag-remove" onclick="removeTag('${escapeHtml(tag)}')" aria-label="Retirer ${escapeHtml(tag)}">×</button>
+        </span>
+    `).join('');
+}
+
+function removeTag(tag) {
+    currentTags = currentTags.filter(t => t !== tag);
+    displayTags();
+}
+
+function clearTags() {
+    currentTags = [];
+    displayTags();
 }
 
 // Load Recipes
@@ -451,6 +496,10 @@ async function editRecipe(recipeId) {
         document.getElementById('servings').value = recipe.servings || 1;
         document.getElementById('cuisineType').value = recipe.cuisine_type || '';
 
+        // Populate tags
+        currentTags = recipe.tags || [];
+        displayTags();
+
         // Populate ingredients
         const ingredientsContainer = document.getElementById('ingredientsContainer');
         ingredientsContainer.innerHTML = '';
@@ -600,8 +649,7 @@ async function handleFormSubmit(e) {
         cook_time: parseInt(document.getElementById('cookTime').value) || 0,
         servings: parseInt(document.getElementById('servings').value) || 1,
         cuisine_type: document.getElementById('cuisineType').value || null,
-        tags: [],
-        utensils: (typeof currentUtensils !== 'undefined' && Array.isArray(currentUtensils)) ? currentUtensils.slice() : [],
+        tags: currentTags.slice(), // Use currentTags array
         ingredients: ingredients,
         instructions: instructions
     };
@@ -634,6 +682,7 @@ async function handleFormSubmit(e) {
         // Clear dynamic fields
         document.getElementById('ingredientsContainer').innerHTML = '';
         document.getElementById('instructionsContainer').innerHTML = '';
+        clearTags(); // Clear tags
         addIngredientField();
         addInstructionField();
         loadRecipes(); // Reload recipes
@@ -933,4 +982,7 @@ window.addInstructionField = addInstructionField;
 window.selectIngredient = selectIngredient;
 window.updateNutritionPreview = updateNutritionPreview;
 window.toggleFavorite = toggleFavorite;
+window.removeTag = removeTag;
+window.displayTags = displayTags;
+window.clearTags = clearTags;
 
