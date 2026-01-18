@@ -73,6 +73,15 @@ if os.path.exists(frontend_path):
         if os.path.exists(index_path):
             return FileResponse(index_path, media_type="text/html")
         return {"message": "Frontend not found. API is available at /docs"}
+    
+    # Also serve index.html at /index.html (for service worker caching)
+    @app.get("/index.html", include_in_schema=False)
+    async def serve_index_html():
+        """Serve index.html directly (needed for service worker)"""
+        index_path = os.path.join(frontend_path, "index.html")
+        if os.path.exists(index_path):
+            return FileResponse(index_path, media_type="text/html")
+        return {"message": "Frontend not found. API is available at /docs"}
 else:
     @app.get("/")
     def root():

@@ -169,6 +169,30 @@ const api = {
     },
 
     /**
+     * Toggle recipe favorite status
+     */
+    async toggleRecipeFavorite(recipeId, isFavorite) {
+        try {
+            const response = await fetch(`${API_BASE}/recipes/${recipeId}/favorite?is_favorite=${isFavorite}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.error('Error toggling recipe favorite:', error);
+            throw error;
+        }
+    },
+
+    /**
      * Get nutrition information for a recipe
      */
     async getRecipeNutrition(recipeId) {

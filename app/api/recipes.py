@@ -88,8 +88,8 @@ def list_recipes(
     
     total = count_query.count()
     
-    # Apply pagination and ordering
-    recipes = query.order_by(desc(Recipe.created_at)).offset(skip).limit(limit).all()
+    # Apply pagination and ordering (favorites first, then by created_at)
+    recipes = query.order_by(desc(Recipe.is_favorite), desc(Recipe.created_at)).offset(skip).limit(limit).all()
     
     return RecipeListResponse(recipes=recipes, total=total)
 
@@ -154,7 +154,8 @@ def create_recipe(recipe_data: RecipeCreate, db: Session = Depends(get_db)):
         cuisine_type=recipe_data.cuisine_type,
         tags=recipe_data.tags,
         utensils=recipe_data.utensils,
-        image_url=recipe_data.image_url
+        image_url=recipe_data.image_url,
+        is_favorite=recipe_data.is_favorite
     )
     
     db.add(recipe)
@@ -264,4 +265,30 @@ def delete_recipe(recipe_id: UUID, db: Session = Depends(get_db)):
     db.commit()
     
     return None
+
+
+@router.patch("/{recipe_id}/favorite", response_model=RecipeResponse)
+def toggle_recipe_favorite(
+    recipe_id: UUID,
+    is_favorite: bool,
+    db: Session = Depends(get_db)
+):
+    """Toggle favorite status of a recipe"""
+    recipe = db.query(Recipe).options(
+        selectinload(Recipe.ingredients),
+        selectinload(Recipe.instructions)
+    ).filter(Recipe.recipe_id == recipe_id).first()
+    
+    if not recipe:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Recipe with id {recipe_id} not found"
+        )
+    
+    # Update favorite status
+    recipe.is_favorite = is_favorite
+    db.commit()
+    db.refresh(recipe)
+    
+    return recipe
 

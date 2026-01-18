@@ -149,6 +149,13 @@ function renderRecipes() {
     emptyState.style.display = 'none';
     recipeList.innerHTML = filteredRecipes.map(recipe => `
         <div class="recipe-card" onclick="showRecipeDetail('${recipe.recipe_id}')">
+            <button 
+                class="recipe-favorite-btn ${recipe.is_favorite ? 'active' : ''}" 
+                onclick="toggleFavorite(event, '${recipe.recipe_id}', ${recipe.is_favorite})"
+                aria-label="${recipe.is_favorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}"
+                title="${recipe.is_favorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}">
+                <span class="star-icon">⭐</span>
+            </button>
             <h3>${escapeHtml(recipe.name)}</h3>
             ${recipe.description ? `<p class="description">${escapeHtml(recipe.description)}</p>` : ''}
             <div class="recipe-meta">
@@ -871,6 +878,51 @@ function debounce(func, wait) {
     };
 }
 
+// Toggle Favorite Status
+async function toggleFavorite(event, recipeId, currentState) {
+    // Prevent card click event from firing
+    event.stopPropagation();
+    
+    const newState = !currentState;
+    
+    try {
+        // Optimistically update UI
+        const button = event.currentTarget;
+        button.classList.toggle('active', newState);
+        button.setAttribute('aria-label', newState ? 'Retirer des favoris' : 'Ajouter aux favoris');
+        button.setAttribute('title', newState ? 'Retirer des favoris' : 'Ajouter aux favoris');
+        
+        // Call API to update favorite status
+        const updatedRecipe = await api.toggleRecipeFavorite(recipeId, newState);
+        
+        // Update the recipe in our local arrays
+        const updateRecipeInArray = (recipes) => {
+            const index = recipes.findIndex(r => r.recipe_id === recipeId);
+            if (index !== -1) {
+                recipes[index].is_favorite = updatedRecipe.is_favorite;
+            }
+        };
+        
+        updateRecipeInArray(allRecipes);
+        updateRecipeInArray(filteredRecipes);
+        
+        // Re-render to update sort order (favorites first)
+        // Use a small delay to allow the animation to complete
+        setTimeout(() => {
+            renderRecipes();
+        }, 300);
+        
+    } catch (error) {
+        console.error('Error toggling favorite:', error);
+        // Revert optimistic update on error
+        const button = event.currentTarget;
+        button.classList.toggle('active', currentState);
+        button.setAttribute('aria-label', currentState ? 'Retirer des favoris' : 'Ajouter aux favoris');
+        button.setAttribute('title', currentState ? 'Retirer des favoris' : 'Ajouter aux favoris');
+        alert('Erreur lors de la mise à jour du favori: ' + error.message);
+    }
+}
+
 // Make functions available globally
 window.showRecipeDetail = showRecipeDetail;
 window.loadRecipes = loadRecipes;
@@ -880,4 +932,5 @@ window.addIngredientField = addIngredientField;
 window.addInstructionField = addInstructionField;
 window.selectIngredient = selectIngredient;
 window.updateNutritionPreview = updateNutritionPreview;
+window.toggleFavorite = toggleFavorite;
 
