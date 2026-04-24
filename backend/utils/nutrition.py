@@ -4,7 +4,7 @@ Ports the logic from Streamlit app to FastAPI
 """
 import math
 from typing import Optional, Dict, List
-from app.db.models import IngredientDatabase, Ingredient
+from backend.db.models import IngredientDatabase, Ingredient
 from sqlalchemy.orm import Session
 
 

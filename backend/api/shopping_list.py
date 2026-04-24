@@ -3,9 +3,9 @@ from sqlalchemy.orm import Session
 from sqlalchemy import desc
 from uuid import UUID
 
-from app.db.session import get_db
-from app.db.models import ShoppingList
-from app.schemas import (
+from backend.db.session import get_db
+from backend.db.models import ShoppingList
+from backend.schemas import (
     ShoppingListItemCreate,
     ShoppingListItemUpdate,
     ShoppingListItemResponse,

@@ -3,7 +3,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID, JSONB, ARRAY
 from datetime import datetime, timezone
 import uuid
-from app.db.session import Base
+from backend.db.session import Base
 
 
 class Recipe(Base):

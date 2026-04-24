@@ -1,7 +1,7 @@
 """Pure unit tests for nutrition value parsing — no DB needed."""
 import math
 import pytest
-from app.utils.nutrition import safe_float_conversion, convert_to_grams
+from backend.utils.nutrition import safe_float_conversion, convert_to_grams
 
 
 @pytest.mark.parametrize("value,expected", [
