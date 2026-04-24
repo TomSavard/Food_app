@@ -48,6 +48,21 @@ vercel dev
 # → http://localhost:3000
 ```
 
+## Tests
+
+Tests run against a dedicated Neon test branch (cheap copy-on-write of `main`). Each test wraps work in a transaction that's rolled back on teardown, so no data leaks between runs.
+
+**One-time setup:**
+1. Neon Console → your project → **Branches** → "Create branch" → from `main` → name it `test`. Copy the **pooled** connection string.
+2. `cp .env.test.example .env.test` and paste it (in `postgresql+psycopg://` form).
+
+**Run:**
+```bash
+pytest -v
+```
+
+CI runs the same tests on every push to `main` and every PR (see [.github/workflows/test.yml](.github/workflows/test.yml)). Set `TEST_DATABASE_URL` as a GitHub Actions secret.
+
 ## Database migrations
 
 Alembic runs locally against Neon — it is **not** wired into the Vercel deploy.
