@@ -102,11 +102,11 @@ def _to_contents(messages: List[ChatMessage]) -> List[types.Content]:
 
 @router.post("")
 def chat(req: ChatRequest, db: Session = Depends(get_db)):
+    if not req.messages:
+        raise HTTPException(status_code=400, detail="messages is empty")
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
         raise HTTPException(status_code=500, detail="GEMINI_API_KEY is not set")
-    if not req.messages:
-        raise HTTPException(status_code=400, detail="messages is empty")
 
     client = genai.Client(api_key=api_key)
     config = types.GenerateContentConfig(
