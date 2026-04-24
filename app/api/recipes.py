@@ -35,60 +35,33 @@ def list_recipes(
     - tag: Filter by tag
     """
     
-    # Use selectinload to eagerly load ingredients and instructions (fixes N+1 query problem)
-    # selectinload is faster than joinedload for one-to-many relationships
-    query = db.query(Recipe).options(
-        selectinload(Recipe.ingredients),
-        selectinload(Recipe.instructions)
+    def apply_filters(q):
+        if search:
+            q = q.filter(
+                Recipe.name.ilike(f"%{search}%") |
+                Recipe.description.ilike(f"%{search}%")
+            )
+        if cuisine:
+            q = q.filter(Recipe.cuisine_type.ilike(f"%{cuisine}%"))
+        if ingredient:
+            q = q.join(Ingredient).filter(
+                Ingredient.name.ilike(f"%{ingredient}%")
+            ).distinct()
+        if tag:
+            q = q.filter(
+                func.lower(func.cast(Recipe.tags, String)).contains(tag.lower())
+            )
+        return q
+
+    query = apply_filters(
+        db.query(Recipe).options(
+            selectinload(Recipe.ingredients),
+            selectinload(Recipe.instructions),
+        )
     )
-    
-    # Apply filters
-    if search:
-        query = query.filter(
-            Recipe.name.ilike(f"%{search}%") |
-            Recipe.description.ilike(f"%{search}%")
-        )
-    
-    if cuisine:
-        query = query.filter(Recipe.cuisine_type.ilike(f"%{cuisine}%"))
-    
-    # Filter by ingredient (partial match in ingredient names)
-    if ingredient:
-        # Join with ingredients table and filter by ingredient name
-        query = query.join(Ingredient).filter(
-            Ingredient.name.ilike(f"%{ingredient}%")
-        ).distinct()
-    
-    # Filter by tag
-    if tag:
-        # Filter by tag in the tags array (case-insensitive)
-        tag_lower = tag.lower()
-        query = query.filter(
-            func.lower(func.cast(Recipe.tags, String)).contains(tag_lower)
-        )
-    
-    # Get total count before pagination (count before applying joins to avoid duplicates)
-    count_query = db.query(Recipe)
-    if search:
-        count_query = count_query.filter(
-            Recipe.name.ilike(f"%{search}%") |
-            Recipe.description.ilike(f"%{search}%")
-        )
-    if cuisine:
-        count_query = count_query.filter(Recipe.cuisine_type.ilike(f"%{cuisine}%"))
-    if ingredient:
-        count_query = count_query.join(Ingredient).filter(
-            Ingredient.name.ilike(f"%{ingredient}%")
-        ).distinct()
-    if tag:
-        tag_lower = tag.lower()
-        count_query = count_query.filter(
-            func.lower(func.cast(Recipe.tags, String)).contains(tag_lower)
-        )
-    
-    total = count_query.count()
-    
-    # Apply pagination and ordering (favorites first, then by created_at)
+    total = apply_filters(db.query(Recipe)).count()
+
+    # Favorites first, then newest
     recipes = query.order_by(desc(Recipe.is_favorite), desc(Recipe.created_at)).offset(skip).limit(limit).all()
     
     return RecipeListResponse(recipes=recipes, total=total)

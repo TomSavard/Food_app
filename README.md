@@ -1,85 +1,72 @@
 # Food App
 
-A modern recipe management and meal planning application with shopping list generation.
+A personal recipe management and meal planning app with shopping list generation and nutrition tracking.
 
-## 🎯 Project Goals
+Product direction: [NORTH_STAR.md](NORTH_STAR.md). Stack rationale: [INFRASTRUCTURE.md](INFRASTRUCTURE.md).
 
-* Recipe database with ingredient tracking
-* Normalize quantities per serving
-* Weekly meal planning (manual or random selection)
-* Automatic shopping list generation from selected recipes
-* Mobile-friendly access (PWA)
-* Nutrition tracking (macros and micros)
+## Stack
 
-## 🏗️ Architecture
+- **Frontend + API hosting:** Vercel (serverless)
+- **Backend:** FastAPI (runs as a single Vercel Python function via [api/index.py](api/index.py))
+- **Database:** Neon Postgres (pooled endpoint)
+- **Frontend:** vanilla HTML/JS PWA in [frontend/](frontend/)
 
-**Backend**: FastAPI + PostgreSQL (Neon) + Render  
-**Frontend**: (To be built - PWA)  
-**Legacy**: None (Streamlit app removed)
+Live: https://food-app-bice-alpha.vercel.app
 
-## 📁 Project Structure
+## Project layout
 
 ```
 Food_app/
-├── app/                    # FastAPI backend
-│   ├── main.py            # API endpoints
-│   └── db/                # Database models & session
-├── alembic/               # Database migrations
-└── scripts/               # Utility scripts
+├── api/index.py          # Vercel entry point (re-exports FastAPI app)
+├── app/                  # FastAPI backend
+│   ├── main.py           # App setup, routers, /health
+│   ├── api/              # Route handlers (recipes, ingredients, shopping_list)
+│   ├── db/               # SQLAlchemy models + session
+│   ├── schemas/          # Pydantic schemas
+│   └── utils/            # Nutrition calc, etc.
+├── alembic/              # DB migrations
+├── frontend/             # Static HTML/JS/CSS served by Vercel CDN
+├── vercel.json           # Vercel routing + Python runtime config
+├── requirements.txt      # Runtime deps (installed into the Vercel function)
+└── requirements-dev.txt  # Local dev + tooling (uvicorn, alembic, ruff)
 ```
 
-## 🚀 Quick Start
+## Local development
 
-### Local Development
+```bash
+# First-time setup
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements-dev.txt
+cp .env.example .env   # then paste your Neon DATABASE_URL
 
-1. **Set up environment**:
-   ```bash
-   python3 -m venv .venv
-   source .venv/bin/activate
-   pip install -r requirements_backend.txt
-   ```
+# Pull Vercel env vars into .env.local (so vercel dev picks up DATABASE_URL)
+vercel env pull .env.local
 
-2. **Configure database**:
-   ```bash
-   cp .env.example .env
-   # Edit .env and add your Neon DATABASE_URL
-   ```
+# Run locally (mirrors prod: static frontend + /api function)
+vercel dev
+# → http://localhost:3000
+```
 
-3. **Run migrations**:
-   ```bash
-   alembic upgrade head
-   ```
+## Database migrations
 
-4. **Start server** (choose one):
-   ```bash
-   # Option 1: Quick script
-   ./start_local.sh
-   
-   # Option 2: Manual
-   uvicorn app.main:app --reload
-   ```
+Alembic runs locally against Neon — it is **not** wired into the Vercel deploy.
 
-5. **Access**:
-   - API: http://127.0.0.1:8000
-   - Recipes: http://127.0.0.1:8000/api/recipes
-   - Health: http://127.0.0.1:8000/health
-   - Docs: http://127.0.0.1:8000/docs (interactive API testing)
+```bash
+# Apply pending migrations
+alembic upgrade head
 
-## 📚 Documentation
+# Create a new migration after editing app/db/models.py
+alembic revision --autogenerate -m "describe the change"
+```
 
-- **Next Steps**: See `NEXT_STEPS_PLAN.md` for detailed roadmap
-- **Deployment**: See `DEPLOYMENT.md` for Render deployment guide
+## Deployment
 
-## 🔄 Migration Status
+Pushes to `main` auto-deploy on Vercel (GitHub integration). Manual:
 
-**Phase 1**: ✅ Infrastructure setup complete  
-**Phase 2**: ✅ Deployment & verification complete  
-**Phase 3**: ✅ API endpoints implemented  
-**Phase 4**: ✅ Data migration complete (102 recipes migrated)  
-**Phase 5**: 🚧 Frontend PWA (In Progress)
+```bash
+vercel --prod
+```
 
-## 📝 Notes
-
-- Legacy Streamlit app has been removed.
-- Database models ready, migrations need to be run
-- Backend ready for deployment to Render
+Env var to set in Vercel project settings (Production + Development):
+- `DATABASE_URL` — Neon **pooled** connection string (hostname contains `-pooler`).
