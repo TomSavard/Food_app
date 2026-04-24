@@ -1,0 +1,16 @@
+# FastAPI Backend Requirements
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+sqlalchemy>=2.0.0
+psycopg[binary]>=3.1.0
+alembic>=1.12.0
+python-dotenv>=1.0.0
+pydantic>=2.0.0
+pandas>=2.0.0
+openpyxl>=3.1.0
+ruff>=0.1.0
+
+# Optional: For future features
+# python-multipart>=0.0.6  # For file uploads
+# aiofiles>=23.0.0  # For async file operations
+

@@ -1,25 +1,85 @@
-# Food_app
+# Food App
 
-Provide a tool to facilitate shopping and meal planning
+A modern recipe management and meal planning application with shopping list generation.
 
-## Goals :
+## 🎯 Project Goals
 
-* Avoir une BDD de recette 
-* Normaliser les quantités par part
-* Pourvoir sélectionner les repas ou laisser un choix aléatoire
-* Pouvoir cumuler automatiquement les ingrédients sous format liste
-* Avoir une liste de course organisée
-* Permettre un transfert facile vers le téléphone du planning ou de la liste de course.
-* Ajouter une visualisation des apports en macro nutriment
-* Quid des micro-nutriments ?
+* Recipe database with ingredient tracking
+* Normalize quantities per serving
+* Weekly meal planning (manual or random selection)
+* Automatic shopping list generation from selected recipes
+* Mobile-friendly access (PWA)
+* Nutrition tracking (macros and micros)
 
+## 🏗️ Architecture
 
+**Backend**: FastAPI + PostgreSQL (Neon) + Render  
+**Frontend**: (To be built - PWA)  
+**Legacy**: None (Streamlit app removed)
 
-food-app@my-food-459018.iam.gserviceaccount.com
+## 📁 Project Structure
 
+```
+Food_app/
+├── app/                    # FastAPI backend
+│   ├── main.py            # API endpoints
+│   └── db/                # Database models & session
+├── alembic/               # Database migrations
+└── scripts/               # Utility scripts
+```
 
+## 🚀 Quick Start
 
-TODO : link les ingrédients avec la bdd de nourriture.
-Ne plus taper les ingrédients mais avoir une barre de recherche et sélectionner l'ingrédient. => que ce passe t il s'il n'y a pas l'ingrédient ?
+### Local Development
 
-remplir la BDD de recette
+1. **Set up environment**:
+   ```bash
+   python3 -m venv .venv
+   source .venv/bin/activate
+   pip install -r requirements_backend.txt
+   ```
+
+2. **Configure database**:
+   ```bash
+   cp .env.example .env
+   # Edit .env and add your Neon DATABASE_URL
+   ```
+
+3. **Run migrations**:
+   ```bash
+   alembic upgrade head
+   ```
+
+4. **Start server** (choose one):
+   ```bash
+   # Option 1: Quick script
+   ./start_local.sh
+   
+   # Option 2: Manual
+   uvicorn app.main:app --reload
+   ```
+
+5. **Access**:
+   - API: http://127.0.0.1:8000
+   - Recipes: http://127.0.0.1:8000/api/recipes
+   - Health: http://127.0.0.1:8000/health
+   - Docs: http://127.0.0.1:8000/docs (interactive API testing)
+
+## 📚 Documentation
+
+- **Next Steps**: See `NEXT_STEPS_PLAN.md` for detailed roadmap
+- **Deployment**: See `DEPLOYMENT.md` for Render deployment guide
+
+## 🔄 Migration Status
+
+**Phase 1**: ✅ Infrastructure setup complete  
+**Phase 2**: ✅ Deployment & verification complete  
+**Phase 3**: ✅ API endpoints implemented  
+**Phase 4**: ✅ Data migration complete (102 recipes migrated)  
+**Phase 5**: 🚧 Frontend PWA (In Progress)
+
+## 📝 Notes
+
+- Legacy Streamlit app has been removed.
+- Database models ready, migrations need to be run
+- Backend ready for deployment to Render
