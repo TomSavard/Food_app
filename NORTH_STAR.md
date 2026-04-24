@@ -110,3 +110,21 @@ A web app (single URL, responsive, usable on phone and laptop) where I can:
 7. **Write the meal-plan "skill"** (procedure doc the LLM follows).
 8. **CIQUAL matcher** + LLM fallback with `source` flag.
 9. **Seasonality hint** in recipe suggestions.
+
+---
+
+## 7. Working principle: build assistant-first
+
+When designing a new feature (meal plan, shopping list, nutrition view, etc.), think about how the assistant interacts with it *first*, then build the deterministic UI/data layer second, then expose tools to the assistant.
+
+- Every domain entity should eventually be readable by the assistant via a tool: recipes (full detail incl. instructions + ingredients + nutrition), meal plan, shopping list, nutrition logs.
+- Every action the user can take in the UI should eventually be callable by the assistant via a tool: add recipe, fill meal-plan slot, toggle shopping-list item, etc.
+- This guides DB schema and API design — if a tool would need it, model it cleanly now.
+
+## 8. Backlog: assistant context expansion
+
+Current chat (v1) only sees recipe summaries via `list_recipes`. Expand:
+
+- **`get_recipe(recipe_id)`** — full instructions, full ingredient list with quantities + units, nutrition (per-recipe + per-serving).
+- Provide **recipe count + index summary** in the system prompt or a dedicated `recipe_overview` tool so the assistant knows the rough shape of the user's collection without listing all of them every turn.
+- Once nutrition tracking lands: a tool to query daily/weekly intake.

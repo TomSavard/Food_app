@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from app.db.session import get_engine
 from sqlalchemy import text
-from app.api import recipes, ingredients, shopping_list
+from app.api import recipes, ingredients, shopping_list, chat
 
 load_dotenv()
 
@@ -24,6 +24,7 @@ app.add_middleware(
 app.include_router(recipes.router)
 app.include_router(ingredients.router)
 app.include_router(shopping_list.router)
+app.include_router(chat.router)
 
 
 @app.get("/health")
