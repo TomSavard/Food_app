@@ -66,3 +66,6 @@ streamlit_drive_connector.json
 *.tmp
 temp/
 tmp/
+.vercel
+.env*.local
+CLAUDE.md

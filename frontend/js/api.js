@@ -1,7 +1,5 @@
-// API Configuration
-const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-    ? 'http://127.0.0.1:8000/api'
-    : 'https://food-app-907w.onrender.com/api'; // Update with your Render URL
+// API Configuration — same-origin on Vercel; vercel dev proxies locally.
+const API_BASE = '/api';
 
 // API Functions
 const api = {

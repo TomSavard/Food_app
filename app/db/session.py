@@ -25,11 +25,11 @@ def get_engine():
     if _engine is None:
         _engine = create_engine(
             DATABASE_URL,
-            pool_pre_ping=True,  # Verify connections before using
-            pool_size=5,  # Number of connections to keep in pool
-            max_overflow=10,  # Additional connections beyond pool_size
-            pool_recycle=3600,  # Recycle connections after 1 hour
-            echo=False  # Set to True for SQL query logging in development
+            pool_pre_ping=True,
+            pool_size=1,
+            max_overflow=0,
+            pool_recycle=300,
+            echo=False,
         )
     return _engine
 
