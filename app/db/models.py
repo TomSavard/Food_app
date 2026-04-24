@@ -1,7 +1,7 @@
 from sqlalchemy import Column, String, Integer, Float, Text, ForeignKey, DateTime, Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID, JSONB, ARRAY
-from datetime import datetime
+from datetime import datetime, timezone
 import uuid
 from app.db.session import Base
 
@@ -20,8 +20,8 @@ class Recipe(Base):
     tags = Column(ARRAY(String), default=[])
     image_url = Column(String(500))  # URL or path to image (replacing Google Drive file ID)
     is_favorite = Column(Boolean, default=False, index=True)  # Star/favorite flag
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     
     # Relationships
     ingredients = relationship("Ingredient", back_populates="recipe", cascade="all, delete-orphan")
@@ -75,8 +75,8 @@ class WeekMenu(Base):
     note = Column(Text)  # Day, time, guests info, etc.
     menu_date = Column(DateTime)  # Optional: specific date for this menu item
     position = Column(Integer, default=0)  # Order in the menu
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     
     # Relationship
     recipe = relationship("Recipe")
@@ -94,8 +94,8 @@ class ShoppingList(Base):
     quantity = Column(String(100), default="")  # Store as string to support "500g", "2 cups", etc.
     is_checked = Column(Boolean, default=False, index=True)
     source = Column(String(500), default="")  # Source: recipe name or "Ajouté manuellement"
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     
     def __repr__(self):
         return f"<ShoppingList(name='{self.name}', quantity={self.quantity}, checked={self.is_checked})>"
@@ -110,8 +110,8 @@ class IngredientDatabase(Base):
     # Nutrition columns - stored as JSONB for flexibility
     nutrition_data = Column(JSONB)  # Stores all nutrition info as JSON
     
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     
     def __repr__(self):
         return f"<IngredientDatabase(name='{self.alim_nom_fr}')>"

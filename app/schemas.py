@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import List, Optional
 from uuid import UUID
 from datetime import datetime
@@ -19,8 +19,7 @@ class IngredientCreate(IngredientBase):
 class IngredientResponse(IngredientBase):
     ingredient_id: UUID
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # Instruction schemas
@@ -36,8 +35,7 @@ class InstructionCreate(BaseModel):
 class InstructionResponse(InstructionBase):
     instruction_id: UUID
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # Recipe schemas
@@ -79,8 +77,7 @@ class RecipeResponse(RecipeBase):
     ingredients: List[IngredientResponse] = []
     instructions: List[InstructionResponse] = []
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class RecipeListResponse(BaseModel):
@@ -112,8 +109,7 @@ class ShoppingListItemResponse(ShoppingListItemBase):
     created_at: datetime
     updated_at: datetime
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ShoppingListResponse(BaseModel):
