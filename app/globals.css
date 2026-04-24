@@ -1,0 +1,50 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Dark theme tokens — match the previous frontend's palette
+   (background ~#0D1117, primary green #66BB6A) so visual change stays minimal. */
+@layer base {
+  :root {
+    --background: 215 28% 7%;          /* ~#0D1117 */
+    --foreground: 213 31% 95%;          /* ~#F0F6FC */
+
+    --card: 217 19% 12%;                /* slightly lighter card */
+    --card-foreground: 213 31% 95%;
+
+    --popover: 217 19% 12%;
+    --popover-foreground: 213 31% 95%;
+
+    --primary: 122 38% 56%;             /* #66BB6A */
+    --primary-foreground: 0 0% 6%;
+
+    --secondary: 217 19% 18%;
+    --secondary-foreground: 213 31% 95%;
+
+    --muted: 217 19% 18%;
+    --muted-foreground: 215 16% 65%;
+
+    --accent: 217 19% 22%;
+    --accent-foreground: 213 31% 95%;
+
+    --destructive: 0 70% 55%;
+    --destructive-foreground: 213 31% 95%;
+
+    --border: 217 19% 22%;
+    --input: 217 19% 22%;
+    --ring: 122 38% 56%;
+
+    --radius: 0.625rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
+      Ubuntu, sans-serif;
+  }
+}

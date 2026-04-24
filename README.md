@@ -18,32 +18,43 @@ Live: https://food-app-bice-alpha.vercel.app
 ```
 Food_app/
 ├── api/index.py          # Vercel entry point (re-exports FastAPI app)
-├── app/                  # FastAPI backend
-│   ├── main.py           # App setup, routers, /health
-│   ├── api/              # Route handlers (recipes, ingredients, shopping_list)
+├── backend/              # FastAPI Python code
+│   ├── main.py
+│   ├── api/              # Route handlers (recipes, ingredients, shopping_list, chat)
 │   ├── db/               # SQLAlchemy models + session
-│   ├── schemas/          # Pydantic schemas
-│   └── utils/            # Nutrition calc, etc.
+│   ├── schemas.py
+│   └── utils/
+├── app/                  # Next.js App Router (frontend pages)
+├── components/           # React components (incl. shadcn/ui under components/ui/)
+├── lib/                  # API client + types
+├── public/               # PWA manifest, icons, service worker
 ├── alembic/              # DB migrations
-├── frontend/             # Static HTML/JS/CSS served by Vercel CDN
-├── vercel.json           # Vercel routing + Python runtime config
-├── requirements.txt      # Runtime deps (installed into the Vercel function)
-└── requirements-dev.txt  # Local dev + tooling (uvicorn, alembic, ruff)
+├── tests/                # pytest suite
+├── package.json          # Next.js / React deps
+├── tsconfig.json
+├── tailwind.config.ts
+├── next.config.js
+├── vercel.json           # routes /api/* to the Python function; Next.js handles the rest
+├── requirements.txt      # runtime deps (installed into the Vercel function)
+└── requirements-dev.txt  # local dev + tooling
 ```
 
 ## Local development
 
 ```bash
-# First-time setup
+# First-time setup — Python
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements-dev.txt
 cp .env.example .env   # then paste your Neon DATABASE_URL
 
+# First-time setup — Node
+npm install
+
 # Pull Vercel env vars into .env.local (so vercel dev picks up DATABASE_URL)
 vercel env pull .env.local
 
-# Run locally (mirrors prod: static frontend + /api function)
+# Run locally — Next.js + the Python function in one process
 vercel dev
 # → http://localhost:3000
 ```
