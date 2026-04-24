@@ -2,10 +2,10 @@
 Nutrition calculation utilities
 Ports the logic from Streamlit app to FastAPI
 """
+import math
 from typing import Optional, Dict, List
 from app.db.models import IngredientDatabase, Ingredient
 from sqlalchemy.orm import Session
-import pandas as pd
 
 
 def safe_float_conversion(value) -> Optional[float]:
@@ -15,8 +15,8 @@ def safe_float_conversion(value) -> Optional[float]:
     """
     if value is None:
         return None
-    
-    if pd.isna(value):
+
+    if isinstance(value, float) and math.isnan(value):
         return None
     
     str_val = str(value).strip().lower()
