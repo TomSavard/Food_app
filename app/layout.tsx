@@ -3,6 +3,7 @@ import Link from "next/link";
 import { GeistSans } from "geist/font/sans";
 import "./globals.css";
 import { ChatPanel } from "@/components/chat-panel";
+import { Logo } from "@/components/logo";
 import { ServiceWorkerRegister } from "@/components/sw-register";
 import { ThemeScript } from "@/components/theme-script";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -39,7 +40,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <header className="sticky top-0 z-40 glass-thin">
           <div className="container flex h-14 items-center justify-between">
             <Link href="/" className="flex items-center gap-2 font-semibold text-lg tracking-tight">
-              <span className="text-primary">🍽️</span> Food App
+              <Logo size={28} className="text-primary" />
+              <span>Food</span>
             </Link>
             <nav className="flex items-center gap-1 text-sm">
               <Link className="px-3 py-1.5 rounded-full hover:bg-accent/60 transition" href="/">
