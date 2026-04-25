@@ -16,7 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import * as api from "@/lib/api";
 import type { Recipe } from "@/lib/types";
-import { IngredientMatchPicker } from "@/components/ingredient-match-picker";
+import { IngredientNameCombobox } from "@/components/ingredient-name-combobox";
 
 const UNITS = ["", "g", "kg", "mg", "ml", "cl", "l", "pcs", "c. à café", "c. à soupe"];
 
@@ -262,16 +262,14 @@ export function RecipeFormDialog({
             </div>
             <div className="space-y-2">
               {form.ingredients.map((row, idx) => (
-                <div key={idx} className="space-y-1">
-                <div className="grid grid-cols-12 gap-2">
-                  <Input
+                <div key={idx} className="grid grid-cols-12 gap-2">
+                  <IngredientNameCombobox
                     className="col-span-5"
-                    placeholder="Nom"
-                    value={row.name}
-                    onChange={(e) => {
+                    name={row.name}
+                    ingredient_db_id={row.ingredient_db_id ?? null}
+                    onChange={(name, id) => {
                       const ings = [...form.ingredients];
-                      // Name change drops any prior FK — caller must re-link.
-                      ings[idx] = { ...row, name: e.target.value, ingredient_db_id: null };
+                      ings[idx] = { ...row, name, ingredient_db_id: id };
                       setForm({ ...form, ingredients: ings });
                     }}
                   />
@@ -324,18 +322,6 @@ export function RecipeFormDialog({
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
-                </div>
-                <div className="pl-1">
-                  <IngredientMatchPicker
-                    name={row.name}
-                    ingredient_db_id={row.ingredient_db_id ?? null}
-                    onChange={(id) => {
-                      const ings = [...form.ingredients];
-                      ings[idx] = { ...row, ingredient_db_id: id };
-                      setForm({ ...form, ingredients: ings });
-                    }}
-                  />
-                </div>
                 </div>
               ))}
             </div>
