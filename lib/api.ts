@@ -13,6 +13,7 @@ import type {
   RecipeUpdate,
   ShoppingItem,
   ShoppingListResponse,
+  WeeklyNutrition,
 } from "./types";
 
 const BASE = "/api";
@@ -242,3 +243,6 @@ export const generateMealPlan = (
     })}`,
     { method: "POST" }
   );
+
+export const getWeeklyNutrition = (weekStart: string) =>
+  http<WeeklyNutrition>(`/meal-plan/nutrition${qs({ week_start: weekStart })}`);
