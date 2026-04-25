@@ -81,19 +81,38 @@ export const getShoppingList = (include_checked = true) =>
 
 export const addShoppingItem = (data: {
   name: string;
-  quantity?: string;
-  source?: string;
-  is_checked?: boolean;
-}) => http<ShoppingItem>(`/shopping-list`, { method: "POST", body: JSON.stringify(data) });
+  quantity_text?: string;
+  source_label?: string;
+}) =>
+  http<ShoppingItem>(`/shopping-list`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
 
-export const updateShoppingItem = (id: string, data: { is_checked?: boolean }) =>
+export const updateShoppingItem = (
+  id: string,
+  data: { name?: string; is_checked?: boolean }
+) =>
   http<ShoppingItem>(`/shopping-list/${id}`, {
-    method: "PUT",
+    method: "PATCH",
     body: JSON.stringify(data),
   });
 
 export const deleteShoppingItem = (id: string) =>
   http<void>(`/shopping-list/${id}`, { method: "DELETE" });
+
+export const deleteShoppingContribution = (contribution_id: string) =>
+  http<void>(`/shopping-list/contributions/${contribution_id}`, {
+    method: "DELETE",
+  });
+
+export const reorderShoppingList = (
+  items: { item_id: string; position: number }[]
+) =>
+  http<ShoppingListResponse>(`/shopping-list/reorder`, {
+    method: "PUT",
+    body: JSON.stringify({ items }),
+  });
 
 export const clearShoppingList = () =>
   http<void>(`/shopping-list`, { method: "DELETE" });

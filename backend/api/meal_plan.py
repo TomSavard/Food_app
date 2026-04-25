@@ -16,6 +16,11 @@ from backend.schemas import (
     MealPlanSlotUpdate,
     MealPlanWeekResponse,
 )
+from backend.services.shopping_list_sync import (
+    cleanup_orphan_items,
+    sync_slot_added,
+    sync_slot_changed,
+)
 
 router = APIRouter(prefix="/api/meal-plan", tags=["meal-plan"])
 
@@ -93,9 +98,11 @@ def add_meal(payload: MealPlanSlotCreate, db: Session = Depends(get_db)):
         servings=payload.servings,
     )
     db.add(slot)
+    db.flush()
+    _ = slot.recipe
+    sync_slot_added(db, slot)
     db.commit()
     db.refresh(slot)
-    _ = slot.recipe
     return _to_response(slot)
 
 
@@ -104,13 +111,19 @@ def update_meal(slot_id: UUID, payload: MealPlanSlotUpdate, db: Session = Depend
     slot = db.query(MealPlanSlot).filter(MealPlanSlot.slot_id == slot_id).first()
     if not slot:
         raise HTTPException(status_code=404, detail="Slot not found")
+    servings_changed = False
     if payload.servings is not None:
         if payload.servings < 1:
             raise HTTPException(status_code=400, detail="servings must be >= 1")
-        slot.servings = payload.servings
+        if slot.servings != payload.servings:
+            slot.servings = payload.servings
+            servings_changed = True
+    db.flush()
+    if servings_changed:
+        _ = slot.recipe
+        sync_slot_changed(db, slot)
     db.commit()
     db.refresh(slot)
-    _ = slot.recipe
     return _to_response(slot)
 
 
@@ -161,11 +174,15 @@ def reorder(payload: MealPlanReorderRequest, db: Session = Depends(get_db)):
 
 @router.delete("/{slot_id}", status_code=204)
 def delete_meal(slot_id: UUID, db: Session = Depends(get_db)):
+    # FK ON DELETE CASCADE on shopping_list_contributions.slot_id removes the
+    # contributions; we then prune any items left empty.
     deleted = (
         db.query(MealPlanSlot)
         .filter(MealPlanSlot.slot_id == slot_id)
         .delete(synchronize_session=False)
     )
+    db.flush()
+    cleanup_orphan_items(db)
     db.commit()
     if not deleted:
         raise HTTPException(status_code=404, detail="Slot not found")
@@ -192,19 +209,25 @@ def generate(
     if not pool:
         raise HTTPException(status_code=400, detail="No recipes available")
 
+    new_slots: list[MealPlanSlot] = []
     for day_offset in range(7):
         d = monday + timedelta(days=day_offset)
         existing = _next_position(db, d)
         for i in range(meals_per_day - existing if not overwrite else meals_per_day):
             recipe = random.choice(pool)
-            db.add(
-                MealPlanSlot(
-                    slot_date=d,
-                    position=existing + i if not overwrite else i,
-                    recipe_id=recipe.recipe_id,
-                    servings=recipe.servings or 1,
-                )
+            slot = MealPlanSlot(
+                slot_date=d,
+                position=existing + i if not overwrite else i,
+                recipe_id=recipe.recipe_id,
+                servings=recipe.servings or 1,
             )
+            db.add(slot)
+            new_slots.append(slot)
+    db.flush()
+    if overwrite:
+        cleanup_orphan_items(db)
+    for s in new_slots:
+        sync_slot_added(db, s)
     db.commit()
 
     rows = (
