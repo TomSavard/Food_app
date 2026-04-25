@@ -65,8 +65,25 @@ export interface ShoppingItem {
   name: string;
   position: number;
   is_checked: boolean;
+  category: string | null;
   contributions: ShoppingContribution[];
 }
+
+// Order matches the supermarket-walking flow defined in
+// backend/services/categorize.py CATEGORIES.
+export const SHOPPING_CATEGORIES = [
+  "Fruits & Légumes",
+  "Boulangerie",
+  "Viandes & Poissons",
+  "Produits Laitiers",
+  "Surgelés",
+  "Épicerie",
+  "Épices & Herbes",
+  "Boissons",
+  "Sucreries",
+  "Autres",
+] as const;
+export type ShoppingCategory = (typeof SHOPPING_CATEGORIES)[number];
 
 export interface ShoppingListResponse {
   items: ShoppingItem[];

@@ -196,3 +196,75 @@ def test_meal_slot_delete_keeps_item_with_other_contributions(client, db_session
     assert len(items) == 1
     assert len(items[0]["contributions"]) == 1
     assert items[0]["contributions"][0]["source_label"].startswith("B · ")
+
+
+# ---- Categorisation ----
+
+def test_heuristic_categorizes_on_creation(client):
+    """Manual add: tomate → Fruits & Légumes, poulet → Viandes & Poissons,
+    via the deterministic heuristic."""
+    a = client.post("/api/shopping-list", json={"name": "tomate", "quantity_text": "1"}).json()
+    b = client.post("/api/shopping-list", json={"name": "poulet", "quantity_text": "1 kg"}).json()
+    c = client.post("/api/shopping-list", json={"name": "lait", "quantity_text": "1 l"}).json()
+    d = client.post("/api/shopping-list", json={"name": "xyzzy", "quantity_text": "1"}).json()
+    assert a["category"] == "Fruits & Légumes"
+    assert b["category"] == "Viandes & Poissons"
+    assert c["category"] == "Produits Laitiers"
+    assert d["category"] == "Autres"
+
+
+def test_patch_category_learns_into_knowledge_base(client, db_session):
+    """User override: PATCHing a category should also persist to
+    ingredient_database so future occurrences pre-fill correctly."""
+    from backend.db.models import IngredientDatabase
+
+    item = client.post("/api/shopping-list", json={"name": "Schnitzel", "quantity_text": "1"}).json()
+    assert item["category"] == "Autres"  # heuristic miss
+
+    res = client.patch(
+        f"/api/shopping-list/{item['item_id']}",
+        json={"category": "Viandes & Poissons"},
+    )
+    assert res.status_code == 200
+    assert res.json()["category"] == "Viandes & Poissons"
+
+    # Knowledge base now contains the learned category.
+    row = (
+        db_session.query(IngredientDatabase)
+        .filter(IngredientDatabase.alim_nom_fr.ilike("Schnitzel"))
+        .first()
+    )
+    assert row is not None
+    assert row.category == "Viandes & Poissons"
+    assert row.source == "user"
+
+
+def test_subsequent_add_uses_learned_category(client):
+    """After learning: a future add of the same name picks up the category."""
+    item = client.post("/api/shopping-list", json={"name": "Schnitzel", "quantity_text": "1"}).json()
+    client.patch(
+        f"/api/shopping-list/{item['item_id']}",
+        json={"category": "Viandes & Poissons"},
+    )
+    # Delete to force a fresh creation.
+    client.delete(f"/api/shopping-list/{item['item_id']}")
+    again = client.post("/api/shopping-list", json={"name": "Schnitzel", "quantity_text": "2"}).json()
+    assert again["category"] == "Viandes & Poissons"
+
+
+def test_invalid_category_400(client):
+    item = client.post("/api/shopping-list", json={"name": "X", "quantity_text": "1"}).json()
+    res = client.patch(f"/api/shopping-list/{item['item_id']}", json={"category": "Bogus"})
+    assert res.status_code == 400
+
+
+def test_user_category_protected_from_llm_overwrite(db_session):
+    """A 'user' decision is never overwritten by an 'llm' decision."""
+    from backend.services.categorize import learn_category, lookup_known_category
+
+    learn_category(db_session, "saumon", "Viandes & Poissons", source="user")
+    assert lookup_known_category(db_session, "saumon") == "Viandes & Poissons"
+
+    # The LLM tries to claim the same name belongs in 'Autres'.
+    learn_category(db_session, "saumon", "Autres", source="llm")
+    assert lookup_known_category(db_session, "saumon") == "Viandes & Poissons"  # unchanged
