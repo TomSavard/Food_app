@@ -90,7 +90,7 @@ export default function IngredientsPage() {
           missing_density: filters.missing_density || undefined,
           modified: filters.modified || undefined,
           source: filters.source || undefined,
-          limit: 100,
+          limit: 50,
         });
         if (cancelled) return;
         setItems(res.items);
@@ -98,7 +98,7 @@ export default function IngredientsPage() {
       } finally {
         if (!cancelled) setLoading(false);
       }
-    }, 200);
+    }, 300);
     return () => {
       cancelled = true;
       clearTimeout(t);
