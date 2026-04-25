@@ -320,10 +320,10 @@ function WeekMicros({ data }: { data: WeeklyNutrition }) {
                 return (
                   <tr key={row.key} className="border-t">
                     <td className="px-3 py-1.5">{row.label}</td>
-                    <td className="px-3 py-1.5 tabular-nums">
+                    <td className="px-3 py-1.5 text-right tabular-nums w-28">
                       {total > 0 ? fmt(total, row.unit) : "—"}
                     </td>
-                    <td className="px-3 py-1.5 text-muted-foreground">
+                    <td className="px-3 py-1.5 text-right tabular-nums text-muted-foreground w-16">
                       {target > 0 && total > 0 ? `${Math.round(pct)} %` : "—"}
                     </td>
                     <td className="px-3 py-1.5 w-1/3">
