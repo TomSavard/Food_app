@@ -99,27 +99,48 @@ export const clearShoppingList = () =>
   http<void>(`/shopping-list`, { method: "DELETE" });
 
 // ---- Meal plan ----
-import type { MealPlanSlot, MealPlanWeek, MealSlot } from "./types";
+import type { MealPlanSlot, MealPlanWeek } from "./types";
 
 export const getMealPlan = (weekStart: string) =>
   http<MealPlanWeek>(`/meal-plan${qs({ week_start: weekStart })}`);
 
-export const setMealPlanSlot = (data: {
+export const addMealToDay = (data: {
   slot_date: string;
-  slot: MealSlot;
   recipe_id: string;
   servings: number;
 }) =>
-  http<MealPlanSlot>(`/meal-plan/slot`, {
-    method: "PUT",
+  http<MealPlanSlot>(`/meal-plan`, {
+    method: "POST",
     body: JSON.stringify(data),
   });
 
-export const clearMealPlanSlot = (slot_date: string, slot: MealSlot) =>
-  http<void>(`/meal-plan/slot${qs({ slot_date, slot })}`, { method: "DELETE" });
+export const updateMealServings = (slot_id: string, servings: number) =>
+  http<MealPlanSlot>(`/meal-plan/${slot_id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ servings }),
+  });
 
-export const generateMealPlan = (weekStart: string, overwrite = false) =>
+export const deleteMeal = (slot_id: string) =>
+  http<void>(`/meal-plan/${slot_id}`, { method: "DELETE" });
+
+export const reorderMeals = (
+  items: { slot_id: string; slot_date: string; position: number }[]
+) =>
+  http<MealPlanWeek>(`/meal-plan/reorder`, {
+    method: "PUT",
+    body: JSON.stringify({ items }),
+  });
+
+export const generateMealPlan = (
+  weekStart: string,
+  mealsPerDay = 3,
+  overwrite = false
+) =>
   http<MealPlanWeek>(
-    `/meal-plan/generate${qs({ week_start: weekStart, overwrite })}`,
+    `/meal-plan/generate${qs({
+      week_start: weekStart,
+      meals_per_day: mealsPerDay,
+      overwrite,
+    })}`,
     { method: "POST" }
   );

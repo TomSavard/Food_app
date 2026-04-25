@@ -69,13 +69,16 @@ from sqlalchemy import Date, UniqueConstraint
 
 
 class MealPlanSlot(Base):
-    """One filled slot of the weekly meal plan: (date, slot) -> recipe + servings."""
+    """One meal in the day's stack. Ordered by `position`; days hold any
+    number of meals. Reordering = updating positions, including across days."""
     __tablename__ = "meal_plan_slots"
-    __table_args__ = (UniqueConstraint("slot_date", "slot", name="uq_meal_plan_slot_date_slot"),)
+    __table_args__ = (
+        UniqueConstraint("slot_date", "position", name="uq_meal_plan_slot_date_position"),
+    )
 
     slot_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     slot_date = Column(Date, nullable=False, index=True)
-    slot = Column(String(20), nullable=False)  # breakfast | lunch | dinner | extra
+    position = Column(Integer, nullable=False)
     recipe_id = Column(
         UUID(as_uuid=True),
         ForeignKey("recipes.recipe_id", ondelete="CASCADE"),
@@ -93,7 +96,7 @@ class MealPlanSlot(Base):
     recipe = relationship("Recipe")
 
     def __repr__(self):
-        return f"<MealPlanSlot({self.slot_date} {self.slot} -> {self.recipe_id})>"
+        return f"<MealPlanSlot({self.slot_date} #{self.position} -> {self.recipe_id})>"
 
 
 class ShoppingList(Base):

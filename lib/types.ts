@@ -93,13 +93,10 @@ export interface ChatMessage {
   text: string;
 }
 
-export type MealSlot = "breakfast" | "lunch" | "dinner" | "extra";
-export const MEAL_SLOTS: MealSlot[] = ["breakfast", "lunch", "dinner", "extra"];
-
 export interface MealPlanSlot {
   slot_id: string;
   slot_date: string; // YYYY-MM-DD
-  slot: MealSlot;
+  position: number;  // 0-based ordering within the day
   recipe_id: string;
   recipe_name: string;
   servings: number;

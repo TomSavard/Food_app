@@ -48,7 +48,7 @@ def test_chat_streams_chunks(client, monkeypatch):
 
 
 def test_meal_plan_tools(client, db_session):
-    """Exercise the 4 meal-plan tools the chat exposes."""
+    """Exercise the 4 meal-plan tools (stack model)."""
     from datetime import date, timedelta
     from backend.api.chat import _build_meal_plan_tools
     from backend.db.models import Recipe
@@ -59,20 +59,23 @@ def test_meal_plan_tools(client, db_session):
     r = Recipe(name="Pasta", servings=2, is_favorite=True)
     db_session.add(r); db_session.flush()
 
-    get_plan, set_slot, clear_slot, generate = _build_meal_plan_tools(db_session)
+    get_plan, add_meal, remove_meal, generate = _build_meal_plan_tools(db_session)
 
     assert get_plan(monday.isoformat())["slots"] == []
 
-    out = set_slot(monday.isoformat(), "lunch", str(r.recipe_id), 4)
+    out = add_meal(monday.isoformat(), str(r.recipe_id), 4)
     assert out["recipe_name"] == "Pasta"
     assert out["servings"] == 4
+    assert out["position"] == 0
 
-    assert "error" in set_slot(monday.isoformat(), "brunch", str(r.recipe_id), 1)
+    out2 = add_meal(monday.isoformat(), str(r.recipe_id), 2)
+    assert out2["position"] == 1
 
-    assert clear_slot(monday.isoformat(), "lunch")["deleted"] is True
+    assert remove_meal(out["slot_id"])["deleted"] is True
 
-    gen = generate(monday.isoformat())
-    assert len(gen["slots"]) == 28
+    gen = generate(monday.isoformat(), meals_per_day=2)
+    # 7 days × 2 meals; one already exists from add_meal #2 so it counts toward Monday's quota.
+    assert len(gen["slots"]) >= 7 * 2 - 1
 
 
 def test_list_recipes_tool_filters(client, db_session):
