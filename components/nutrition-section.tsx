@@ -103,14 +103,17 @@ export function NutritionSection({
 }) {
   const [data, setData] = useState<WeeklyNutrition | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [showUntracked, setShowUntracked] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
+    setError(null);
     api
       .getWeeklyNutrition(weekStart)
       .then((d) => !cancelled && setData(d))
+      .catch((e) => !cancelled && setError(e instanceof Error ? e.message : "Erreur"))
       .finally(() => !cancelled && setLoading(false));
     return () => {
       cancelled = true;
@@ -118,7 +121,20 @@ export function NutritionSection({
   }, [weekStart, refreshKey]);
 
   if (loading && !data) {
-    return <div className="text-sm text-muted-foreground">Chargement…</div>;
+    return (
+      <section className="space-y-2">
+        <h2 className="text-xl font-semibold">Nutrition</h2>
+        <p className="text-sm text-muted-foreground">Chargement…</p>
+      </section>
+    );
+  }
+  if (error) {
+    return (
+      <section className="space-y-2">
+        <h2 className="text-xl font-semibold">Nutrition</h2>
+        <p className="text-sm text-destructive">Erreur : {error}</p>
+      </section>
+    );
   }
   if (!data) return null;
 
