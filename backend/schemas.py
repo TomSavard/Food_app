@@ -116,3 +116,30 @@ class ShoppingListResponse(BaseModel):
     items: List[ShoppingListItemResponse]
     total: int
 
+
+# Meal Plan schemas
+SLOTS = ["breakfast", "lunch", "dinner", "extra"]
+
+
+class MealPlanSlotResponse(BaseModel):
+    slot_id: UUID
+    slot_date: str  # ISO date YYYY-MM-DD
+    slot: str
+    recipe_id: UUID
+    recipe_name: str
+    servings: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class MealPlanWeekResponse(BaseModel):
+    week_start: str  # ISO date (Monday)
+    slots: List[MealPlanSlotResponse]
+
+
+class MealPlanSlotUpsert(BaseModel):
+    slot_date: str
+    slot: str
+    recipe_id: UUID
+    servings: int = 1
+

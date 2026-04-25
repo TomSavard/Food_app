@@ -36,6 +36,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <Link className="px-3 py-1.5 rounded hover:bg-accent" href="/">
                 📖 Recettes
               </Link>
+              <Link className="px-3 py-1.5 rounded hover:bg-accent" href="/meal-plan">
+                📅 Semaine
+              </Link>
               <Link className="px-3 py-1.5 rounded hover:bg-accent" href="/shopping">
                 🛒 Liste
               </Link>

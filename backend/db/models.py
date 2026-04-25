@@ -65,24 +65,35 @@ class Instruction(Base):
         return f"<Instruction(step={self.step_number}, recipe_id='{self.recipe_id}')>"
 
 
-class WeekMenu(Base):
-    """Weekly menu planning"""
-    __tablename__ = "week_menus"
-    
-    menu_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    recipe_id = Column(UUID(as_uuid=True), ForeignKey("recipes.recipe_id", ondelete="SET NULL"), nullable=True, index=True)
-    recipe_name = Column(String(255))  # Denormalized for easier queries and in case recipe is deleted
-    note = Column(Text)  # Day, time, guests info, etc.
-    menu_date = Column(DateTime)  # Optional: specific date for this menu item
-    position = Column(Integer, default=0)  # Order in the menu
+from sqlalchemy import Date, UniqueConstraint
+
+
+class MealPlanSlot(Base):
+    """One filled slot of the weekly meal plan: (date, slot) -> recipe + servings."""
+    __tablename__ = "meal_plan_slots"
+    __table_args__ = (UniqueConstraint("slot_date", "slot", name="uq_meal_plan_slot_date_slot"),)
+
+    slot_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    slot_date = Column(Date, nullable=False, index=True)
+    slot = Column(String(20), nullable=False)  # breakfast | lunch | dinner | extra
+    recipe_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("recipes.recipe_id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    servings = Column(Integer, nullable=False, default=1)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
-    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
-    
-    # Relationship
+    updated_at = Column(
+        DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
+
     recipe = relationship("Recipe")
-    
+
     def __repr__(self):
-        return f"<WeekMenu(recipe_name='{self.recipe_name}', note='{self.note}')>"
+        return f"<MealPlanSlot({self.slot_date} {self.slot} -> {self.recipe_id})>"
 
 
 class ShoppingList(Base):

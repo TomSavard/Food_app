@@ -97,3 +97,29 @@ export const deleteShoppingItem = (id: string) =>
 
 export const clearShoppingList = () =>
   http<void>(`/shopping-list`, { method: "DELETE" });
+
+// ---- Meal plan ----
+import type { MealPlanSlot, MealPlanWeek, MealSlot } from "./types";
+
+export const getMealPlan = (weekStart: string) =>
+  http<MealPlanWeek>(`/meal-plan${qs({ week_start: weekStart })}`);
+
+export const setMealPlanSlot = (data: {
+  slot_date: string;
+  slot: MealSlot;
+  recipe_id: string;
+  servings: number;
+}) =>
+  http<MealPlanSlot>(`/meal-plan/slot`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+
+export const clearMealPlanSlot = (slot_date: string, slot: MealSlot) =>
+  http<void>(`/meal-plan/slot${qs({ slot_date, slot })}`, { method: "DELETE" });
+
+export const generateMealPlan = (weekStart: string, overwrite = false) =>
+  http<MealPlanWeek>(
+    `/meal-plan/generate${qs({ week_start: weekStart, overwrite })}`,
+    { method: "POST" }
+  );
