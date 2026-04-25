@@ -92,3 +92,20 @@ export interface ChatMessage {
   role: "user" | "model";
   text: string;
 }
+
+export type MealSlot = "breakfast" | "lunch" | "dinner" | "extra";
+export const MEAL_SLOTS: MealSlot[] = ["breakfast", "lunch", "dinner", "extra"];
+
+export interface MealPlanSlot {
+  slot_id: string;
+  slot_date: string; // YYYY-MM-DD
+  slot: MealSlot;
+  recipe_id: string;
+  recipe_name: string;
+  servings: number;
+}
+
+export interface MealPlanWeek {
+  week_start: string;
+  slots: MealPlanSlot[];
+}

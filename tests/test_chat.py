@@ -47,6 +47,34 @@ def test_chat_streams_chunks(client, monkeypatch):
         assert "[DONE]" in body
 
 
+def test_meal_plan_tools(client, db_session):
+    """Exercise the 4 meal-plan tools the chat exposes."""
+    from datetime import date, timedelta
+    from backend.api.chat import _build_meal_plan_tools
+    from backend.db.models import Recipe
+
+    today = date.today()
+    monday = today + timedelta(days=(0 - today.weekday()) % 7 or 7)
+
+    r = Recipe(name="Pasta", servings=2, is_favorite=True)
+    db_session.add(r); db_session.flush()
+
+    get_plan, set_slot, clear_slot, generate = _build_meal_plan_tools(db_session)
+
+    assert get_plan(monday.isoformat())["slots"] == []
+
+    out = set_slot(monday.isoformat(), "lunch", str(r.recipe_id), 4)
+    assert out["recipe_name"] == "Pasta"
+    assert out["servings"] == 4
+
+    assert "error" in set_slot(monday.isoformat(), "brunch", str(r.recipe_id), 1)
+
+    assert clear_slot(monday.isoformat(), "lunch")["deleted"] is True
+
+    gen = generate(monday.isoformat())
+    assert len(gen["slots"]) == 28
+
+
 def test_list_recipes_tool_filters(client, db_session):
     """Direct test of the bound tool function, exercising the DB filter logic."""
     from backend.api.chat import _build_list_recipes_tool
