@@ -19,7 +19,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, ConfigDict
-from sqlalchemy import or_
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session, selectinload
 
 from backend.db.models import IngredientAlias, IngredientDatabase
@@ -207,20 +207,20 @@ def list_ingredients(
     limit: int = Query(50, ge=1, le=200),
     db: Session = Depends(get_db),
 ):
-    q = db.query(IngredientDatabase).options(selectinload(IngredientDatabase.aliases))
+    q = db.query(IngredientDatabase)
     if search:
         pat = f"%{search.strip().lower()}%"
-        # Match against alim_nom_fr OR any alias.
-        ids_via_alias = (
+        # Subquery so the alias match piggybacks on the GIN trigram index instead
+        # of round-tripping a (potentially large) id list back to Postgres.
+        alias_subq = (
             db.query(IngredientAlias.ingredient_db_id)
             .filter(IngredientAlias.alias_text.ilike(pat))
-            .all()
+            .subquery()
         )
-        ids_via_alias = [r[0] for r in ids_via_alias]
         q = q.filter(
             or_(
                 IngredientDatabase.alim_nom_fr.ilike(pat),
-                IngredientDatabase.id.in_(ids_via_alias) if ids_via_alias else False,
+                IngredientDatabase.id.in_(alias_subq.select()),
             )
         )
     if category:
@@ -232,12 +232,27 @@ def list_ingredients(
     if missing_density:
         q = q.filter(IngredientDatabase.density_g_per_ml.is_(None))
 
-    rows = q.order_by(IngredientDatabase.alim_nom_fr).all()
     if missing:
-        rows = [r for r in rows if _has_missing_nutrients(r.nutrition_data)]
+        # JSONB heuristic in SQL: row counts as "missing" when nutrition_data is
+        # NULL/empty OR at least one value is JSON null. Pulls all matches once
+        # through the index — still bounded by the search/category filters above.
+        from sqlalchemy import text as _text
+        q = q.filter(
+            or_(
+                IngredientDatabase.nutrition_data.is_(None),
+                _text("nutrition_data = '{}'::jsonb"),
+                _text("EXISTS (SELECT 1 FROM jsonb_each(nutrition_data) e WHERE e.value = 'null'::jsonb)"),
+            )
+        )
 
-    total = len(rows)
-    rows = rows[skip : skip + limit]
+    total = q.with_entities(func.count(IngredientDatabase.id)).scalar() or 0
+    rows = (
+        q.options(selectinload(IngredientDatabase.aliases))
+        .order_by(IngredientDatabase.alim_nom_fr)
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
     return IngredientListResponse(items=[_to_row(r) for r in rows], total=total)
 
 
