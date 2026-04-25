@@ -1,8 +1,11 @@
 import type { Metadata, Viewport } from "next";
 import Link from "next/link";
+import { GeistSans } from "geist/font/sans";
 import "./globals.css";
 import { ChatPanel } from "@/components/chat-panel";
 import { ServiceWorkerRegister } from "@/components/sw-register";
+import { ThemeScript } from "@/components/theme-script";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export const metadata: Metadata = {
   title: "Food App",
@@ -18,33 +21,40 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#66BB6A",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#F8F4ED" },
+    { media: "(prefers-color-scheme: dark)", color: "#161413" },
+  ],
   width: "device-width",
   initialScale: 1,
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="fr" className="dark">
-      <body className="min-h-screen bg-background text-foreground antialiased">
-        <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur">
+    <html lang="fr" suppressHydrationWarning className={GeistSans.variable}>
+      <head>
+        <ThemeScript />
+      </head>
+      <body className="min-h-screen bg-background text-foreground antialiased font-sans">
+        <header className="sticky top-0 z-40 glass-thin">
           <div className="container flex h-14 items-center justify-between">
-            <Link href="/" className="flex items-center gap-2 font-semibold text-lg">
+            <Link href="/" className="flex items-center gap-2 font-semibold text-lg tracking-tight">
               <span className="text-primary">🍽️</span> Food App
             </Link>
-            <nav className="flex items-center gap-2 text-sm">
-              <Link className="px-3 py-1.5 rounded hover:bg-accent" href="/">
-                📖 Recettes
+            <nav className="flex items-center gap-1 text-sm">
+              <Link className="px-3 py-1.5 rounded-full hover:bg-accent/60 transition" href="/">
+                <span className="hidden sm:inline">📖 </span>Recettes
               </Link>
-              <Link className="px-3 py-1.5 rounded hover:bg-accent" href="/meal-plan">
-                📅 Semaine
+              <Link className="px-3 py-1.5 rounded-full hover:bg-accent/60 transition" href="/meal-plan">
+                <span className="hidden sm:inline">📅 </span>Semaine
               </Link>
-              <Link className="px-3 py-1.5 rounded hover:bg-accent" href="/shopping">
-                🛒 Liste
+              <Link className="px-3 py-1.5 rounded-full hover:bg-accent/60 transition" href="/shopping">
+                <span className="hidden sm:inline">🛒 </span>Liste
               </Link>
-              <Link className="px-3 py-1.5 rounded hover:bg-accent" href="/ingredients">
-                🧾 Ingrédients
+              <Link className="px-3 py-1.5 rounded-full hover:bg-accent/60 transition" href="/ingredients">
+                <span className="hidden sm:inline">🧾 </span>Ingrédients
               </Link>
+              <ThemeToggle />
             </nav>
           </div>
         </header>
