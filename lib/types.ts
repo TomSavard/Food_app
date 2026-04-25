@@ -6,6 +6,7 @@ export interface Ingredient {
   quantity: number;
   unit: string;
   notes: string;
+  ingredient_db_id?: string | null;
 }
 
 export interface Instruction {
@@ -97,18 +98,64 @@ export interface IngredientDb {
   nutrition_data?: Record<string, unknown>;
 }
 
-export interface RecipeNutrition {
+export interface IngredientAlias {
+  alias_id: string;
+  alias_text: string;
+  created_by: "user" | "llm";
+}
+
+export interface IngredientRow {
+  id: string;
+  name: string;
+  category: ShoppingCategory | null;
+  source: "ciqual" | "user" | "llm";
+  modified: boolean;
+  modified_by: "user" | "llm" | null;
+  modified_at: string | null;
+  density_g_per_ml: number | null;
+  aliases: IngredientAlias[];
+}
+
+export interface IngredientDetail extends IngredientRow {
+  nutrition_data: Record<string, number | string | null>;
+}
+
+export interface IngredientListResponse {
+  items: IngredientRow[];
+  total: number;
+}
+
+export interface MatchCandidate {
+  ingredient_db_id: string;
+  name: string;
+  reason: string;
+  confidence: number;
+}
+
+export interface CanonicalRow {
+  id: string;
+  name: string;
+  category: ShoppingCategory | null;
+  source: "ciqual" | "user" | "llm";
+}
+
+export interface MatchCandidatesResponse {
+  exact: CanonicalRow | null;
+  llm_candidates: MatchCandidate[];
+}
+
+export interface NutritionMacros {
   calories: number;
   proteins: number;
   lipides: number;
   glucides: number;
+  salt: number;
+  saturated_fats: number;
+}
+
+export interface RecipeNutrition extends NutritionMacros {
   servings: number;
-  per_serving: {
-    calories: number;
-    proteins: number;
-    lipides: number;
-    glucides: number;
-  };
+  per_serving: NutritionMacros;
 }
 
 export interface ChatMessage {

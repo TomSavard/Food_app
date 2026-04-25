@@ -1,7 +1,7 @@
 """Pure unit tests for nutrition value parsing — no DB needed."""
 import math
 import pytest
-from backend.utils.nutrition import safe_float_conversion, convert_to_grams
+from backend.utils.nutrition import safe_float, convert_to_grams
 
 
 @pytest.mark.parametrize("value,expected", [
@@ -22,12 +22,12 @@ from backend.utils.nutrition import safe_float_conversion, convert_to_grams
     (3.14, 3.14),     # float passthrough
     ("garbage", None),
 ])
-def test_safe_float_conversion(value, expected):
-    assert safe_float_conversion(value) == expected
+def test_safe_float(value, expected):
+    assert safe_float(value) == expected
 
 
-def test_safe_float_conversion_nan_float():
-    assert safe_float_conversion(float("nan")) is None
+def test_safe_float_nan_float():
+    assert safe_float(float("nan")) is None
 
 
 @pytest.mark.parametrize("qty,unit,expected", [

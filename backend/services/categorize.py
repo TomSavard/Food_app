@@ -14,10 +14,12 @@ from __future__ import annotations
 
 from typing import Iterable, Literal, Optional
 
+from datetime import datetime, timezone
+
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from backend.db.models import IngredientDatabase
+from backend.db.models import IngredientAlias, IngredientDatabase
 
 # Order matches a typical supermarket walk; the frontend renders sections
 # in this exact order.
@@ -127,13 +129,25 @@ def _normalize(name: str) -> str:
 
 
 def lookup_known_category(db: Session, name: str) -> Optional[str]:
-    """Look the ingredient up in the knowledge base by case-insensitive name."""
+    """Look the ingredient up in the knowledge base by case-insensitive name
+    OR by alias."""
+    n = _normalize(name)
     row = (
         db.query(IngredientDatabase)
-        .filter(func.lower(IngredientDatabase.alim_nom_fr) == _normalize(name))
+        .filter(func.lower(IngredientDatabase.alim_nom_fr) == n)
         .first()
     )
-    return row.category if row else None
+    if row:
+        return row.category
+    alias = (
+        db.query(IngredientAlias)
+        .filter(func.lower(IngredientAlias.alias_text) == n)
+        .first()
+    )
+    if alias:
+        ref = db.get(IngredientDatabase, alias.ingredient_db_id)
+        return ref.category if ref else None
+    return None
 
 
 def categorize(db: Session, name: str) -> str:
@@ -171,12 +185,16 @@ def learn_category(
         .first()
     )
 
+    now = datetime.now(timezone.utc)
     if row is None:
         db.add(
             IngredientDatabase(
                 alim_nom_fr=name.strip(),
                 category=category,
                 source=source,
+                modified=True,
+                modified_by=source,
+                modified_at=now,
             )
         )
         db.flush()
@@ -185,10 +203,16 @@ def learn_category(
     if source == "user":
         row.category = category
         row.source = "user"
+        row.modified = True
+        row.modified_by = "user"
+        row.modified_at = now
     elif source == "llm":
         if row.source != "user":
             row.category = category
             row.source = "llm"
+            row.modified = True
+            row.modified_by = "llm"
+            row.modified_at = now
     db.flush()
 
 
