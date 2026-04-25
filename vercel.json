@@ -1,22 +1,17 @@
 {
-  "version": 2,
+  "framework": "nextjs",
+  "buildCommand": "next build",
+  "outputDirectory": ".next",
   "functions": {
     "api/index.py": {
       "runtime": "@vercel/python@4.3.0",
-      "includeFiles": "app/**"
+      "includeFiles": "backend/**"
     }
   },
   "rewrites": [
     { "source": "/api/:path*", "destination": "/api/index.py" },
     { "source": "/health", "destination": "/api/index.py" },
     { "source": "/docs", "destination": "/api/index.py" },
-    { "source": "/openapi.json", "destination": "/api/index.py" },
-    { "source": "/", "destination": "/frontend/index.html" },
-    { "source": "/index.html", "destination": "/frontend/index.html" },
-    { "source": "/manifest.json", "destination": "/frontend/manifest.json" },
-    { "source": "/sw.js", "destination": "/frontend/sw.js" },
-    { "source": "/css/:path*", "destination": "/frontend/css/:path*" },
-    { "source": "/js/:path*", "destination": "/frontend/js/:path*" },
-    { "source": "/images/:path*", "destination": "/frontend/images/:path*" }
+    { "source": "/openapi.json", "destination": "/api/index.py" }
   ]
 }

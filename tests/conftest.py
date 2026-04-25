@@ -25,8 +25,8 @@ if not os.getenv("TEST_DATABASE_URL"):
 # Point the app's DATABASE_URL at the test DB before app modules import it.
 os.environ["DATABASE_URL"] = os.environ["TEST_DATABASE_URL"]
 
-from app.db.session import get_db  # noqa: E402
-from app.main import app  # noqa: E402
+from backend.db.session import get_db  # noqa: E402
+from backend.main import app  # noqa: E402
 
 
 @pytest.fixture(scope="session")

@@ -1,5 +1,5 @@
 """Endpoint tests for /api/recipes."""
-from app.db.models import Recipe, Ingredient
+from backend.db.models import Recipe, Ingredient
 
 
 def _make_recipe(db, **overrides):

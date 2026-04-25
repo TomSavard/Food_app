@@ -1,9 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
-from app.db.session import get_engine
+from backend.db.session import get_engine
 from sqlalchemy import text
-from app.api import recipes, ingredients, shopping_list, chat
+from backend.api import recipes, ingredients, shopping_list, chat
 
 load_dotenv()
 

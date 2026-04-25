@@ -4,15 +4,15 @@ from sqlalchemy import desc, String, func
 from typing import Optional
 from uuid import UUID
 
-from app.db.session import get_db
-from app.db.models import Recipe, Ingredient, Instruction
-from app.schemas import (
+from backend.db.session import get_db
+from backend.db.models import Recipe, Ingredient, Instruction
+from backend.schemas import (
     RecipeCreate,
     RecipeUpdate,
     RecipeResponse,
     RecipeListResponse
 )
-from app.utils.nutrition import compute_recipe_nutrition
+from backend.utils.nutrition import compute_recipe_nutrition
 
 router = APIRouter(prefix="/api/recipes", tags=["recipes"])
 

@@ -4,8 +4,8 @@ API endpoints for ingredient database search
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List
-from app.db.session import get_db
-from app.db.models import IngredientDatabase
+from backend.db.session import get_db
+from backend.db.models import IngredientDatabase
 from pydantic import BaseModel, ConfigDict
 
 router = APIRouter(prefix="/api/ingredients", tags=["ingredients"])

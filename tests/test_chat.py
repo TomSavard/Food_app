@@ -33,7 +33,7 @@ def test_chat_streams_chunks(client, monkeypatch):
         def __init__(self, **kwargs):
             self.models = FakeModels()
 
-    with patch("app.api.chat.genai.Client", FakeClient):
+    with patch("backend.api.chat.genai.Client", FakeClient):
         res = client.post(
             "/api/chat",
             json={"messages": [{"role": "user", "text": "hi"}]},
@@ -49,8 +49,8 @@ def test_chat_streams_chunks(client, monkeypatch):
 
 def test_list_recipes_tool_filters(client, db_session):
     """Direct test of the bound tool function, exercising the DB filter logic."""
-    from app.api.chat import _build_list_recipes_tool
-    from app.db.models import Recipe, Ingredient
+    from backend.api.chat import _build_list_recipes_tool
+    from backend.db.models import Recipe, Ingredient
 
     r1 = Recipe(name="Pasta", cuisine_type="italian", tags=["quick"], servings=2)
     r2 = Recipe(name="Sushi", cuisine_type="japanese", tags=["fish"], servings=2)

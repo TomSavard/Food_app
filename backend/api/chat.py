@@ -15,8 +15,8 @@ from pydantic import BaseModel
 from sqlalchemy import String, desc, func
 from sqlalchemy.orm import Session, selectinload
 
-from app.db.models import Ingredient, Recipe
-from app.db.session import get_db
+from backend.db.models import Ingredient, Recipe
+from backend.db.session import get_db
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
 
