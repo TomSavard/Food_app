@@ -7,7 +7,7 @@ import {
   GripVertical,
   Plus,
   Sparkles,
-  X,
+  Trash2,
 } from "lucide-react";
 import {
   DndContext,
@@ -18,6 +18,7 @@ import {
   KeyboardSensor,
   PointerSensor,
   closestCenter,
+  useDroppable,
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
@@ -96,6 +97,8 @@ export default function MealPlanPage() {
     const activeIdStr = String(active.id);
     const overIdStr = String(over.id);
     if (activeIdStr === overIdStr) return;
+    // Trash drop is handled in handleDragEnd; don't reorder while hovering it.
+    if (overIdStr === "trash") return;
 
     setSlots((prev) => {
       const activeSlot = prev.find((s) => s.slot_id === activeIdStr);
@@ -143,8 +146,22 @@ export default function MealPlanPage() {
     });
   }
 
-  async function handleDragEnd(_e: DragEndEvent) {
+  async function handleDragEnd(e: DragEndEvent) {
+    const overId = e.over?.id;
+    const droppedId = String(e.active.id);
     setActiveId(null);
+
+    if (overId === "trash") {
+      // Optimistic delete; revert by reload on error.
+      setSlots((prev) => prev.filter((s) => s.slot_id !== droppedId));
+      try {
+        await api.deleteMeal(droppedId);
+      } catch {
+        load();
+      }
+      return;
+    }
+
     // Push the entire current ordering of all 7 days. Cheap; small payload.
     const items = slots.map((s) => ({
       slot_id: s.slot_id,
@@ -153,9 +170,9 @@ export default function MealPlanPage() {
     }));
     try {
       await api.reorderMeals(items);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Erreur de réorganisation");
-      load(); // revert by re-fetching server truth
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erreur de réorganisation");
+      load();
     }
   }
 
@@ -180,15 +197,6 @@ export default function MealPlanPage() {
     );
     try {
       await api.updateMealServings(slot_id, servings);
-    } catch {
-      load();
-    }
-  }
-
-  async function removeMeal(slot_id: string) {
-    setSlots((prev) => prev.filter((s) => s.slot_id !== slot_id));
-    try {
-      await api.deleteMeal(slot_id);
     } catch {
       load();
     }
@@ -263,7 +271,6 @@ export default function MealPlanPage() {
                 items={dayItems}
                 onAdd={() => setPickerDate(date)}
                 onServings={changeServings}
-                onRemove={removeMeal}
               />
             );
           })}
@@ -271,14 +278,11 @@ export default function MealPlanPage() {
 
         <DragOverlay>
           {activeSlot && (
-            <MealCard
-              slot={activeSlot}
-              onServings={() => {}}
-              onRemove={() => {}}
-              isOverlay
-            />
+            <MealCard slot={activeSlot} onServings={() => {}} isOverlay />
           )}
         </DragOverlay>
+
+        <TrashZone visible={activeId !== null} />
       </DndContext>
 
       <RecipePickerDialog
@@ -298,7 +302,6 @@ function DayColumn({
   items,
   onAdd,
   onServings,
-  onRemove,
 }: {
   date: string;
   title: string;
@@ -306,7 +309,6 @@ function DayColumn({
   items: MealPlanSlot[];
   onAdd: () => void;
   onServings: (id: string, n: number) => void;
-  onRemove: (id: string) => void;
 }) {
   return (
     <div className="surface flex min-h-[200px] flex-col gap-2 p-3" data-day-id={date}>
@@ -321,12 +323,7 @@ function DayColumn({
         <DroppableEmpty id={`day:${date}`} hidden={items.length > 0} />
         <div className="flex flex-col gap-2">
           {items.map((s) => (
-            <SortableMeal
-              key={s.slot_id}
-              slot={s}
-              onServings={onServings}
-              onRemove={onRemove}
-            />
+            <SortableMeal key={s.slot_id} slot={s} onServings={onServings} />
           ))}
         </div>
       </SortableContext>
@@ -338,6 +335,28 @@ function DayColumn({
       >
         <Plus className="h-4 w-4" /> Ajouter
       </Button>
+    </div>
+  );
+}
+
+function TrashZone({ visible }: { visible: boolean }) {
+  const { setNodeRef, isOver } = useDroppable({ id: "trash" });
+  return (
+    <div
+      ref={setNodeRef}
+      className={
+        "fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-full px-5 py-3 text-sm font-medium shadow-2xl transition-all duration-200 " +
+        (visible
+          ? "translate-y-0 opacity-100"
+          : "pointer-events-none translate-y-24 opacity-0") +
+        (isOver
+          ? " scale-110 bg-destructive text-destructive-foreground ring-2 ring-destructive/40"
+          : " glass text-foreground")
+      }
+      aria-label="Glisser pour supprimer"
+    >
+      <Trash2 className="h-4 w-4" />
+      <span>{isOver ? "Lâcher pour supprimer" : "Glisser ici pour supprimer"}</span>
     </div>
   );
 }
@@ -361,11 +380,9 @@ function DroppableEmpty({ id, hidden }: { id: string; hidden: boolean }) {
 function SortableMeal({
   slot,
   onServings,
-  onRemove,
 }: {
   slot: MealPlanSlot;
   onServings: (id: string, n: number) => void;
-  onRemove: (id: string) => void;
 }) {
   const {
     attributes,
@@ -384,12 +401,7 @@ function SortableMeal({
 
   return (
     <div ref={setNodeRef} style={style} {...attributes}>
-      <MealCard
-        slot={slot}
-        onServings={onServings}
-        onRemove={onRemove}
-        dragHandleListeners={listeners}
-      />
+      <MealCard slot={slot} onServings={onServings} dragHandleListeners={listeners} />
     </div>
   );
 }
@@ -397,13 +409,11 @@ function SortableMeal({
 function MealCard({
   slot,
   onServings,
-  onRemove,
   dragHandleListeners,
   isOverlay,
 }: {
   slot: MealPlanSlot;
   onServings: (id: string, n: number) => void;
-  onRemove: (id: string) => void;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   dragHandleListeners?: any;
   isOverlay?: boolean;
@@ -411,35 +421,37 @@ function MealCard({
   return (
     <div
       className={
-        "group flex items-center gap-2 rounded-xl border bg-card px-2 py-2 text-sm shadow-sm " +
+        "group relative rounded-xl border bg-card px-2.5 py-2 text-sm shadow-sm " +
         (isOverlay ? "scale-[1.04] shadow-2xl ring-1 ring-primary/40 rotate-[1deg]" : "")
       }
     >
-      <button
-        className="cursor-grab touch-none text-muted-foreground hover:text-foreground"
-        aria-label="Réorganiser"
-        {...(dragHandleListeners || {})}
-      >
-        <GripVertical className="h-4 w-4" />
-      </button>
-      <div className="min-w-0 flex-1">
-        <div className="line-clamp-2 font-medium leading-tight">{slot.recipe_name}</div>
+      {/* Top row: recipe name (full width) + tiny drag handle. */}
+      <div className="flex items-start gap-1.5">
+        <div className="min-w-0 flex-1 line-clamp-2 font-medium leading-snug">
+          {slot.recipe_name}
+        </div>
+        <button
+          className="mt-0.5 shrink-0 cursor-grab touch-none text-muted-foreground/60 hover:text-foreground"
+          aria-label="Réorganiser"
+          {...(dragHandleListeners || {})}
+        >
+          <GripVertical className="h-3.5 w-3.5" />
+        </button>
       </div>
-      <Input
-        type="number"
-        min={1}
-        value={slot.servings}
-        onChange={(e) => onServings(slot.slot_id, Number(e.target.value))}
-        className="h-7 w-12 px-1 text-center text-xs"
-        aria-label="Portions"
-      />
-      <button
-        className="text-muted-foreground opacity-60 transition-opacity hover:text-destructive group-hover:opacity-100"
-        onClick={() => onRemove(slot.slot_id)}
-        aria-label="Supprimer"
-      >
-        <X className="h-4 w-4" />
-      </button>
+
+      {/* Bottom row: compact servings pill, right-aligned. */}
+      <div className="mt-1.5 flex items-center justify-end gap-1 text-[11px] text-muted-foreground">
+        <Input
+          type="number"
+          min={1}
+          value={slot.servings}
+          onChange={(e) => onServings(slot.slot_id, Number(e.target.value))}
+          onPointerDown={(e) => e.stopPropagation()}
+          className="h-5 w-8 rounded-full px-0 text-center text-[11px]"
+          aria-label="Portions"
+        />
+        <span>pers.</span>
+      </div>
     </div>
   );
 }
