@@ -100,19 +100,60 @@ class MealPlanSlot(Base):
 
 
 class ShoppingList(Base):
-    """Shopping list items"""
+    """One ingredient on the shopping list. Quantity & sources live in
+    ShoppingListContribution rows (one ingredient may have several)."""
     __tablename__ = "shopping_list"
-    
+
     item_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = Column(String(255), nullable=False, index=True)
-    quantity = Column(String(100), default="")  # Store as string to support "500g", "2 cups", etc.
+    position = Column(Integer, nullable=False, default=0)
     is_checked = Column(Boolean, default=False, index=True)
-    source = Column(String(500), default="")  # Source: recipe name or "Ajouté manuellement"
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
-    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
-    
+    updated_at = Column(
+        DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
+
+    contributions = relationship(
+        "ShoppingListContribution",
+        back_populates="item",
+        cascade="all, delete-orphan",
+        order_by="ShoppingListContribution.created_at",
+    )
+
     def __repr__(self):
-        return f"<ShoppingList(name='{self.name}', quantity={self.quantity}, checked={self.is_checked})>"
+        return f"<ShoppingList(name='{self.name}', checked={self.is_checked})>"
+
+
+class ShoppingListContribution(Base):
+    """One source contributing to a shopping-list item: a manual add,
+    or an ingredient pulled in from a meal-plan slot's recipe."""
+    __tablename__ = "shopping_list_contributions"
+
+    contribution_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    item_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("shopping_list.item_id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    quantity_text = Column(String(100), nullable=False, default="")
+    source_label = Column(String(255), nullable=False, default="Manuel")
+    recipe_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("recipes.recipe_id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    slot_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("meal_plan_slots.slot_id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+    )
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    item = relationship("ShoppingList", back_populates="contributions")
 
 
 class IngredientDatabase(Base):

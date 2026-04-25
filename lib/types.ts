@@ -52,14 +52,20 @@ export interface RecipeCreate {
 
 export type RecipeUpdate = Partial<RecipeCreate>;
 
+export interface ShoppingContribution {
+  contribution_id: string;
+  quantity_text: string;
+  source_label: string;
+  recipe_id: string | null;
+  slot_id: string | null;
+}
+
 export interface ShoppingItem {
   item_id: string;
   name: string;
-  quantity: string;
-  source: string;
+  position: number;
   is_checked: boolean;
-  created_at: string;
-  updated_at: string;
+  contributions: ShoppingContribution[];
 }
 
 export interface ShoppingListResponse {

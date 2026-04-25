@@ -85,31 +85,47 @@ class RecipeListResponse(BaseModel):
     total: int
 
 
-# Shopping List schemas
-class ShoppingListItemBase(BaseModel):
+# Shopping List schemas — items hold zero+ contributions describing where
+# each piece of the quantity came from (manual add, or a meal-plan slot).
+class ShoppingListContributionResponse(BaseModel):
+    contribution_id: UUID
+    quantity_text: str
+    source_label: str
+    recipe_id: Optional[UUID] = None
+    slot_id: Optional[UUID] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ShoppingListItemResponse(BaseModel):
+    item_id: UUID
     name: str
-    quantity: str = ""
-    source: str = ""
+    position: int
+    is_checked: bool
+    contributions: List[ShoppingListContributionResponse]
+
+    model_config = ConfigDict(from_attributes=True)
 
 
-class ShoppingListItemCreate(ShoppingListItemBase):
-    is_checked: bool = False
+class ShoppingListItemCreate(BaseModel):
+    """Manual add: creates 1 item (or merges into existing by name) + 1 contribution."""
+    name: str
+    quantity_text: str = ""
+    source_label: str = "Manuel"
 
 
 class ShoppingListItemUpdate(BaseModel):
     name: Optional[str] = None
-    quantity: Optional[str] = None
-    source: Optional[str] = None
     is_checked: Optional[bool] = None
 
 
-class ShoppingListItemResponse(ShoppingListItemBase):
+class ShoppingListReorderItem(BaseModel):
     item_id: UUID
-    is_checked: bool
-    created_at: datetime
-    updated_at: datetime
-    
-    model_config = ConfigDict(from_attributes=True)
+    position: int
+
+
+class ShoppingListReorderRequest(BaseModel):
+    items: List[ShoppingListReorderItem]
 
 
 class ShoppingListResponse(BaseModel):
