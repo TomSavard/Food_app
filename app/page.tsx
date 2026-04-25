@@ -149,12 +149,17 @@ export default function RecipesPage() {
         {filtered.map((r) => (
           <Card
             key={r.recipe_id}
-            className={"surface-interactive " + (r.is_favorite ? "ring-1 ring-primary/40" : "")}
+            className={
+              "surface-interactive min-w-0 overflow-hidden " +
+              (r.is_favorite ? "ring-1 ring-primary/40" : "")
+            }
             onClick={() => setDetailId(r.recipe_id)}
           >
-            <CardContent className="p-5 space-y-3">
+            <CardContent className="p-4 space-y-2 sm:p-5 sm:space-y-3">
               <div className="flex items-start justify-between gap-2">
-                <h3 className="font-semibold leading-tight">{r.name}</h3>
+                <h3 className="min-w-0 break-words font-semibold leading-tight">
+                  {r.name}
+                </h3>
                 <button
                   className="shrink-0"
                   onClick={(e) => {
@@ -171,7 +176,9 @@ export default function RecipesPage() {
                 </button>
               </div>
               {r.description && (
-                <p className="text-sm text-muted-foreground line-clamp-2">{r.description}</p>
+                <p className="text-sm text-muted-foreground line-clamp-2 break-words">
+                  {r.description}
+                </p>
               )}
               <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
                 {r.prep_time > 0 && (
