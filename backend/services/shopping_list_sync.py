@@ -19,6 +19,7 @@ from backend.db.models import (
     ShoppingList,
     ShoppingListContribution,
 )
+from backend.services.categorize import categorize
 
 
 _FR_WEEKDAYS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"]
@@ -55,7 +56,8 @@ def _next_position(db: Session) -> int:
 
 
 def _find_or_create_item(db: Session, name: str) -> ShoppingList:
-    """Match by lowercased+trimmed name. Create if missing."""
+    """Match by lowercased+trimmed name. Create if missing, with category
+    resolved via the categorize service (db lookup → heuristic → 'Autres')."""
     needle = name.strip()
     item = (
         db.query(ShoppingList)
@@ -64,7 +66,12 @@ def _find_or_create_item(db: Session, name: str) -> ShoppingList:
     )
     if item:
         return item
-    item = ShoppingList(name=needle, position=_next_position(db), is_checked=False)
+    item = ShoppingList(
+        name=needle,
+        position=_next_position(db),
+        is_checked=False,
+        category=categorize(db, needle),
+    )
     db.add(item)
     db.flush()
     return item

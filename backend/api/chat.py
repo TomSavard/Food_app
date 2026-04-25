@@ -27,11 +27,13 @@ SYSTEM_INSTRUCTION = (
     "You are a helpful in-app assistant for the user's personal food app. "
     "Tools available: list_recipes (browse the user's saved recipes); "
     "get_meal_plan, add_meal_to_day, remove_meal, generate_meal_plan "
-    "(read and edit the weekly meal plan — each day is an ordered stack of meals; "
-    "you can add as many meals as needed per day). "
+    "(read and edit the weekly meal plan — each day is an ordered stack of meals); "
+    "categorize_shopping_list (sort the shopping list into supermarket sections "
+    "for efficient shopping). "
     "Dates are ISO YYYY-MM-DD; weeks start on Monday. "
-    "When the user asks about their recipes or meal plan, call the relevant tools "
-    "and answer from what they return. Be concise. Reply in the user's language."
+    "When the user asks about their recipes, meal plan, or shopping list "
+    "organization, call the relevant tools and answer from what they return. "
+    "Be concise. Reply in the user's language."
 )
 
 
@@ -248,6 +250,37 @@ def _build_meal_plan_tools(db: Session):
     return [get_meal_plan, add_meal_to_day, remove_meal, generate_meal_plan]
 
 
+def _build_shopping_tools(db: Session):
+    """Tools for organising the shopping list."""
+
+    def categorize_shopping_list(only_uncertain: bool = True) -> dict:
+        """Sort each shopping-list ingredient into a supermarket section
+        (Fruits & Légumes, Boulangerie, Viandes & Poissons, …) so the user
+        walks the store efficiently. Persists each decision to the
+        ingredient knowledge base.
+
+        Args:
+            only_uncertain: If True (default), only re-categorize items
+                currently unknown or in 'Autres'. If False, re-categorize
+                every item.
+        """
+        # Reuse the REST handler so logic stays in one place.
+        from backend.api.shopping_list import categorize_with_ai
+        try:
+            res = categorize_with_ai(only_uncertain=only_uncertain, db=db)
+            return {
+                "ok": True,
+                "total": res.total,
+                "items": [
+                    {"name": it.name, "category": it.category} for it in res.items
+                ],
+            }
+        except Exception as e:
+            return {"error": str(e)}
+
+    return [categorize_shopping_list]
+
+
 def _to_contents(messages: List[ChatMessage]) -> List[types.Content]:
     return [
         types.Content(role=m.role, parts=[types.Part(text=m.text)])
@@ -266,7 +299,11 @@ def chat(req: ChatRequest, db: Session = Depends(get_db)):
     client = genai.Client(api_key=api_key)
     config = types.GenerateContentConfig(
         system_instruction=SYSTEM_INSTRUCTION,
-        tools=[_build_list_recipes_tool(db), *_build_meal_plan_tools(db)],
+        tools=[
+            _build_list_recipes_tool(db),
+            *_build_meal_plan_tools(db),
+            *_build_shopping_tools(db),
+        ],
     )
 
     def event_stream():

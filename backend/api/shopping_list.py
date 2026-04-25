@@ -1,5 +1,7 @@
 """Shopping list — items hold contributions describing where each
 piece of the quantity came from (manual or meal-plan slot)."""
+import json
+import os
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -14,6 +16,7 @@ from backend.schemas import (
     ShoppingListReorderRequest,
     ShoppingListResponse,
 )
+from backend.services.categorize import CATEGORIES, learn_category
 from backend.services.shopping_list_sync import _find_or_create_item
 
 router = APIRouter(prefix="/api/shopping-list", tags=["shopping-list"])
@@ -64,6 +67,14 @@ def update_item(
         item.name = new_name
     if payload.is_checked is not None:
         item.is_checked = payload.is_checked
+    if payload.category is not None:
+        if payload.category not in CATEGORIES:
+            raise HTTPException(
+                status_code=400, detail=f"category must be one of {CATEGORIES}"
+            )
+        item.category = payload.category
+        # Persist to the knowledge base so future occurrences pre-fill.
+        learn_category(db, item.name, payload.category, source="user")
     db.commit()
     db.refresh(item)
     return item
@@ -130,3 +141,69 @@ def delete_contribution(contribution_id: UUID, db: Session = Depends(get_db)):
 def clear_all(db: Session = Depends(get_db)):
     db.query(ShoppingList).delete(synchronize_session=False)
     db.commit()
+
+
+# ---- Categorization ----
+
+def _gemini_categorize(names: list[str]) -> dict[str, str]:
+    """Call Gemini once with all ingredient names; return {name: category}."""
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="GEMINI_API_KEY is not set")
+
+    # Lazy import keeps cold start of unrelated endpoints fast.
+    from google import genai
+    from google.genai import types
+
+    prompt = (
+        "Classe chaque ingrédient ci-dessous dans EXACTEMENT une des catégories suivantes. "
+        "Réponds UNIQUEMENT avec un objet JSON {nom: catégorie}, sans autre texte.\n\n"
+        f"Catégories autorisées: {CATEGORIES}\n\n"
+        f"Ingrédients: {names}\n"
+    )
+    client = genai.Client(api_key=api_key)
+    response = client.models.generate_content(
+        model="gemini-2.5-flash",
+        contents=[types.Content(role="user", parts=[types.Part(text=prompt)])],
+        config=types.GenerateContentConfig(response_mime_type="application/json"),
+    )
+    try:
+        raw = response.text or "{}"
+        parsed = json.loads(raw)
+        return {k: v for k, v in parsed.items() if v in CATEGORIES}
+    except (ValueError, json.JSONDecodeError) as e:
+        raise HTTPException(status_code=502, detail=f"Bad LLM response: {e}")
+
+
+@router.post("/categorize-with-ai", response_model=ShoppingListResponse)
+def categorize_with_ai(
+    only_uncertain: bool = Query(
+        True,
+        description="If true, only re-categorize items currently NULL or 'Autres'.",
+    ),
+    db: Session = Depends(get_db),
+):
+    """Ask the assistant to assign every (uncertain) item a category.
+
+    Updates each item's category AND persists the decision to
+    ingredient_database via learn_category(source='llm') so future
+    occurrences pre-fill correctly."""
+    q = db.query(ShoppingList)
+    if only_uncertain:
+        from sqlalchemy import or_
+        q = q.filter(or_(ShoppingList.category.is_(None), ShoppingList.category == "Autres"))
+    items = q.all()
+    if not items:
+        return ShoppingListResponse(items=_query_items(db), total=len(_query_items(db)))
+
+    names = [it.name for it in items]
+    mapping = _gemini_categorize(names)
+
+    for it in items:
+        proposed = mapping.get(it.name)
+        if proposed and proposed in CATEGORIES:
+            it.category = proposed
+            learn_category(db, it.name, proposed, source="llm")
+    db.commit()
+    refreshed = _query_items(db)
+    return ShoppingListResponse(items=refreshed, total=len(refreshed))

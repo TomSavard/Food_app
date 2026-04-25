@@ -102,6 +102,7 @@ class ShoppingListItemResponse(BaseModel):
     name: str
     position: int
     is_checked: bool
+    category: Optional[str] = None
     contributions: List[ShoppingListContributionResponse]
 
     model_config = ConfigDict(from_attributes=True)
@@ -117,6 +118,7 @@ class ShoppingListItemCreate(BaseModel):
 class ShoppingListItemUpdate(BaseModel):
     name: Optional[str] = None
     is_checked: Optional[bool] = None
+    category: Optional[str] = None  # user override → also persisted to ingredient_database
 
 
 class ShoppingListReorderItem(BaseModel):

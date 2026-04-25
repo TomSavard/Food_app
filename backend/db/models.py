@@ -108,6 +108,7 @@ class ShoppingList(Base):
     name = Column(String(255), nullable=False, index=True)
     position = Column(Integer, nullable=False, default=0)
     is_checked = Column(Boolean, default=False, index=True)
+    category = Column(String(50), nullable=True, index=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(
         DateTime,
@@ -157,16 +158,22 @@ class ShoppingListContribution(Base):
 
 
 class IngredientDatabase(Base):
-    """Ingredient nutrition database (from Excel)"""
+    """Ingredient knowledge base. Started as CIQUAL nutrition; we layer
+    learned categorisation on top — corrected by users + the LLM."""
     __tablename__ = "ingredient_database"
-    
+
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     alim_nom_fr = Column(String(255), nullable=False, unique=True, index=True)
-    # Nutrition columns - stored as JSONB for flexibility
-    nutrition_data = Column(JSONB)  # Stores all nutrition info as JSON
-    
+    nutrition_data = Column(JSONB)
+    category = Column(String(50), nullable=True, index=True)
+    source = Column(String(20), nullable=False, default="ciqual")  # 'ciqual' | 'user' | 'llm'
+
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
-    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    updated_at = Column(
+        DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
     
     def __repr__(self):
         return f"<IngredientDatabase(name='{self.alim_nom_fr}')>"

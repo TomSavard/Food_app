@@ -91,12 +91,18 @@ export const addShoppingItem = (data: {
 
 export const updateShoppingItem = (
   id: string,
-  data: { name?: string; is_checked?: boolean }
+  data: { name?: string; is_checked?: boolean; category?: string }
 ) =>
   http<ShoppingItem>(`/shopping-list/${id}`, {
     method: "PATCH",
     body: JSON.stringify(data),
   });
+
+export const categorizeShoppingListWithAI = (only_uncertain = true) =>
+  http<ShoppingListResponse>(
+    `/shopping-list/categorize-with-ai${qs({ only_uncertain })}`,
+    { method: "POST" }
+  );
 
 export const deleteShoppingItem = (id: string) =>
   http<void>(`/shopping-list/${id}`, { method: "DELETE" });
