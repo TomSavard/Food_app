@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ChevronLeft,
   ChevronRight,
-  GripVertical,
   Plus,
   Sparkles,
   Trash2,
@@ -432,15 +431,8 @@ function MealCard({
         (isOverlay ? "scale-[1.04] shadow-2xl ring-1 ring-primary/40 rotate-[1deg]" : "")
       }
     >
-      {/* Top row: recipe name (full width) + visual grip cue. */}
-      <div className="flex items-start gap-1.5">
-        <div className="min-w-0 flex-1 line-clamp-2 font-medium leading-snug">
-          {slot.recipe_name}
-        </div>
-        <GripVertical
-          aria-hidden
-          className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground/40"
-        />
+      <div className="line-clamp-2 font-medium leading-snug">
+        {slot.recipe_name}
       </div>
 
       {/* Bottom row: compact servings pill, right-aligned. */}
