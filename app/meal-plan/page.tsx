@@ -399,9 +399,19 @@ function SortableMeal({
     opacity: isDragging ? 0.4 : 1,
   };
 
+  // The whole card body is the drag handle — listeners are spread here, not
+  // on the small grip icon. PointerSensor's distance:4 prevents accidental
+  // drags from quick taps, and the qty input stops propagation so typing
+  // never triggers a drag.
   return (
-    <div ref={setNodeRef} style={style} {...attributes}>
-      <MealCard slot={slot} onServings={onServings} dragHandleListeners={listeners} />
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={isDragging ? "cursor-grabbing" : "cursor-grab"}
+      {...attributes}
+      {...listeners}
+    >
+      <MealCard slot={slot} onServings={onServings} />
     </div>
   );
 }
@@ -409,34 +419,28 @@ function SortableMeal({
 function MealCard({
   slot,
   onServings,
-  dragHandleListeners,
   isOverlay,
 }: {
   slot: MealPlanSlot;
   onServings: (id: string, n: number) => void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  dragHandleListeners?: any;
   isOverlay?: boolean;
 }) {
   return (
     <div
       className={
-        "group relative rounded-xl border bg-card px-2.5 py-2 text-sm shadow-sm " +
+        "group relative touch-none select-none rounded-xl border bg-card px-2.5 py-2 text-sm shadow-sm " +
         (isOverlay ? "scale-[1.04] shadow-2xl ring-1 ring-primary/40 rotate-[1deg]" : "")
       }
     >
-      {/* Top row: recipe name (full width) + tiny drag handle. */}
+      {/* Top row: recipe name (full width) + visual grip cue. */}
       <div className="flex items-start gap-1.5">
         <div className="min-w-0 flex-1 line-clamp-2 font-medium leading-snug">
           {slot.recipe_name}
         </div>
-        <button
-          className="mt-0.5 shrink-0 cursor-grab touch-none text-muted-foreground/60 hover:text-foreground"
-          aria-label="Réorganiser"
-          {...(dragHandleListeners || {})}
-        >
-          <GripVertical className="h-3.5 w-3.5" />
-        </button>
+        <GripVertical
+          aria-hidden
+          className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground/40"
+        />
       </div>
 
       {/* Bottom row: compact servings pill, right-aligned. */}
@@ -447,6 +451,7 @@ function MealCard({
           value={slot.servings}
           onChange={(e) => onServings(slot.slot_id, Number(e.target.value))}
           onPointerDown={(e) => e.stopPropagation()}
+          onKeyDown={(e) => e.stopPropagation()}
           className="h-5 w-8 rounded-full px-0 text-center text-[11px]"
           aria-label="Portions"
         />
