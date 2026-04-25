@@ -82,24 +82,31 @@ def main(xls_path: Path) -> None:
         )
         print(f"  deleted {deleted} untouched ciqual rows")
 
-        # Index curated rows by lowercased name to skip them on insert.
-        curated_names = {
+        # Anything still in the table is preserved (user/llm-sourced or modified).
+        # Skip CIQUAL rows whose name collides with one of those.
+        existing_names = {
             r.alim_nom_fr.strip().lower()
-            for r in db.query(IngredientDatabase.alim_nom_fr)
-            .filter(IngredientDatabase.modified.is_(True))
-            .all()
+            for r in db.query(IngredientDatabase.alim_nom_fr).all()
         }
-        print(f"  preserving {len(curated_names)} curated rows")
+        print(f"  preserving {len(existing_names)} existing rows")
 
         inserted = 0
         skipped_curated = 0
+        skipped_duplicate = 0
+        seen_names: set[str] = set()
         for _, row in df.iterrows():
             name = row.get("alim_nom_fr")
             if not isinstance(name, str) or not name.strip():
                 continue
-            if name.strip().lower() in curated_names:
+            key = name.strip().lower()
+            if key in existing_names:
                 skipped_curated += 1
                 continue
+            # CIQUAL 2025 contains a few rows that share alim_nom_fr — keep the first.
+            if key in seen_names:
+                skipped_duplicate += 1
+                continue
+            seen_names.add(key)
 
             nutrition_data: dict = {}
             for col in df.columns:
@@ -124,7 +131,10 @@ def main(xls_path: Path) -> None:
             inserted += 1
 
         db.commit()
-        print(f"✅ inserted {inserted} rows (skipped {skipped_curated} curated)")
+        print(
+            f"✅ inserted {inserted} rows "
+            f"(skipped {skipped_curated} curated, {skipped_duplicate} dup names)"
+        )
     except Exception:
         db.rollback()
         raise
