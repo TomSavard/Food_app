@@ -36,6 +36,7 @@ import * as api from "@/lib/api";
 import type { MealPlanSlot, MealPlanWeek, Recipe } from "@/lib/types";
 import { addDays, dayLabelFR, isoDate, mondayOf, shortDateFR } from "@/lib/dates";
 import { RecipePickerDialog } from "@/components/recipe-picker-dialog";
+import { RecipeDetailDialog } from "@/components/recipe-detail-dialog";
 
 export default function MealPlanPage() {
   const [weekStartDate, setWeekStartDate] = useState<Date>(() => mondayOf(new Date()));
@@ -49,6 +50,7 @@ export default function MealPlanPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pickerDate, setPickerDate] = useState<string | null>(null);
+  const [detailRecipeId, setDetailRecipeId] = useState<string | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -270,6 +272,7 @@ export default function MealPlanPage() {
                 items={dayItems}
                 onAdd={() => setPickerDate(date)}
                 onServings={changeServings}
+                onOpenRecipe={(rid) => setDetailRecipeId(rid)}
               />
             );
           })}
@@ -290,6 +293,11 @@ export default function MealPlanPage() {
         onPick={pickRecipe}
         title={pickerDate ? `Ajouter au ${pickerDate}` : ""}
       />
+
+      <RecipeDetailDialog
+        recipeId={detailRecipeId}
+        onClose={() => setDetailRecipeId(null)}
+      />
     </div>
   );
 }
@@ -301,6 +309,7 @@ function DayColumn({
   items,
   onAdd,
   onServings,
+  onOpenRecipe,
 }: {
   date: string;
   title: string;
@@ -308,6 +317,7 @@ function DayColumn({
   items: MealPlanSlot[];
   onAdd: () => void;
   onServings: (id: string, n: number) => void;
+  onOpenRecipe: (recipeId: string) => void;
 }) {
   return (
     <div className="surface flex min-h-[200px] flex-col gap-2 p-3" data-day-id={date}>
@@ -322,7 +332,12 @@ function DayColumn({
         <DroppableEmpty id={`day:${date}`} hidden={items.length > 0} />
         <div className="flex flex-col gap-2">
           {items.map((s) => (
-            <SortableMeal key={s.slot_id} slot={s} onServings={onServings} />
+            <SortableMeal
+              key={s.slot_id}
+              slot={s}
+              onServings={onServings}
+              onOpenRecipe={onOpenRecipe}
+            />
           ))}
         </div>
       </SortableContext>
@@ -379,9 +394,11 @@ function DroppableEmpty({ id, hidden }: { id: string; hidden: boolean }) {
 function SortableMeal({
   slot,
   onServings,
+  onOpenRecipe,
 }: {
   slot: MealPlanSlot;
   onServings: (id: string, n: number) => void;
+  onOpenRecipe: (recipeId: string) => void;
 }) {
   const {
     attributes,
@@ -398,10 +415,9 @@ function SortableMeal({
     opacity: isDragging ? 0.4 : 1,
   };
 
-  // The whole card body is the drag handle — listeners are spread here, not
-  // on the small grip icon. PointerSensor's distance:4 prevents accidental
-  // drags from quick taps, and the qty input stops propagation so typing
-  // never triggers a drag.
+  // The whole card body is the drag handle — listeners are spread here.
+  // PointerSensor distance:4 distinguishes click (no movement) from drag
+  // (≥4px), so a plain click reliably fires onClick → opens the recipe.
   return (
     <div
       ref={setNodeRef}
@@ -409,6 +425,7 @@ function SortableMeal({
       className={isDragging ? "cursor-grabbing" : "cursor-grab"}
       {...attributes}
       {...listeners}
+      onClick={() => onOpenRecipe(slot.recipe_id)}
     >
       <MealCard slot={slot} onServings={onServings} />
     </div>
@@ -442,6 +459,7 @@ function MealCard({
           min={1}
           value={slot.servings}
           onChange={(e) => onServings(slot.slot_id, Number(e.target.value))}
+          onClick={(e) => e.stopPropagation()}
           onPointerDown={(e) => e.stopPropagation()}
           onKeyDown={(e) => e.stopPropagation()}
           className="h-5 w-8 rounded-full px-0 text-center text-[11px]"
