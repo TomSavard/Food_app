@@ -7,7 +7,9 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session, joinedload
 
-from backend.db.models import MealPlanSlot, Recipe
+from pydantic import BaseModel
+
+from backend.db.models import IngredientDatabase, MealPlanSlot, Recipe
 from backend.db.session import get_db
 from backend.schemas import (
     MealPlanReorderRequest,
@@ -16,11 +18,13 @@ from backend.schemas import (
     MealPlanSlotUpdate,
     MealPlanWeekResponse,
 )
+from backend.services.anses import DAILY_MACROS, RDI
 from backend.services.shopping_list_sync import (
     cleanup_orphan_items,
     sync_slot_added,
     sync_slot_changed,
 )
+from backend.utils.nutrition import convert_to_grams, safe_float
 
 router = APIRouter(prefix="/api/meal-plan", tags=["meal-plan"])
 
@@ -240,4 +244,129 @@ def generate(
     return MealPlanWeekResponse(
         week_start=monday.isoformat(),
         slots=[_to_response(s) for s in rows],
+    )
+
+
+# ---- Weekly nutrition ----
+
+class NutritionDay(BaseModel):
+    date: str
+    macros: dict[str, float]
+
+
+class UntrackedItem(BaseModel):
+    slot_date: str
+    recipe_name: str
+    ingredient_name: str
+    reason: str  # 'missing_fk' | 'missing_density' | 'no_data' | 'unknown_unit'
+
+
+class WeeklyNutritionResponse(BaseModel):
+    week_start: str
+    days: list[NutritionDay]
+    week: dict[str, float]
+    rdi: dict[str, float]
+    untracked: list[UntrackedItem]
+
+
+def _zero_macros() -> dict[str, float]:
+    return {k: 0.0 for k in DAILY_MACROS}
+
+
+@router.get("/nutrition", response_model=WeeklyNutritionResponse)
+def get_weekly_nutrition(
+    week_start: str = Query(..., description="Monday in YYYY-MM-DD"),
+    db: Session = Depends(get_db),
+):
+    """Aggregate nutrition over the week's slots.
+
+    For each `MealPlanSlot.recipe.ingredients`:
+      - Resolve the canonical row via `ingredient_db_id` (NULL → untracked).
+      - Convert quantity to grams via `convert_to_grams` (spoon table +
+        density). Failure modes recorded as `missing_density` / `unknown_unit`.
+      - Multiply each per-100g nutrient by `grams * (slot.servings / recipe.servings)`.
+    """
+    monday = _ensure_monday(_parse_date(week_start))
+    sunday = monday + timedelta(days=6)
+
+    slots = (
+        db.query(MealPlanSlot)
+        .options(joinedload(MealPlanSlot.recipe))
+        .filter(MealPlanSlot.slot_date >= monday, MealPlanSlot.slot_date <= sunday)
+        .order_by(MealPlanSlot.slot_date, MealPlanSlot.position)
+        .all()
+    )
+
+    days_macros: dict[date, dict[str, float]] = {
+        monday + timedelta(days=i): _zero_macros() for i in range(7)
+    }
+    week_full: dict[str, float] = {}
+    untracked: list[UntrackedItem] = []
+
+    for slot in slots:
+        recipe = slot.recipe
+        if recipe is None or not recipe.ingredients:
+            continue
+        ratio = (slot.servings or 1) / max(1, recipe.servings or 1)
+        for ing in recipe.ingredients:
+            if ing.ingredient_db_id is None:
+                untracked.append(UntrackedItem(
+                    slot_date=slot.slot_date.isoformat(),
+                    recipe_name=recipe.name,
+                    ingredient_name=ing.name,
+                    reason="missing_fk",
+                ))
+                continue
+            row = db.get(IngredientDatabase, ing.ingredient_db_id)
+            if row is None:
+                continue
+            grams = convert_to_grams(ing.quantity or 0, ing.unit or "", row.density_g_per_ml)
+            if grams is None:
+                u = (ing.unit or "").strip().lower()
+                volume_or_spoon = u in {"ml", "cl", "l"} or any(
+                    sp in u for sp in ("cuillere", "cuillère", "cas", "cac", "verre", "tasse")
+                )
+                reason = "missing_density" if volume_or_spoon else "unknown_unit"
+                untracked.append(UntrackedItem(
+                    slot_date=slot.slot_date.isoformat(),
+                    recipe_name=recipe.name,
+                    ingredient_name=ing.name,
+                    reason=reason,
+                ))
+                continue
+            if not row.nutrition_data:
+                untracked.append(UntrackedItem(
+                    slot_date=slot.slot_date.isoformat(),
+                    recipe_name=recipe.name,
+                    ingredient_name=ing.name,
+                    reason="no_data",
+                ))
+                continue
+
+            scale = grams * ratio / 100.0
+            for key, raw in row.nutrition_data.items():
+                v = safe_float(raw)
+                if v is None:
+                    continue
+                contribution = v * scale
+                week_full[key] = week_full.get(key, 0.0) + contribution
+                if key in DAILY_MACROS:
+                    days_macros[slot.slot_date][key] = (
+                        days_macros[slot.slot_date].get(key, 0.0) + contribution
+                    )
+
+    days = [
+        NutritionDay(
+            date=d.isoformat(),
+            macros={k: round(days_macros[d].get(k, 0.0), 2) for k in DAILY_MACROS},
+        )
+        for d in sorted(days_macros)
+    ]
+    week = {k: round(v, 2) for k, v in week_full.items()}
+    return WeeklyNutritionResponse(
+        week_start=monday.isoformat(),
+        days=days,
+        week=week,
+        rdi=dict(RDI),
+        untracked=untracked,
     )

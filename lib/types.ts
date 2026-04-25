@@ -176,3 +176,29 @@ export interface MealPlanWeek {
   week_start: string;
   slots: MealPlanSlot[];
 }
+
+export interface NutritionDay {
+  date: string;
+  macros: Record<string, number>;
+}
+
+export type UntrackedReason =
+  | "missing_fk"
+  | "missing_density"
+  | "no_data"
+  | "unknown_unit";
+
+export interface UntrackedItem {
+  slot_date: string;
+  recipe_name: string;
+  ingredient_name: string;
+  reason: UntrackedReason;
+}
+
+export interface WeeklyNutrition {
+  week_start: string;
+  days: NutritionDay[];
+  week: Record<string, number>;
+  rdi: Record<string, number>;
+  untracked: UntrackedItem[];
+}

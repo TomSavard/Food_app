@@ -37,6 +37,7 @@ import type { MealPlanSlot, MealPlanWeek, Recipe } from "@/lib/types";
 import { addDays, dayLabelFR, isoDate, mondayOf, shortDateFR } from "@/lib/dates";
 import { RecipePickerDialog } from "@/components/recipe-picker-dialog";
 import { RecipeDetailDialog } from "@/components/recipe-detail-dialog";
+import { NutritionSection } from "@/components/nutrition-section";
 
 export default function MealPlanPage() {
   const [weekStartDate, setWeekStartDate] = useState<Date>(() => mondayOf(new Date()));
@@ -297,6 +298,11 @@ export default function MealPlanPage() {
       <RecipeDetailDialog
         recipeId={detailRecipeId}
         onClose={() => setDetailRecipeId(null)}
+      />
+
+      <NutritionSection
+        weekStart={weekStart}
+        refreshKey={slots.map((s) => `${s.slot_id}:${s.servings}`).join("|")}
       />
     </div>
   );
