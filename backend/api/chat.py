@@ -20,15 +20,15 @@ from sqlalchemy.orm import Session, joinedload, selectinload
 
 from backend.db.models import Ingredient, MealPlanSlot, Recipe
 from backend.db.session import get_db
-from backend.schemas import SLOTS
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
 
 SYSTEM_INSTRUCTION = (
     "You are a helpful in-app assistant for the user's personal food app. "
     "Tools available: list_recipes (browse the user's saved recipes); "
-    "get_meal_plan, set_meal_plan_slot, clear_meal_plan_slot, generate_meal_plan "
-    "(read and edit the weekly meal plan — 7 days × 4 slots: breakfast, lunch, dinner, extra). "
+    "get_meal_plan, add_meal_to_day, remove_meal, generate_meal_plan "
+    "(read and edit the weekly meal plan — each day is an ordered stack of meals; "
+    "you can add as many meals as needed per day). "
     "Dates are ISO YYYY-MM-DD; weeks start on Monday. "
     "When the user asks about their recipes or meal plan, call the relevant tools "
     "and answer from what they return. Be concise. Reply in the user's language."
@@ -101,27 +101,40 @@ def _build_list_recipes_tool(db: Session):
 
 
 def _build_meal_plan_tools(db: Session):
-    """Returns 4 tool functions bound to this request's DB session."""
+    """4 tools bound to this request's DB session — stack-of-meals model."""
 
     def _parse(s: str) -> date:
         return datetime.strptime(s, "%Y-%m-%d").date()
 
     def _slot_dict(s: MealPlanSlot) -> dict:
         return {
+            "slot_id": str(s.slot_id),
             "date": s.slot_date.isoformat(),
-            "slot": s.slot,
+            "position": s.position,
             "recipe_id": str(s.recipe_id),
             "recipe_name": s.recipe.name if s.recipe else "",
             "servings": s.servings,
         }
 
+    def _next_position(d: date) -> int:
+        last = (
+            db.query(MealPlanSlot)
+            .filter(MealPlanSlot.slot_date == d)
+            .order_by(MealPlanSlot.position.desc())
+            .first()
+        )
+        return (last.position + 1) if last else 0
+
     def get_meal_plan(week_start: str) -> dict:
-        """Return the meal plan for a given week.
+        """Return the meal plan for a given week, ordered by date then position.
 
         Args:
             week_start: Monday of the week, YYYY-MM-DD.
         """
-        monday = _parse(week_start)
+        try:
+            monday = _parse(week_start)
+        except ValueError as e:
+            return {"error": str(e)}
         if monday.weekday() != 0:
             return {"error": "week_start must be a Monday"}
         sunday = monday + timedelta(days=6)
@@ -129,21 +142,19 @@ def _build_meal_plan_tools(db: Session):
             db.query(MealPlanSlot)
             .options(joinedload(MealPlanSlot.recipe))
             .filter(MealPlanSlot.slot_date >= monday, MealPlanSlot.slot_date <= sunday)
+            .order_by(MealPlanSlot.slot_date, MealPlanSlot.position)
             .all()
         )
         return {"week_start": monday.isoformat(), "slots": [_slot_dict(s) for s in slots]}
 
-    def set_meal_plan_slot(slot_date: str, slot: str, recipe_id: str, servings: int = 1) -> dict:
-        """Assign a recipe to a (date, slot). Overwrites any existing recipe in that slot.
+    def add_meal_to_day(slot_date: str, recipe_id: str, servings: int = 1) -> dict:
+        """Append a meal to the end of a day's stack.
 
         Args:
             slot_date: YYYY-MM-DD.
-            slot: One of breakfast, lunch, dinner, extra.
             recipe_id: UUID of an existing recipe.
-            servings: How many people this slot serves (>=1).
+            servings: How many people this meal serves (>=1).
         """
-        if slot not in SLOTS:
-            return {"error": f"slot must be one of {SLOTS}"}
         if servings < 1:
             return {"error": "servings must be >= 1"}
         try:
@@ -154,51 +165,40 @@ def _build_meal_plan_tools(db: Session):
         recipe = db.query(Recipe).filter(Recipe.recipe_id == rid).first()
         if not recipe:
             return {"error": f"Recipe {recipe_id} not found"}
-
-        existing = (
-            db.query(MealPlanSlot)
-            .filter(MealPlanSlot.slot_date == d, MealPlanSlot.slot == slot)
-            .first()
+        slot = MealPlanSlot(
+            slot_date=d, position=_next_position(d), recipe_id=rid, servings=servings,
         )
-        if existing:
-            existing.recipe_id = rid
-            existing.servings = servings
-            slot_obj = existing
-        else:
-            slot_obj = MealPlanSlot(slot_date=d, slot=slot, recipe_id=rid, servings=servings)
-            db.add(slot_obj)
-        db.commit()
-        db.refresh(slot_obj)
-        _ = slot_obj.recipe
-        return _slot_dict(slot_obj)
+        db.add(slot); db.commit(); db.refresh(slot)
+        _ = slot.recipe
+        return _slot_dict(slot)
 
-    def clear_meal_plan_slot(slot_date: str, slot: str) -> dict:
-        """Remove the recipe assigned to a (date, slot).
+    def remove_meal(slot_id: str) -> dict:
+        """Remove a meal by its slot_id (use get_meal_plan first to find it).
 
         Args:
-            slot_date: YYYY-MM-DD.
-            slot: One of breakfast, lunch, dinner, extra.
+            slot_id: UUID of the meal slot to remove.
         """
-        if slot not in SLOTS:
-            return {"error": f"slot must be one of {SLOTS}"}
         try:
-            d = _parse(slot_date)
-        except ValueError as e:
+            sid = UUID(slot_id)
+        except (ValueError, TypeError) as e:
             return {"error": str(e)}
         deleted = (
             db.query(MealPlanSlot)
-            .filter(MealPlanSlot.slot_date == d, MealPlanSlot.slot == slot)
+            .filter(MealPlanSlot.slot_id == sid)
             .delete(synchronize_session=False)
         )
         db.commit()
         return {"deleted": bool(deleted)}
 
-    def generate_meal_plan(week_start: str, overwrite: bool = False) -> dict:
-        """Auto-fill empty slots of a week with random recipes (favorites first if any).
+    def generate_meal_plan(
+        week_start: str, meals_per_day: int = 3, overwrite: bool = False
+    ) -> dict:
+        """Auto-fill the week with N random meals per day (favorites if any).
 
         Args:
             week_start: Monday of the week, YYYY-MM-DD.
-            overwrite: If true, replace any already-filled slots that week.
+            meals_per_day: How many meals to ensure per day (default 3).
+            overwrite: If true, replace any existing meals in the week.
         """
         try:
             monday = _parse(week_start)
@@ -206,20 +206,15 @@ def _build_meal_plan_tools(db: Session):
             return {"error": str(e)}
         if monday.weekday() != 0:
             return {"error": "week_start must be a Monday"}
+        if meals_per_day < 1 or meals_per_day > 10:
+            return {"error": "meals_per_day must be between 1 and 10"}
         sunday = monday + timedelta(days=6)
 
-        existing = (
-            db.query(MealPlanSlot)
-            .filter(MealPlanSlot.slot_date >= monday, MealPlanSlot.slot_date <= sunday)
-            .all()
-        )
         if overwrite:
-            for s in existing:
-                db.delete(s)
+            db.query(MealPlanSlot).filter(
+                MealPlanSlot.slot_date >= monday, MealPlanSlot.slot_date <= sunday
+            ).delete(synchronize_session=False)
             db.flush()
-            existing_keys = set()
-        else:
-            existing_keys = {(s.slot_date, s.slot) for s in existing}
 
         favorites = db.query(Recipe).filter(Recipe.is_favorite == True).all()  # noqa: E712
         pool = favorites or db.query(Recipe).limit(50).all()
@@ -228,14 +223,14 @@ def _build_meal_plan_tools(db: Session):
 
         for day_offset in range(7):
             d = monday + timedelta(days=day_offset)
-            for slot_name in SLOTS:
-                if (d, slot_name) in existing_keys:
-                    continue
+            existing_count = _next_position(d)  # next position == current count
+            target = meals_per_day if overwrite else max(0, meals_per_day - existing_count)
+            for i in range(target):
                 recipe = random.choice(pool)
                 db.add(
                     MealPlanSlot(
                         slot_date=d,
-                        slot=slot_name,
+                        position=(existing_count + i) if not overwrite else i,
                         recipe_id=recipe.recipe_id,
                         servings=recipe.servings or 1,
                     )
@@ -245,11 +240,12 @@ def _build_meal_plan_tools(db: Session):
             db.query(MealPlanSlot)
             .options(joinedload(MealPlanSlot.recipe))
             .filter(MealPlanSlot.slot_date >= monday, MealPlanSlot.slot_date <= sunday)
+            .order_by(MealPlanSlot.slot_date, MealPlanSlot.position)
             .all()
         )
         return {"week_start": monday.isoformat(), "slots": [_slot_dict(s) for s in slots]}
 
-    return [get_meal_plan, set_meal_plan_slot, clear_meal_plan_slot, generate_meal_plan]
+    return [get_meal_plan, add_meal_to_day, remove_meal, generate_meal_plan]
 
 
 def _to_contents(messages: List[ChatMessage]) -> List[types.Content]:

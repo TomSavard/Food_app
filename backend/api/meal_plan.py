@@ -1,7 +1,7 @@
-"""Weekly meal plan: 7 days × 4 slots (breakfast/lunch/dinner/extra)."""
+"""Weekly meal plan: each day is an ordered stack of meals."""
 import random
 from datetime import date, datetime, timedelta
-from typing import List, Optional
+from typing import List
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -10,13 +10,16 @@ from sqlalchemy.orm import Session, joinedload
 from backend.db.models import MealPlanSlot, Recipe
 from backend.db.session import get_db
 from backend.schemas import (
+    MealPlanReorderRequest,
+    MealPlanSlotCreate,
     MealPlanSlotResponse,
-    MealPlanSlotUpsert,
+    MealPlanSlotUpdate,
     MealPlanWeekResponse,
-    SLOTS,
 )
 
 router = APIRouter(prefix="/api/meal-plan", tags=["meal-plan"])
+
+DEFAULT_MEALS_PER_DAY = 3
 
 
 def _parse_date(s: str) -> date:
@@ -36,11 +39,21 @@ def _to_response(s: MealPlanSlot) -> MealPlanSlotResponse:
     return MealPlanSlotResponse(
         slot_id=s.slot_id,
         slot_date=s.slot_date.isoformat(),
-        slot=s.slot,
+        position=s.position,
         recipe_id=s.recipe_id,
         recipe_name=s.recipe.name if s.recipe else "",
         servings=s.servings,
     )
+
+
+def _next_position(db: Session, d: date) -> int:
+    last = (
+        db.query(MealPlanSlot)
+        .filter(MealPlanSlot.slot_date == d)
+        .order_by(MealPlanSlot.position.desc())
+        .first()
+    )
+    return (last.position + 1) if last else 0
 
 
 @router.get("", response_model=MealPlanWeekResponse)
@@ -54,6 +67,7 @@ def get_meal_plan(
         db.query(MealPlanSlot)
         .options(joinedload(MealPlanSlot.recipe))
         .filter(MealPlanSlot.slot_date >= monday, MealPlanSlot.slot_date <= sunday)
+        .order_by(MealPlanSlot.slot_date, MealPlanSlot.position)
         .all()
     )
     return MealPlanWeekResponse(
@@ -62,10 +76,8 @@ def get_meal_plan(
     )
 
 
-@router.put("/slot", response_model=MealPlanSlotResponse)
-def upsert_slot(payload: MealPlanSlotUpsert, db: Session = Depends(get_db)):
-    if payload.slot not in SLOTS:
-        raise HTTPException(status_code=400, detail=f"slot must be one of {SLOTS}")
+@router.post("", response_model=MealPlanSlotResponse, status_code=201)
+def add_meal(payload: MealPlanSlotCreate, db: Session = Depends(get_db)):
     if payload.servings < 1:
         raise HTTPException(status_code=400, detail="servings must be >= 1")
     d = _parse_date(payload.slot_date)
@@ -73,100 +85,136 @@ def upsert_slot(payload: MealPlanSlotUpsert, db: Session = Depends(get_db)):
     if not recipe:
         raise HTTPException(status_code=404, detail=f"Recipe {payload.recipe_id} not found")
 
-    existing = (
-        db.query(MealPlanSlot)
-        .filter(MealPlanSlot.slot_date == d, MealPlanSlot.slot == payload.slot)
-        .first()
+    pos = payload.position if payload.position is not None else _next_position(db, d)
+    slot = MealPlanSlot(
+        slot_date=d,
+        position=pos,
+        recipe_id=payload.recipe_id,
+        servings=payload.servings,
     )
-    if existing:
-        existing.recipe_id = payload.recipe_id
-        existing.servings = payload.servings
-        slot = existing
-    else:
-        slot = MealPlanSlot(
-            slot_date=d,
-            slot=payload.slot,
-            recipe_id=payload.recipe_id,
-            servings=payload.servings,
-        )
-        db.add(slot)
+    db.add(slot)
     db.commit()
     db.refresh(slot)
-    # ensure relationship loaded for response
     _ = slot.recipe
     return _to_response(slot)
 
 
-@router.delete("/slot", status_code=204)
-def clear_slot(
-    slot_date: str = Query(...),
-    slot: str = Query(...),
-    db: Session = Depends(get_db),
-):
-    if slot not in SLOTS:
-        raise HTTPException(status_code=400, detail=f"slot must be one of {SLOTS}")
-    d = _parse_date(slot_date)
+@router.patch("/{slot_id}", response_model=MealPlanSlotResponse)
+def update_meal(slot_id: UUID, payload: MealPlanSlotUpdate, db: Session = Depends(get_db)):
+    slot = db.query(MealPlanSlot).filter(MealPlanSlot.slot_id == slot_id).first()
+    if not slot:
+        raise HTTPException(status_code=404, detail="Slot not found")
+    if payload.servings is not None:
+        if payload.servings < 1:
+            raise HTTPException(status_code=400, detail="servings must be >= 1")
+        slot.servings = payload.servings
+    db.commit()
+    db.refresh(slot)
+    _ = slot.recipe
+    return _to_response(slot)
+
+
+@router.put("/reorder", response_model=MealPlanWeekResponse)
+def reorder(payload: MealPlanReorderRequest, db: Session = Depends(get_db)):
+    """Bulk-apply new (slot_date, position) values for a set of slots.
+
+    To avoid temporarily violating UNIQUE(slot_date, position), we first
+    move every affected row to a negative position, then apply the new ones.
+    """
+    if not payload.items:
+        return MealPlanWeekResponse(week_start="", slots=[])
+
+    ids = [item.slot_id for item in payload.items]
+    slots = db.query(MealPlanSlot).filter(MealPlanSlot.slot_id.in_(ids)).all()
+    if len(slots) != len(payload.items):
+        raise HTTPException(status_code=404, detail="One or more slots not found")
+    by_id = {s.slot_id: s for s in slots}
+
+    # Stage 1: park every row at -1 - i to clear collisions.
+    for i, s in enumerate(slots):
+        s.position = -1 - i
+    db.flush()
+
+    # Stage 2: apply final coordinates.
+    for item in payload.items:
+        s = by_id[item.slot_id]
+        s.slot_date = _parse_date(item.slot_date)
+        s.position = item.position
+    db.commit()
+
+    # Return the whole affected week (anchored on the first item's Monday).
+    anchor = _parse_date(payload.items[0].slot_date)
+    monday = anchor - timedelta(days=anchor.weekday())
+    sunday = monday + timedelta(days=6)
+    rows = (
+        db.query(MealPlanSlot)
+        .options(joinedload(MealPlanSlot.recipe))
+        .filter(MealPlanSlot.slot_date >= monday, MealPlanSlot.slot_date <= sunday)
+        .order_by(MealPlanSlot.slot_date, MealPlanSlot.position)
+        .all()
+    )
+    return MealPlanWeekResponse(
+        week_start=monday.isoformat(),
+        slots=[_to_response(s) for s in rows],
+    )
+
+
+@router.delete("/{slot_id}", status_code=204)
+def delete_meal(slot_id: UUID, db: Session = Depends(get_db)):
     deleted = (
         db.query(MealPlanSlot)
-        .filter(MealPlanSlot.slot_date == d, MealPlanSlot.slot == slot)
+        .filter(MealPlanSlot.slot_id == slot_id)
         .delete(synchronize_session=False)
     )
     db.commit()
     if not deleted:
-        raise HTTPException(status_code=404, detail="No slot at that date+slot")
+        raise HTTPException(status_code=404, detail="Slot not found")
 
 
 @router.post("/generate", response_model=MealPlanWeekResponse)
 def generate(
     week_start: str = Query(...),
-    overwrite: bool = Query(False, description="Replace any existing slots"),
+    meals_per_day: int = Query(DEFAULT_MEALS_PER_DAY, ge=1, le=10),
+    overwrite: bool = Query(False),
     db: Session = Depends(get_db),
 ):
-    """Fill empty slots of the week with random recipes (favorites first if any)."""
     monday = _ensure_monday(_parse_date(week_start))
     sunday = monday + timedelta(days=6)
 
-    existing = (
-        db.query(MealPlanSlot)
-        .filter(MealPlanSlot.slot_date >= monday, MealPlanSlot.slot_date <= sunday)
-        .all()
-    )
     if overwrite:
-        for s in existing:
-            db.delete(s)
+        db.query(MealPlanSlot).filter(
+            MealPlanSlot.slot_date >= monday, MealPlanSlot.slot_date <= sunday
+        ).delete(synchronize_session=False)
         db.flush()
-        existing_keys = set()
-    else:
-        existing_keys = {(s.slot_date, s.slot) for s in existing}
 
     favorites = db.query(Recipe).filter(Recipe.is_favorite == True).all()  # noqa: E712
     pool = favorites or db.query(Recipe).limit(50).all()
     if not pool:
-        raise HTTPException(status_code=400, detail="No recipes available to generate from")
+        raise HTTPException(status_code=400, detail="No recipes available")
 
     for day_offset in range(7):
         d = monday + timedelta(days=day_offset)
-        for slot_name in SLOTS:
-            if (d, slot_name) in existing_keys:
-                continue
+        existing = _next_position(db, d)
+        for i in range(meals_per_day - existing if not overwrite else meals_per_day):
             recipe = random.choice(pool)
             db.add(
                 MealPlanSlot(
                     slot_date=d,
-                    slot=slot_name,
+                    position=existing + i if not overwrite else i,
                     recipe_id=recipe.recipe_id,
                     servings=recipe.servings or 1,
                 )
             )
     db.commit()
 
-    slots = (
+    rows = (
         db.query(MealPlanSlot)
         .options(joinedload(MealPlanSlot.recipe))
         .filter(MealPlanSlot.slot_date >= monday, MealPlanSlot.slot_date <= sunday)
+        .order_by(MealPlanSlot.slot_date, MealPlanSlot.position)
         .all()
     )
     return MealPlanWeekResponse(
         week_start=monday.isoformat(),
-        slots=[_to_response(s) for s in slots],
+        slots=[_to_response(s) for s in rows],
     )

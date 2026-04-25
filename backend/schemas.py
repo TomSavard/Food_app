@@ -117,14 +117,11 @@ class ShoppingListResponse(BaseModel):
     total: int
 
 
-# Meal Plan schemas
-SLOTS = ["breakfast", "lunch", "dinner", "extra"]
-
-
+# Meal Plan schemas — stack model: each day holds an ordered list of meals.
 class MealPlanSlotResponse(BaseModel):
     slot_id: UUID
     slot_date: str  # ISO date YYYY-MM-DD
-    slot: str
+    position: int   # 0-based, ordering within the day
     recipe_id: UUID
     recipe_name: str
     servings: int
@@ -137,9 +134,23 @@ class MealPlanWeekResponse(BaseModel):
     slots: List[MealPlanSlotResponse]
 
 
-class MealPlanSlotUpsert(BaseModel):
+class MealPlanSlotCreate(BaseModel):
     slot_date: str
-    slot: str
     recipe_id: UUID
     servings: int = 1
+    position: Optional[int] = None  # default = append to end
+
+
+class MealPlanSlotUpdate(BaseModel):
+    servings: Optional[int] = None
+
+
+class MealPlanReorderItem(BaseModel):
+    slot_id: UUID
+    slot_date: str
+    position: int
+
+
+class MealPlanReorderRequest(BaseModel):
+    items: List[MealPlanReorderItem]
 
