@@ -13,6 +13,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+import re
+import time
+
 from sqlalchemy.orm import sessionmaker  # noqa: E402
 
 from backend.db.models import Ingredient, ShoppingList  # noqa: E402
@@ -22,6 +25,27 @@ from backend.services import ingredient_match as im  # noqa: E402
 SessionLocal = sessionmaker(bind=get_engine(), autocommit=False, autoflush=False)
 
 
+def _llm_candidates_safe(db, name: str):
+    """Wraps im.llm_candidates with a 429 retry. On second failure, returns []
+    so the user can skip rather than losing the whole session."""
+    try:
+        return im.llm_candidates(db, name)
+    except Exception as e:
+        msg = str(e)
+        if "429" not in msg and "RESOURCE_EXHAUSTED" not in msg:
+            raise
+        # Try to extract a retryDelay; fall back to 60s.
+        m = re.search(r"'retryDelay':\s*'(\d+)s'", msg)
+        delay = int(m.group(1)) + 2 if m else 60
+        print(f"  ⏸ rate-limited; sleeping {delay}s …")
+        time.sleep(delay)
+        try:
+            return im.llm_candidates(db, name)
+        except Exception:
+            print("  ⏸ still rate-limited; returning no candidates (you can (s)kip)")
+            return []
+
+
 def _resolve(db, name: str):
     """Returns ingredient_db_id or None ('s' to skip)."""
     exact = im.lookup_exact(db, name)
@@ -29,7 +53,7 @@ def _resolve(db, name: str):
         print(f"  ✓ '{name}' → {exact.alim_nom_fr} (exact)")
         return exact.id
 
-    candidates = im.llm_candidates(db, name)
+    candidates = _llm_candidates_safe(db, name)
     if not candidates:
         choice = input(f"  '{name}': no candidates. (n)ew / (s)kip ? ").strip().lower()
         if choice == "n":
@@ -67,13 +91,14 @@ def main() -> None:
         )
         print(f"Found {len(recipe_ings)} recipe ingredients + {len(shop_items)} shopping items to backfill.")
 
+        # Commit after each row so a crash mid-way doesn't lose work.
         for ing in recipe_ings:
             if not ing.name:
                 continue
             ref = _resolve(db, ing.name)
             if ref is not None:
                 ing.ingredient_db_id = ref
-                db.flush()
+                db.commit()
 
         for item in shop_items:
             if not item.name:
@@ -81,9 +106,8 @@ def main() -> None:
             ref = _resolve(db, item.name)
             if ref is not None:
                 item.ingredient_db_id = ref
-                db.flush()
+                db.commit()
 
-        db.commit()
         print("✅ Done.")
     except Exception:
         db.rollback()
