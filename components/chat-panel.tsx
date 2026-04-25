@@ -84,7 +84,7 @@ export function ChatPanel() {
     <>
       <Button
         size="icon"
-        className="fixed bottom-6 right-6 z-50 h-14 w-14 rounded-full shadow-lg"
+        className="fixed bottom-6 right-6 z-50 h-14 w-14 rounded-full shadow-xl ring-1 ring-primary/30 hover:scale-105 transition-transform"
         onClick={() => setOpen((v) => !v)}
         aria-label={open ? "Fermer l'assistant" : "Ouvrir l'assistant"}
       >
@@ -92,16 +92,16 @@ export function ChatPanel() {
       </Button>
 
       {open && (
-        <div className="fixed bottom-24 right-6 z-50 flex h-[520px] w-[360px] max-w-[calc(100vw-2rem)] flex-col rounded-xl border bg-background shadow-2xl sm:right-6">
-          <div className="flex items-center justify-between border-b px-4 py-3">
-            <h3 className="text-base font-semibold">Assistant</h3>
+        <div className="glass fixed bottom-24 right-6 z-50 flex h-[520px] w-[360px] max-w-[calc(100vw-2rem)] flex-col rounded-3xl sm:right-6">
+          <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+            <h3 className="text-base font-semibold tracking-tight">Assistant</h3>
             <button onClick={() => setOpen(false)} className="text-muted-foreground hover:text-foreground" aria-label="Fermer">
               <X className="h-4 w-4" />
             </button>
           </div>
           <div ref={scrollRef} className="flex-1 space-y-2 overflow-y-auto p-3 text-sm">
             {messages.length === 0 && !streaming && (
-              <p className="text-muted-foreground">Demande-moi ce que tu veux sur tes recettes.</p>
+              <p className="text-muted-foreground">Demande-moi ce que tu veux sur tes recettes ou ta semaine.</p>
             )}
             {messages.map((m, i) => (
               <Bubble key={i} role={m.role} text={m.text} />
@@ -109,7 +109,7 @@ export function ChatPanel() {
             {streaming !== null && <Bubble role="model" text={streaming || "…"} />}
             {error && <Bubble role="error" text={`Erreur: ${error}`} />}
           </div>
-          <div className="flex gap-2 border-t p-3">
+          <div className="flex gap-2 border-t border-white/10 p-3">
             <Input
               ref={inputRef}
               value={input}

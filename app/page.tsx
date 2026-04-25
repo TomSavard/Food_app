@@ -154,10 +154,7 @@ export default function RecipesPage() {
         {filtered.map((r) => (
           <Card
             key={r.recipe_id}
-            className={
-              "cursor-pointer transition-colors hover:border-primary/60 " +
-              (r.is_favorite ? "border-primary/50" : "")
-            }
+            className={"surface-interactive " + (r.is_favorite ? "ring-1 ring-primary/40" : "")}
             onClick={() => setDetailId(r.recipe_id)}
           >
             <CardContent className="p-5 space-y-3">
