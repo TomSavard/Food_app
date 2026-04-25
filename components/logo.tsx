@@ -1,9 +1,9 @@
 /**
- * App logo — sage sprig in a bowl.
+ * App logo — two herb leaves rising from a bowl.
  *
  * Single-color (uses currentColor for stroke + fill-opacity for the bowl
  * tint), so it adapts to light/dark theme and accent color automatically.
- * Scales cleanly from favicon (16px) to PWA install icon (512px).
+ * Pure SVG: scales cleanly from 16px favicon to 512px PWA icon.
  */
 export function Logo({
   size = 24,
@@ -22,21 +22,14 @@ export function Logo({
       className={className}
       aria-hidden
     >
-      {/* Sprig stem */}
+      {/* Left leaf — rises up-left from the bowl rim */}
       <path
-        d="M12 3.5v6"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-      />
-      {/* Left leaf */}
-      <path
-        d="M12 6c-2.2 0-3.6 1.1-3.6 3.1 1.7 0 3.2-1 3.6-3.1Z"
+        d="M12 10.5C9.2 9.7 7.6 7.7 8 4.8c2.3.4 3.8 2.1 4 5.7Z"
         fill="currentColor"
       />
-      {/* Right leaf */}
+      {/* Right leaf — rises up-right from the bowl rim */}
       <path
-        d="M12 7.6c2.2 0 3.6 1 3.6 2.8-1.7 0-3.2-.9-3.6-2.8Z"
+        d="M12 10.5C14.8 9.7 16.4 7.7 16 4.8c-2.3.4-3.8 2.1-4 5.7Z"
         fill="currentColor"
       />
       {/* Bowl rim */}
@@ -46,7 +39,7 @@ export function Logo({
         strokeWidth="1.6"
         strokeLinecap="round"
       />
-      {/* Bowl body */}
+      {/* Bowl body — outline */}
       <path
         d="M4 11.6c.5 4.6 3.7 7.4 8 7.4s7.5-2.8 8-7.4"
         stroke="currentColor"
@@ -54,6 +47,7 @@ export function Logo({
         strokeLinecap="round"
         strokeLinejoin="round"
       />
+      {/* Bowl body — soft tint fill */}
       <path
         d="M4 11.6c.5 4.6 3.7 7.4 8 7.4s7.5-2.8 8-7.4Z"
         fill="currentColor"
