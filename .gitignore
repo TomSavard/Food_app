@@ -60,11 +60,11 @@ alembic/versions/*.pyc
 
 # Google Drive credentials (legacy)
 streamlit_drive_connector.json
-*.json
-!package.json
-!package-lock.json
-!vercel.json
-!frontend/manifest.json
+# (We used to broadly ignore *.json here, which silently swallowed
+# tsconfig.json, vercel.json, manifest.json — every change required a
+# negation. Ignoring credentials by name is enough.)
+*credentials*.json
+*service-account*.json
 
 # Database
 *.db
