@@ -77,3 +77,9 @@ tmp/
 .vercel
 .env*.local
 CLAUDE.md
+
+# Build artifacts
+tsconfig.tsbuildinfo
+
+# CIQUAL data file (loaded into Neon, kept out of repo)
+Table*.xls

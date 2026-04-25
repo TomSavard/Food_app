@@ -104,10 +104,7 @@ def get_recipe_nutrition(recipe_id: UUID, db: Session = Depends(get_db)):
     # Add per-serving values
     servings = recipe.servings if recipe.servings > 0 else 1
     nutrition["per_serving"] = {
-        "calories": round(nutrition["calories"] / servings, 1),
-        "proteins": round(nutrition["proteins"] / servings, 1),
-        "lipides": round(nutrition["lipides"] / servings, 1),
-        "glucides": round(nutrition["glucides"] / servings, 1)
+        k: round(v / servings, 1) for k, v in nutrition.items()
     }
     nutrition["servings"] = servings
     
@@ -140,7 +137,8 @@ def create_recipe(recipe_data: RecipeCreate, db: Session = Depends(get_db)):
             name=ing_data.name,
             quantity=ing_data.quantity,
             unit=ing_data.unit,
-            notes=ing_data.notes
+            notes=ing_data.notes,
+            ingredient_db_id=ing_data.ingredient_db_id,
         )
         db.add(ingredient)
     

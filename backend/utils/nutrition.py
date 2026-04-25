@@ -1,160 +1,168 @@
 """
-Nutrition calculation utilities
-Ports the logic from Streamlit app to FastAPI
+Nutrition calculation utilities.
+
+Resolution path: each `Ingredient` carries an `ingredient_db_id` FK set by
+the match flow. NULL FK → silently untracked.
+
+Quantity → grams in two layers:
+  1. Spoon/cup table: cuillère à soupe / cuillère à café / verre / tasse / pincée.
+     These are conventional volumes (or, for pincée, mass).
+  2. Per-ingredient density (g/ml) for any ml/cl/l, after spoon conversion.
 """
+from __future__ import annotations
+
 import math
-from typing import Optional, Dict, List
-from backend.db.models import IngredientDatabase, Ingredient
+import re
+import unicodedata
+from typing import Dict, List, Optional
+
 from sqlalchemy.orm import Session
 
+from backend.db.models import Ingredient, IngredientDatabase
 
-def safe_float_conversion(value) -> Optional[float]:
-    """
-    Safely convert a value to float, handling European decimal format and special cases.
-    Ported from Streamlit utils.py
-    """
+# CIQUAL column names AFTER load-time normalization (newlines → spaces).
+NUTRITION_KEYS = {
+    "calories": "Energie, Règlement UE N° 1169 2011 (kcal 100 g)",
+    "proteins": "Protéines, N x facteur de Jones (g 100 g)",
+    "lipides": "Lipides (g 100 g)",
+    "glucides": "Glucides (g 100 g)",
+    "salt": "Sel chlorure de sodium (g 100 g)",
+    "saturated_fats": "AG saturés (g 100 g)",
+}
+
+
+def safe_float(value) -> Optional[float]:
+    """Tolerant float parser for CIQUAL cells (handles 'traces', '<0.1',
+    '1,5', ranges 'a-b'). Returns None when unparseable."""
     if value is None:
         return None
-
     if isinstance(value, float) and math.isnan(value):
         return None
-    
-    str_val = str(value).strip().lower()
-    
-    # Check for invalid values that should return None (no data)
-    if str_val in ['-', '', 'nan', 'n/a', 'na']:
+    if isinstance(value, (int, float)):
+        return float(value)
+    s = str(value).strip().lower()
+    if s in ("", "-", "nan", "n/a", "na"):
         return None
-    
-    # Check for values that should be treated as 0
-    zero_values = ['traces', 'trace', 'tr', '<0.1', '<0,1', '0', '0.0', '0,0']
-    if str_val in zero_values:
+    if s in ("traces", "trace", "tr", "<0.1", "<0,1", "0", "0.0", "0,0"):
         return 0.0
-    
-    # Handle ranges (take the average)
-    if '-' in str_val and str_val not in ['-']:
+    if s.startswith("<"):
         try:
-            parts = str_val.split('-')
-            if len(parts) == 2:
-                # Convert both parts and take average
-                val1 = float(parts[0].strip().replace(',', '.'))
-                val2 = float(parts[1].strip().replace(',', '.'))
-                return (val1 + val2) / 2
-        except (ValueError, IndexError):
-            pass
-    
-    # Handle less than values (e.g., "<5" becomes 2.5)
-    if str_val.startswith('<'):
-        try:
-            numeric_part = str_val[1:].strip().replace(',', '.')
-            value = float(numeric_part)
-            return value / 2  # Take half of the upper limit
+            return float(s[1:].replace(",", ".")) / 2
         except ValueError:
-            return 0.0  # If we can't parse it, assume traces
-    
-    # Handle greater than values (e.g., ">50" becomes 50)
-    if str_val.startswith('>'):
+            return 0.0
+    if s.startswith(">"):
         try:
-            numeric_part = str_val[1:].strip().replace(',', '.')
-            return float(numeric_part)
+            return float(s[1:].replace(",", "."))
+        except ValueError:
+            return None
+    if "-" in s:
+        try:
+            a, b = s.split("-", 1)
+            return (float(a.replace(",", ".")) + float(b.replace(",", "."))) / 2
         except ValueError:
             pass
-    
     try:
-        # Replace comma with dot for European decimal format
-        normalized_val = str_val.replace(',', '.')
-        return float(normalized_val)
-    except (ValueError, TypeError):
+        return float(s.replace(",", "."))
+    except ValueError:
         return None
 
 
-def get_nutrition_value(ingredient_db_row: IngredientDatabase, nutrient_key: str) -> Optional[float]:
-    """Get nutrition value from ingredient database row"""
-    if not ingredient_db_row.nutrition_data:
-        return None
-    
-    value = ingredient_db_row.nutrition_data.get(nutrient_key)
-    return safe_float_conversion(value)
+def _strip_accents(s: str) -> str:
+    return "".join(
+        c for c in unicodedata.normalize("NFKD", s) if not unicodedata.combining(c)
+    )
 
 
-def convert_to_grams(quantity: float, unit: str) -> Optional[float]:
-    """
-    Convert quantity to grams for nutrition calculation.
-    Note: Only weight units (g, kg, mg) are supported for nutrition.
-    Volume units (ml, cl, l) are not converted as nutrition data is per 100g.
-    """
-    unit_lower = unit.lower().strip() if unit else ""
-    
-    if unit_lower == "g":
-        return quantity
-    elif unit_lower == "kg":
-        return quantity * 1000
-    elif unit_lower == "mg":
-        return quantity / 1000
-    elif unit_lower in ["ml", "cl", "l"]:
-        # Volume units - nutrition data is per 100g, so we can't convert volume to weight
-        # without density information. Skip for nutrition calculation.
+def _normalize_unit(unit: str) -> str:
+    """Lowercase + strip accents + collapse whitespace + strip dots."""
+    if not unit:
+        return ""
+    n = _strip_accents(unit).lower()
+    n = re.sub(r"[.\s]+", " ", n).strip()
+    return n
+
+
+# Conventional cooking volumes / masses, keyed by normalized unit.
+# Values: ("ml", float)  → ml; ("g", float) → grams (skips density step).
+_SPOON_TABLE: dict[str, tuple[str, float]] = {
+    "cuillere a soupe": ("ml", 15.0),
+    "cuilleres a soupe": ("ml", 15.0),
+    "cas": ("ml", 15.0),
+    "c a s": ("ml", 15.0),
+    "c s": ("ml", 15.0),
+    "cuillere a cafe": ("ml", 5.0),
+    "cuilleres a cafe": ("ml", 5.0),
+    "cac": ("ml", 5.0),
+    "c a c": ("ml", 5.0),
+    "c c": ("ml", 5.0),
+    "verre": ("ml", 200.0),
+    "verres": ("ml", 200.0),
+    "tasse": ("ml", 240.0),
+    "tasses": ("ml", 240.0),
+    "pincee": ("g", 0.5),
+    "pincees": ("g", 0.5),
+}
+
+
+def convert_to_grams(
+    quantity: float, unit: str, density_g_per_ml: Optional[float] = None
+) -> Optional[float]:
+    """quantity × unit → grams. Returns None when conversion is impossible."""
+    if quantity is None:
         return None
-    else:
-        # Unsupported unit for nutrition calculation
+    n = _normalize_unit(unit)
+
+    # Direct mass.
+    if n in ("g", ""):
+        return float(quantity) if n == "g" else None
+    if n == "kg":
+        return float(quantity) * 1000
+    if n == "mg":
+        return float(quantity) / 1000
+
+    # Direct volume.
+    ml: Optional[float] = None
+    if n == "ml":
+        ml = float(quantity)
+    elif n == "cl":
+        ml = float(quantity) * 10
+    elif n == "l":
+        ml = float(quantity) * 1000
+    elif n in _SPOON_TABLE:
+        kind, factor = _SPOON_TABLE[n]
+        if kind == "g":
+            return float(quantity) * factor
+        ml = float(quantity) * factor
+
+    if ml is None:
         return None
+    if density_g_per_ml is None:
+        return None
+    return ml * float(density_g_per_ml)
+
+
+def _per_100g(row: IngredientDatabase, key: str) -> Optional[float]:
+    if not row.nutrition_data:
+        return None
+    return safe_float(row.nutrition_data.get(key))
 
 
 def compute_recipe_nutrition(
-    ingredients: List[Ingredient],
-    db: Session
+    ingredients: List[Ingredient], db: Session
 ) -> Dict[str, float]:
-    """
-    Compute total nutrition for a recipe from its ingredients.
-    Returns dict with: calories, proteins, lipides, glucides
-    """
-    total_calories = 0.0
-    total_proteins = 0.0
-    total_lipides = 0.0
-    total_glucides = 0.0
-    
-    # Nutrition column keys (as stored in JSONB)
-    NUTRITION_KEYS = {
-        "calories": "Energie, Règlement UE N° 1169/2011 (kcal/100 g)",
-        "proteins": "Protéines, N x facteur de Jones (g/100 g)",
-        "lipides": "Lipides (g/100 g)",
-        "glucides": "Glucides (g/100 g)"
-    }
-    
+    totals = {k: 0.0 for k in NUTRITION_KEYS}
     for ing in ingredients:
-        # Convert quantity to grams
-        qty_in_grams = convert_to_grams(ing.quantity, ing.unit)
-        if qty_in_grams is None:
-            continue  # Skip unsupported units
-        
-        # Find ingredient in database
-        ingredient_db = db.query(IngredientDatabase).filter(
-            IngredientDatabase.alim_nom_fr == ing.name
-        ).first()
-        
-        if not ingredient_db:
-            continue  # Ingredient not found in database
-        
-        # Calculate each nutrient
-        calories_per_100g = get_nutrition_value(ingredient_db, NUTRITION_KEYS["calories"])
-        if calories_per_100g is not None:
-            total_calories += (calories_per_100g * qty_in_grams) / 100
-        
-        proteins_per_100g = get_nutrition_value(ingredient_db, NUTRITION_KEYS["proteins"])
-        if proteins_per_100g is not None:
-            total_proteins += (proteins_per_100g * qty_in_grams) / 100
-        
-        lipides_per_100g = get_nutrition_value(ingredient_db, NUTRITION_KEYS["lipides"])
-        if lipides_per_100g is not None:
-            total_lipides += (lipides_per_100g * qty_in_grams) / 100
-        
-        glucides_per_100g = get_nutrition_value(ingredient_db, NUTRITION_KEYS["glucides"])
-        if glucides_per_100g is not None:
-            total_glucides += (glucides_per_100g * qty_in_grams) / 100
-    
-    return {
-        "calories": round(total_calories, 1),
-        "proteins": round(total_proteins, 1),
-        "lipides": round(total_lipides, 1),
-        "glucides": round(total_glucides, 1)
-    }
+        if ing.ingredient_db_id is None:
+            continue
+        row = db.get(IngredientDatabase, ing.ingredient_db_id)
+        if row is None:
+            continue
+        grams = convert_to_grams(ing.quantity, ing.unit, row.density_g_per_ml)
+        if grams is None:
+            continue
+        for nutrient, key in NUTRITION_KEYS.items():
+            per100 = _per_100g(row, key)
+            if per100 is not None:
+                totals[nutrient] += per100 * grams / 100
 
+    return {k: round(v, 1) for k, v in totals.items()}

@@ -55,9 +55,10 @@ def _next_position(db: Session) -> int:
     return (last.position + 1) if last else 0
 
 
-def _find_or_create_item(db: Session, name: str) -> ShoppingList:
+def _find_or_create_item(db: Session, name: str, ingredient_db_id=None) -> ShoppingList:
     """Match by lowercased+trimmed name. Create if missing, with category
-    resolved via the categorize service (db lookup → heuristic → 'Autres')."""
+    resolved via the categorize service (db lookup → heuristic → 'Autres').
+    Carries the recipe ingredient's `ingredient_db_id` FK forward when known."""
     needle = name.strip()
     item = (
         db.query(ShoppingList)
@@ -65,12 +66,16 @@ def _find_or_create_item(db: Session, name: str) -> ShoppingList:
         .first()
     )
     if item:
+        if ingredient_db_id and not item.ingredient_db_id:
+            item.ingredient_db_id = ingredient_db_id
+            db.flush()
         return item
     item = ShoppingList(
         name=needle,
         position=_next_position(db),
         is_checked=False,
         category=categorize(db, needle),
+        ingredient_db_id=ingredient_db_id,
     )
     db.add(item)
     db.flush()
@@ -90,7 +95,7 @@ def sync_slot_added(db: Session, slot: MealPlanSlot) -> None:
     for ing in recipe.ingredients:
         if not ing.name:
             continue
-        item = _find_or_create_item(db, ing.name)
+        item = _find_or_create_item(db, ing.name, ingredient_db_id=ing.ingredient_db_id)
         db.add(
             ShoppingListContribution(
                 item_id=item.item_id,

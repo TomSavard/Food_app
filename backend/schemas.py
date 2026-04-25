@@ -10,6 +10,7 @@ class IngredientBase(BaseModel):
     quantity: float = 0.0
     unit: str = ""
     notes: str = ""
+    ingredient_db_id: Optional[UUID] = None
 
 
 class IngredientCreate(IngredientBase):

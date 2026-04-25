@@ -1,7 +1,11 @@
 // Typed API client. Same-origin (Vercel routes /api/* to the Python function).
 
 import type {
+  CanonicalRow,
   IngredientDb,
+  IngredientDetail,
+  IngredientListResponse,
+  MatchCandidatesResponse,
   Recipe,
   RecipeCreate,
   RecipeListResponse,
@@ -147,6 +151,75 @@ export const updateMealServings = (slot_id: string, servings: number) =>
 
 export const deleteMeal = (slot_id: string) =>
   http<void>(`/meal-plan/${slot_id}`, { method: "DELETE" });
+
+// ---- Ingredient match (free-text → CIQUAL canonical) ----
+export const getMatchCandidates = (name: string) =>
+  http<MatchCandidatesResponse>(`/match/candidates${qs({ name })}`);
+
+export const confirmMatch = (name: string, ingredient_db_id: string) =>
+  http<CanonicalRow>(`/match/confirm`, {
+    method: "POST",
+    body: JSON.stringify({ name, ingredient_db_id }),
+  });
+
+export const createIngredient = (name: string, category?: string) =>
+  http<CanonicalRow>(`/match/create`, {
+    method: "POST",
+    body: JSON.stringify({ name, category }),
+  });
+
+// ---- Ingredient browse / curation ----
+export interface IngredientFilters {
+  search?: string;
+  category?: string;
+  missing?: boolean;
+  missing_density?: boolean;
+  modified?: boolean;
+  source?: "ciqual" | "user" | "llm";
+  skip?: number;
+  limit?: number;
+}
+
+export const listIngredients = (filters: IngredientFilters = {}) =>
+  http<IngredientListResponse>(`/ingredients${qs(filters)}`);
+
+export const getIngredientDetail = (id: string) =>
+  http<IngredientDetail>(`/ingredients/${id}`);
+
+export const updateIngredient = (
+  id: string,
+  data: {
+    name?: string;
+    category?: string;
+    density_g_per_ml?: number;
+    nutrition_data?: Record<string, number | string | null>;
+    add_alias?: string;
+  }
+) =>
+  http<IngredientDetail>(`/ingredients/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+
+export const llmFillProposal = (id: string) =>
+  http<{ proposal: Record<string, number | string | null> }>(
+    `/ingredients/${id}/llm-fill`,
+    { method: "POST" }
+  );
+
+export const llmFillConfirm = (id: string, values: Record<string, number | string | null>) =>
+  http<IngredientDetail>(`/ingredients/${id}/llm-fill/confirm`, {
+    method: "POST",
+    body: JSON.stringify({ values }),
+  });
+
+export const llmDensity = (id: string) =>
+  http<{ value: number; reason: string }>(`/ingredients/${id}/llm-density`, {
+    method: "POST",
+  });
+
+export const deleteIngredientAlias = (id: string, alias_id: string) =>
+  http<void>(`/ingredients/${id}/aliases/${alias_id}`, { method: "DELETE" });
 
 export const reorderMeals = (
   items: { slot_id: string; slot_date: string; position: number }[]
