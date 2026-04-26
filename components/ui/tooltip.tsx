@@ -51,7 +51,7 @@ export function Tooltip({
         role="tooltip"
         className={
           "pointer-events-none absolute left-1/2 z-50 -translate-x-1/2 whitespace-normal " +
-          "rounded-md border bg-popover px-2.5 py-1.5 text-xs text-popover-foreground shadow-md " +
+          "rounded-md border bg-background px-2.5 py-1.5 text-xs text-foreground shadow-md " +
           "transition-opacity duration-150 " +
           (open ? "opacity-100" : "opacity-0") + " " +
           (side === "top" ? "bottom-full mb-2" : "top-full mt-2")
