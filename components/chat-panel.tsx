@@ -83,14 +83,23 @@ export function ChatPanel() {
 
   return (
     <>
-      <Button
-        size="icon"
-        className="assistant-orb-host fixed bottom-6 right-6 z-50 h-14 w-14 rounded-full shadow-xl ring-1 ring-primary/30 hover:scale-105 transition-transform"
+      <button
+        type="button"
         onClick={() => setOpen((v) => !v)}
         aria-label={open ? "Fermer l'assistant" : "Ouvrir l'assistant"}
+        className={
+          "assistant-orb-host fixed bottom-6 right-6 z-50 h-14 w-14 rounded-full transition-transform hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary " +
+          (open
+            ? "bg-foreground/90 text-background shadow-xl"
+            : "bg-transparent")
+        }
       >
-        {open ? <X className="h-5 w-5" /> : <AssistantOrb size={32} />}
-      </Button>
+        {open ? (
+          <X className="mx-auto h-5 w-5" />
+        ) : (
+          <AssistantOrb size={56} />
+        )}
+      </button>
 
       {open && (
         <div className="glass fixed bottom-24 right-6 z-50 flex h-[520px] w-[360px] max-w-[calc(100vw-2rem)] flex-col rounded-3xl sm:right-6">
