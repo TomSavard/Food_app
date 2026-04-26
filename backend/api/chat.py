@@ -18,7 +18,7 @@ from pydantic import BaseModel
 from sqlalchemy import String, desc, func
 from sqlalchemy.orm import Session, joinedload, selectinload
 
-from backend.db.models import Ingredient, MealPlanSlot, Recipe
+from backend.db.models import Ingredient, IngredientDatabase, MealPlanSlot, Recipe
 from backend.db.session import get_db
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
@@ -29,7 +29,10 @@ SYSTEM_INSTRUCTION = (
     "get_meal_plan, add_meal_to_day, remove_meal, generate_meal_plan "
     "(read and edit the weekly meal plan — each day is an ordered stack of meals); "
     "categorize_shopping_list (sort the shopping list into supermarket sections "
-    "for efficient shopping). "
+    "for efficient shopping); "
+    "replace_ingredient_in_recipes (bulk-rename an ingredient across all recipes; "
+    "ALWAYS run with dry_run=true first to preview, then ask the user to confirm "
+    "before calling again with dry_run=false). "
     "Dates are ISO YYYY-MM-DD; weeks start on Monday. "
     "When the user asks about their recipes, meal plan, or shopping list "
     "organization, call the relevant tools and answer from what they return. "
@@ -281,6 +284,100 @@ def _build_shopping_tools(db: Session):
     return [categorize_shopping_list]
 
 
+def _build_recipe_edit_tools(db: Session):
+    """Tools that write to recipes. Default to dry-run for safety."""
+
+    def replace_ingredient_in_recipes(
+        old_name: str,
+        new_name: str,
+        relink_to_db_name: Optional[str] = None,
+        dry_run: bool = True,
+    ) -> dict:
+        """Bulk-rename ingredient rows across all recipes. Match is
+        case-insensitive on a trimmed comparison of the ingredient's
+        free-text name. Default is dry-run — call again with
+        dry_run=False after the user confirms.
+
+        Args:
+            old_name: The free-text ingredient name to replace
+                (e.g. "Beurre à 82% MG, doux"). Match is case-
+                insensitive after trimming.
+            new_name: The replacement free-text name
+                (e.g. "Beurre à 80% MG minimum, doux").
+            relink_to_db_name: Optional. If set, look up an
+                IngredientDatabase row whose alim_nom_fr matches this
+                exactly (case-insensitive) and set the FK on every
+                renamed ingredient. Use this when the new_name should
+                also relink the nutrition canonical reference.
+            dry_run: If True (default), report what would change without
+                writing. Set False only after the user confirms.
+
+        Returns:
+            {
+              "matched": int,
+              "preview": [{"recipe_name": str, "current_name": str}, ...],
+              "applied": bool,
+              "relinked_to_id": str | None,
+            }
+        """
+        needle = old_name.strip().lower()
+        if not needle or not new_name.strip():
+            return {"error": "old_name and new_name are required"}
+
+        rows = (
+            db.query(Ingredient)
+            .options(joinedload(Ingredient.recipe))
+            .filter(func.lower(func.trim(Ingredient.name)) == needle)
+            .all()
+        )
+
+        target_id = None
+        if relink_to_db_name:
+            target = (
+                db.query(IngredientDatabase)
+                .filter(
+                    func.lower(IngredientDatabase.alim_nom_fr)
+                    == relink_to_db_name.strip().lower()
+                )
+                .first()
+            )
+            if target is None:
+                return {
+                    "error": (
+                        f"Reference ingredient '{relink_to_db_name}' not found "
+                        "in the knowledge base."
+                    )
+                }
+            target_id = str(target.id)
+
+        preview = [
+            {"recipe_name": r.recipe.name if r.recipe else "?", "current_name": r.name}
+            for r in rows
+        ]
+
+        if dry_run:
+            return {
+                "matched": len(rows),
+                "preview": preview,
+                "applied": False,
+                "relinked_to_id": target_id,
+            }
+
+        for r in rows:
+            r.name = new_name.strip()
+            if target_id is not None:
+                r.ingredient_db_id = target_id
+        db.commit()
+        return {
+            "matched": len(rows),
+            "preview": preview,
+            "applied": True,
+            "relinked_to_id": target_id,
+        }
+
+    return [replace_ingredient_in_recipes]
+
+
 def _to_contents(messages: List[ChatMessage]) -> List[types.Content]:
     return [
         types.Content(role=m.role, parts=[types.Part(text=m.text)])
@@ -303,6 +400,7 @@ def chat(req: ChatRequest, db: Session = Depends(get_db)):
             _build_list_recipes_tool(db),
             *_build_meal_plan_tools(db),
             *_build_shopping_tools(db),
+            *_build_recipe_edit_tools(db),
         ],
     )
 

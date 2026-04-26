@@ -169,3 +169,11 @@ def test_daily_macros_keys_are_eight(client):
     res = client.get("/api/meal-plan/nutrition", params={"week_start": monday}).json()
     assert len(res["days"][0]["macros"]) == 8
     assert set(res["days"][0]["macros"].keys()) == set(DAILY_MACROS)
+
+
+def test_rdi_changes_with_sex(client):
+    monday = _next_monday().isoformat()
+    male = client.get("/api/meal-plan/nutrition", params={"week_start": monday, "sex": "male"}).json()
+    female = client.get("/api/meal-plan/nutrition", params={"week_start": monday, "sex": "female"}).json()
+    diffs = [k for k in male["rdi"] if male["rdi"][k] != female["rdi"].get(k)]
+    assert len(diffs) >= 5

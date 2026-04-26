@@ -246,3 +246,20 @@ export const generateMealPlan = (
 
 export const getWeeklyNutrition = (weekStart: string) =>
   http<WeeklyNutrition>(`/meal-plan/nutrition${qs({ week_start: weekStart })}`);
+
+// ---- Reference (ANSES + Interfel) ----
+import type { InSeasonResponse, RdiReference, SeasonalityReference } from "./types";
+
+export const getRdiReference = () =>
+  http<RdiReference>(`/reference/rdi`);
+
+export const getSeasonalityReference = () =>
+  http<SeasonalityReference>(`/reference/seasonality`);
+
+export const getInSeason = (month?: number) =>
+  http<InSeasonResponse>(`/reference/seasonality/in-season${qs({ month })}`);
+
+export const getWeeklyNutritionFor = (weekStart: string, sex: "male" | "female") =>
+  http<import("./types").WeeklyNutrition>(
+    `/meal-plan/nutrition${qs({ week_start: weekStart, sex })}`
+  );
