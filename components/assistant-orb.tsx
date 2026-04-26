@@ -67,61 +67,79 @@ void main() {
   float d = length(uv);
   float ang = atan(uv.y, uv.x);
 
-  // Time scales with hover.
-  float t = u_time * mix(0.25, 0.85, u_hover);
+  // Time scales with hover (faster when active).
+  float t = u_time * mix(0.45, 1.10, u_hover);
 
-  // Organic rim wobble: radius depends slightly on angle + time.
-  float wob = fbm(vec2(ang * 1.2 + t * 0.4, t * 0.25)) - 0.5;
-  float rimMid   = 0.43 + wob * 0.018;
-  float rimWidth = mix(0.026, 0.040, u_hover);
+  // Animated radial wobble: a few angular harmonics so the rim breathes.
+  float wob = fbm(vec2(ang * 1.4 + t * 0.7, t * 0.3)) - 0.5;
+  float rimMid    = 0.41 + wob * 0.030;
+  float rimWidth  = mix(0.060, 0.090, u_hover);          // wider, more visible
 
-  // Soft Gaussian rim — thin glowing band, exp falloff both sides.
+  // Pulsing brightness around the ring — bands of light travel around.
+  float bandPulse = 0.55 + 0.45 *
+    (sin(ang * 3.0 + t * 1.6) * sin(ang * 2.0 - t * 1.1)) * 0.5;
+  // Soft Gaussian rim band.
   float r = (d - rimMid) / rimWidth;
-  float rim = exp(-r * r);
+  float rim = exp(-r * r) * (0.75 + 0.55 * bandPulse);
 
-  // Iridescence around the rim: cycle hue with angle + time.
+  // Wider inner shell at low alpha — gives the rim depth, fades inward.
+  float shellD = (d - (rimMid - 0.05)) / 0.16;
+  float shell  = exp(-shellD * shellD) * mix(0.20, 0.32, u_hover);
+  shell *= step(d, rimMid + 0.005);
+
+  // Iridescence: stronger contrast, faster cycles, more colors.
   float hueAng = ang / (2.0 * PI) + 0.5;
-  float cyc1 = sin(hueAng * 4.0 * PI + t * 1.4) * 0.5 + 0.5;
-  float cyc2 = cos(hueAng * 2.0 * PI - t * 0.8) * 0.5 + 0.5;
-  vec3 tintCyan    = mix(u_color, vec3(0.45, 0.95, 1.00), 0.55);
-  vec3 tintMagenta = mix(u_color, vec3(0.95, 0.55, 1.00), 0.55);
-  vec3 rimCol = mix(u_color, tintCyan, cyc1);
-  rimCol = mix(rimCol, tintMagenta, cyc2 * 0.55);
-  // Push toward white at the brightest part of the cycle for a gleam.
-  rimCol += vec3(0.18) * cyc1;
+  float cyc1 = sin(hueAng * 6.0 * PI + t * 2.2) * 0.5 + 0.5;
+  float cyc2 = cos(hueAng * 4.0 * PI - t * 1.4) * 0.5 + 0.5;
+  float cyc3 = sin(hueAng * 2.0 * PI + t * 0.7) * 0.5 + 0.5;
+  vec3 tintCyan    = mix(u_color, vec3(0.30, 0.95, 1.00), 0.75);
+  vec3 tintMagenta = mix(u_color, vec3(1.00, 0.50, 0.95), 0.75);
+  vec3 tintWarm    = mix(u_color, vec3(1.00, 0.90, 0.55), 0.55);
+  vec3 rimCol = mix(u_color, tintCyan,    cyc1);
+  rimCol      = mix(rimCol,  tintMagenta, cyc2 * 0.75);
+  rimCol      = mix(rimCol,  tintWarm,    cyc3 * 0.45);
+  // Bright gleam where bands peak.
+  rimCol += vec3(0.30) * pow(bandPulse, 2.0);
 
-  // Interior: very faint drifting wisps. Mostly see-through.
-  vec2 flow = vec2(t * 0.55, -t * 0.40);
-  float wisp = fbm(uv * 5.5 + flow);
+  // Interior wisps: visible, drifting, bigger movement.
+  vec2 flow = vec2(t * 0.85, -t * 0.65);
+  float w1 = fbm(uv * 5.0 + flow);
+  float w2 = fbm(uv * 8.5 - flow * 0.7 + 9.7);
+  float wisp = mix(w1, w2, 0.5);
   float interiorMask = smoothstep(rimMid, 0.0, d);
-  float interior = wisp * interiorMask * mix(0.05, 0.14, u_hover);
+  // Pop the wisps with contrast so they read as real motion.
+  wisp = smoothstep(0.35, 0.85, wisp);
+  float interior = wisp * interiorMask * mix(0.22, 0.40, u_hover);
 
-  // Specular reflection — small bright drifting spot inside the bubble.
-  vec2 specPos = vec2(-0.13 + sin(t * 0.5) * 0.025,
-                       0.17 + cos(t * 0.4) * 0.020);
-  float specD = length(uv - specPos) / 0.07;
-  float spec = exp(-specD * specD) * mix(0.55, 0.95, u_hover);
+  // Specular reflection — bright drifting spot inside the bubble.
+  vec2 specPos = vec2(-0.12 + sin(t * 0.7) * 0.04,
+                       0.16 + cos(t * 0.5) * 0.030);
+  float specD = length(uv - specPos) / 0.085;
+  float spec = exp(-specD * specD) * mix(0.65, 1.00, u_hover);
 
-  // Tiny secondary highlight, lower-right, faster cycle.
-  vec2 sp2 = vec2(0.10 + sin(t * 0.9) * 0.03,
-                 -0.08 + cos(t * 1.1) * 0.025);
-  float sp2D = length(uv - sp2) / 0.04;
-  float spec2 = exp(-sp2D * sp2D) * 0.35;
+  // Smaller faster highlight, lower right.
+  vec2 sp2 = vec2(0.13 + sin(t * 1.3) * 0.04,
+                 -0.09 + cos(t * 1.7) * 0.030);
+  float sp2D = length(uv - sp2) / 0.05;
+  float spec2 = exp(-sp2D * sp2D) * 0.45;
 
-  // Outer halo — soft glow outside the rim.
-  float haloD = (d - (rimMid + 0.06)) / 0.06;
-  float halo = exp(-haloD * haloD) * mix(0.18, 0.32, u_hover);
-  halo *= step(d, rimMid + 0.18);
+  // Outer halo — glow outside the rim, breathes.
+  float haloD = (d - (rimMid + 0.08)) / 0.08;
+  float haloPulse = 0.85 + 0.20 * sin(t * 0.9);
+  float halo = exp(-haloD * haloD) * mix(0.28, 0.50, u_hover) * haloPulse;
+  halo *= step(d, rimMid + 0.30);
 
-  // Compose. Premultiplied-style: color contribution scaled by its own alpha.
+  // Compose. Color contribution scaled by its own coverage.
   vec3  col   = rimCol * rim
-              + u_color * interior * 0.9
+              + u_color * shell * 1.1
+              + u_color * interior * 1.2
               + vec3(1.0) * (spec + spec2)
-              + rimCol * halo * 0.7;
+              + rimCol * halo * 0.85;
   float alpha = rim * 0.95
-              + interior * 0.85
-              + (spec + spec2) * 0.85
-              + halo * 0.55;
+              + shell * 0.65
+              + interior * 0.90
+              + (spec + spec2) * 0.90
+              + halo * 0.65;
 
   gl_FragColor = vec4(col, clamp(alpha, 0.0, 1.0));
 }
