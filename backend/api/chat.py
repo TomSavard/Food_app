@@ -18,7 +18,7 @@ from pydantic import BaseModel
 from sqlalchemy import String, desc, func
 from sqlalchemy.orm import Session, joinedload, selectinload
 
-from backend.db.models import Ingredient, IngredientDatabase, MealPlanSlot, Recipe
+from backend.db.models import Ingredient, IngredientDatabase, Instruction, MealPlanSlot, Recipe
 from backend.db.session import get_db
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
@@ -30,6 +30,7 @@ SYSTEM_INSTRUCTION = (
     "- browse the user's recipes (search, fetch detail, fetch nutrition)\n"
     "- read and edit the weekly meal plan (add/remove meals, regenerate the week)\n"
     "- read the shopping list and re-categorize it by supermarket section\n"
+    "- create new recipes; edit recipe metadata; add/update/remove ingredients on a recipe; delete recipes\n"
     "- bulk-rename an ingredient across all recipes\n"
     "- look up the ingredient reference DB\n"
     "- answer nutrition questions (weekly intake, ANSES targets, untracked items)\n"
@@ -378,7 +379,280 @@ def _build_recipe_edit_tools(db: Session):
             "relinked_to_id": target_id,
         }
 
-    return [replace_ingredient_in_recipes]
+    def create_recipe(
+        name: str,
+        ingredients: List[dict],
+        instructions: List[str],
+        servings: int = 2,
+        cuisine_type: Optional[str] = None,
+        tags: Optional[List[str]] = None,
+        description: Optional[str] = None,
+        prep_time: int = 0,
+        cook_time: int = 0,
+    ) -> dict:
+        """Create a new recipe. Each ingredient is auto-linked to the
+        reference DB via case-insensitive exact / alias match when possible.
+
+        Args:
+            name: Recipe name (required, non-empty).
+            ingredients: List of {name, quantity, unit, notes?} dicts.
+            instructions: List of step strings, in order.
+            servings: Default 2.
+            cuisine_type: Optional cuisine tag (e.g. "italienne").
+            tags: Optional free-form tags.
+            description: Optional short description.
+            prep_time: Minutes (default 0).
+            cook_time: Minutes (default 0).
+        """
+        from backend.services.ingredient_match import lookup_exact
+
+        if not name or not name.strip():
+            return {"error": "name is required"}
+        recipe = Recipe(
+            name=name.strip(),
+            description=(description or "").strip() or None,
+            prep_time=prep_time,
+            cook_time=cook_time,
+            servings=servings,
+            cuisine_type=(cuisine_type or "").strip() or None,
+            tags=tags or [],
+        )
+        db.add(recipe); db.flush()
+        n_linked = 0
+        for ing in ingredients or []:
+            ing_name = (ing.get("name") or "").strip()
+            if not ing_name:
+                continue
+            match = lookup_exact(db, ing_name)
+            if match:
+                n_linked += 1
+            db.add(Ingredient(
+                recipe_id=recipe.recipe_id,
+                name=ing_name,
+                quantity=float(ing.get("quantity") or 0),
+                unit=(ing.get("unit") or "").strip(),
+                notes=(ing.get("notes") or "").strip(),
+                ingredient_db_id=match.id if match else None,
+            ))
+        for idx, text in enumerate(instructions or []):
+            if not text or not text.strip():
+                continue
+            db.add(Instruction(
+                recipe_id=recipe.recipe_id,
+                step_number=idx + 1,
+                instruction_text=text.strip(),
+            ))
+        db.commit()
+        return {
+            "recipe_id": str(recipe.recipe_id),
+            "name": recipe.name,
+            "ingredients_added": len(ingredients or []),
+            "ingredients_linked_to_db": n_linked,
+            "instructions_added": len(instructions or []),
+        }
+
+    def update_recipe_metadata(
+        recipe_id: str,
+        name: Optional[str] = None,
+        servings: Optional[int] = None,
+        cuisine_type: Optional[str] = None,
+        tags: Optional[List[str]] = None,
+        description: Optional[str] = None,
+        prep_time: Optional[int] = None,
+        cook_time: Optional[int] = None,
+    ) -> dict:
+        """Update a recipe's top-level fields (does NOT touch ingredients
+        or instructions). Only provided fields are changed.
+
+        Args:
+            recipe_id: UUID of the recipe.
+            name: New name.
+            servings: New servings count.
+            cuisine_type: New cuisine type.
+            tags: Replace the tags list entirely.
+            description: New description.
+            prep_time: Minutes.
+            cook_time: Minutes.
+        """
+        try:
+            rid = UUID(recipe_id)
+        except (ValueError, TypeError) as e:
+            return {"error": str(e)}
+        r = db.query(Recipe).filter(Recipe.recipe_id == rid).first()
+        if not r:
+            return {"error": "Recipe not found"}
+        changed = {}
+        if name is not None:
+            r.name = name.strip(); changed["name"] = r.name
+        if servings is not None:
+            r.servings = servings; changed["servings"] = servings
+        if cuisine_type is not None:
+            r.cuisine_type = cuisine_type.strip() or None; changed["cuisine_type"] = r.cuisine_type
+        if tags is not None:
+            r.tags = list(tags); changed["tags"] = r.tags
+        if description is not None:
+            r.description = description.strip() or None; changed["description"] = r.description
+        if prep_time is not None:
+            r.prep_time = prep_time; changed["prep_time"] = prep_time
+        if cook_time is not None:
+            r.cook_time = cook_time; changed["cook_time"] = cook_time
+        db.commit()
+        return {"recipe_id": str(r.recipe_id), "changed": changed}
+
+    def add_ingredient_to_recipe(
+        recipe_id: str,
+        name: str,
+        quantity: float = 0,
+        unit: str = "",
+        notes: str = "",
+    ) -> dict:
+        """Append an ingredient to a recipe. Auto-runs lookup_exact and sets
+        ingredient_db_id when a canonical match is found.
+
+        Args:
+            recipe_id: UUID of the recipe.
+            name: Free-text ingredient name.
+            quantity: Numeric amount (default 0).
+            unit: Unit string ("g", "ml", "pcs", ...).
+            notes: Optional notes.
+        """
+        from backend.services.ingredient_match import lookup_exact
+        try:
+            rid = UUID(recipe_id)
+        except (ValueError, TypeError) as e:
+            return {"error": str(e)}
+        if not name or not name.strip():
+            return {"error": "name is required"}
+        r = db.query(Recipe).filter(Recipe.recipe_id == rid).first()
+        if not r:
+            return {"error": "Recipe not found"}
+        match = lookup_exact(db, name)
+        ing = Ingredient(
+            recipe_id=rid,
+            name=name.strip(),
+            quantity=quantity,
+            unit=unit.strip(),
+            notes=notes.strip(),
+            ingredient_db_id=match.id if match else None,
+        )
+        db.add(ing); db.commit(); db.refresh(ing)
+        return {
+            "ingredient_id": str(ing.ingredient_id),
+            "name": ing.name,
+            "linked_to_db": bool(match),
+            "ingredient_db_id": str(ing.ingredient_db_id) if ing.ingredient_db_id else None,
+        }
+
+    def update_ingredient_in_recipe(
+        ingredient_id: str,
+        name: Optional[str] = None,
+        quantity: Optional[float] = None,
+        unit: Optional[str] = None,
+        notes: Optional[str] = None,
+        relink: bool = False,
+    ) -> dict:
+        """Update fields of one ingredient row. If `relink` is True or `name`
+        changes, re-runs lookup_exact and updates ingredient_db_id.
+
+        Args:
+            ingredient_id: UUID of the ingredient row.
+            name: New name.
+            quantity: New quantity.
+            unit: New unit.
+            notes: New notes.
+            relink: Force re-running canonical lookup even if name unchanged.
+        """
+        from backend.services.ingredient_match import lookup_exact
+        try:
+            iid = UUID(ingredient_id)
+        except (ValueError, TypeError) as e:
+            return {"error": str(e)}
+        ing = db.query(Ingredient).filter(Ingredient.ingredient_id == iid).first()
+        if not ing:
+            return {"error": "Ingredient not found"}
+        name_changed = False
+        if name is not None and name.strip() and name.strip() != ing.name:
+            ing.name = name.strip(); name_changed = True
+        if quantity is not None:
+            ing.quantity = quantity
+        if unit is not None:
+            ing.unit = unit.strip()
+        if notes is not None:
+            ing.notes = notes.strip()
+        relinked_to = None
+        if relink or name_changed:
+            match = lookup_exact(db, ing.name)
+            ing.ingredient_db_id = match.id if match else None
+            relinked_to = str(match.id) if match else None
+        db.commit()
+        return {
+            "ingredient_id": str(ing.ingredient_id),
+            "name": ing.name,
+            "quantity": ing.quantity,
+            "unit": ing.unit,
+            "ingredient_db_id": str(ing.ingredient_db_id) if ing.ingredient_db_id else None,
+            "relinked_to": relinked_to,
+        }
+
+    def remove_ingredient_from_recipe(ingredient_id: str) -> dict:
+        """Delete one ingredient row from its recipe.
+
+        Args:
+            ingredient_id: UUID of the ingredient row.
+        """
+        try:
+            iid = UUID(ingredient_id)
+        except (ValueError, TypeError) as e:
+            return {"error": str(e)}
+        deleted = (
+            db.query(Ingredient)
+            .filter(Ingredient.ingredient_id == iid)
+            .delete(synchronize_session=False)
+        )
+        db.commit()
+        return {"deleted": bool(deleted)}
+
+    def delete_recipe(recipe_id: str, dry_run: bool = True) -> dict:
+        """Delete a recipe (and its ingredients/instructions via cascade).
+        Defaults to dry_run — call again with dry_run=False after the user
+        confirms.
+
+        Args:
+            recipe_id: UUID of the recipe.
+            dry_run: If True (default), report what would be deleted.
+        """
+        try:
+            rid = UUID(recipe_id)
+        except (ValueError, TypeError) as e:
+            return {"error": str(e)}
+        r = (
+            db.query(Recipe)
+            .options(selectinload(Recipe.ingredients), selectinload(Recipe.instructions))
+            .filter(Recipe.recipe_id == rid)
+            .first()
+        )
+        if not r:
+            return {"error": "Recipe not found"}
+        preview = {
+            "recipe_id": str(r.recipe_id),
+            "name": r.name,
+            "ingredients_count": len(r.ingredients or []),
+            "instructions_count": len(r.instructions or []),
+        }
+        if dry_run:
+            return {"applied": False, "preview": preview}
+        db.delete(r); db.commit()
+        return {"applied": True, "preview": preview}
+
+    return [
+        replace_ingredient_in_recipes,
+        create_recipe,
+        update_recipe_metadata,
+        add_ingredient_to_recipe,
+        update_ingredient_in_recipe,
+        remove_ingredient_from_recipe,
+        delete_recipe,
+    ]
 
 
 def _build_recipe_read_tools(db: Session):
