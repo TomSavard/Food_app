@@ -18,7 +18,16 @@ from pydantic import BaseModel
 from sqlalchemy import String, desc, func
 from sqlalchemy.orm import Session, joinedload, selectinload
 
-from backend.db.models import Ingredient, IngredientDatabase, Instruction, MealPlanSlot, Recipe
+from backend.db.models import (
+    Ingredient,
+    IngredientAlias,
+    IngredientDatabase,
+    Instruction,
+    MealPlanSlot,
+    Recipe,
+    ShoppingList,
+    ShoppingListContribution,
+)
 from backend.db.session import get_db
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
@@ -899,6 +908,207 @@ def _build_reference_read_tools(db: Session):
     return [find_ingredient_in_db]
 
 
+def _build_shopping_write_tools(db: Session):
+    """Add/toggle/remove shopping-list items."""
+
+    def add_shopping_item(name: str, quantity_text: str = "") -> dict:
+        """Append a manual item to the shopping list. If an item with the
+        same canonical name exists it is reused and a new contribution is
+        added.
+
+        Args:
+            name: Free-text item name.
+            quantity_text: Optional quantity string (e.g. "1 L", "2 pcs").
+        """
+        from backend.services.shopping_list_sync import _find_or_create_item
+        if not name or not name.strip():
+            return {"error": "name is required"}
+        item = _find_or_create_item(db, name.strip())
+        db.add(ShoppingListContribution(
+            item_id=item.item_id,
+            quantity_text=(quantity_text or "").strip(),
+            source_label="Manuel",
+        ))
+        db.commit(); db.refresh(item)
+        return {
+            "item_id": str(item.item_id),
+            "name": item.name,
+            "category": item.category,
+            "is_checked": item.is_checked,
+        }
+
+    def toggle_shopping_item(item_id: str, is_checked: bool) -> dict:
+        """Mark a shopping-list item checked/unchecked.
+
+        Args:
+            item_id: UUID of the item.
+            is_checked: True to check, False to uncheck.
+        """
+        try:
+            iid = UUID(item_id)
+        except (ValueError, TypeError) as e:
+            return {"error": str(e)}
+        item = db.query(ShoppingList).filter(ShoppingList.item_id == iid).first()
+        if not item:
+            return {"error": "Item not found"}
+        item.is_checked = bool(is_checked)
+        db.commit()
+        return {"item_id": str(item.item_id), "is_checked": item.is_checked}
+
+    def remove_shopping_item(item_id: str) -> dict:
+        """Delete a shopping-list item (and all its contributions via cascade).
+
+        Args:
+            item_id: UUID of the item.
+        """
+        try:
+            iid = UUID(item_id)
+        except (ValueError, TypeError) as e:
+            return {"error": str(e)}
+        deleted = (
+            db.query(ShoppingList)
+            .filter(ShoppingList.item_id == iid)
+            .delete(synchronize_session=False)
+        )
+        db.commit()
+        return {"deleted": bool(deleted)}
+
+    return [add_shopping_item, toggle_shopping_item, remove_shopping_item]
+
+
+def _build_reference_write_tools(db: Session):
+    """Curate the ingredient reference DB: category, density, aliases,
+    LLM-assisted nutrition fill."""
+
+    from datetime import datetime as _dt, timezone as _tz
+
+    def _mark(row: IngredientDatabase, by: str = "user") -> None:
+        row.modified = True
+        row.modified_by = by
+        row.modified_at = _dt.now(_tz.utc)
+
+    def _resolve(uid_str: str) -> tuple[Optional[IngredientDatabase], Optional[dict]]:
+        try:
+            uid = UUID(uid_str)
+        except (ValueError, TypeError) as e:
+            return None, {"error": str(e)}
+        row = db.get(IngredientDatabase, uid)
+        if not row:
+            return None, {"error": "Ingredient not found"}
+        return row, None
+
+    def set_ingredient_category(ingredient_db_id: str, category: str) -> dict:
+        """Set the supermarket-section category for a reference ingredient.
+        Allowed values: Fruits & Légumes, Boulangerie, Viandes & Poissons,
+        Produits Laitiers, Surgelés, Épicerie, Épices & Herbes, Boissons,
+        Sucreries, Autres.
+
+        Args:
+            ingredient_db_id: UUID of the IngredientDatabase row.
+            category: One of the 10 allowed labels.
+        """
+        from backend.services.categorize import CATEGORIES
+        if category not in CATEGORIES:
+            return {"error": f"category must be one of {CATEGORIES}"}
+        row, err = _resolve(ingredient_db_id)
+        if err:
+            return err
+        row.category = category
+        _mark(row); db.commit()
+        return {"id": str(row.id), "name": row.alim_nom_fr, "category": row.category}
+
+    def set_ingredient_density(ingredient_db_id: str, value: float) -> dict:
+        """Set density in g/ml (e.g. eau≈1.0, lait≈1.03, huile≈0.92).
+
+        Args:
+            ingredient_db_id: UUID of the IngredientDatabase row.
+            value: g/ml, > 0.
+        """
+        if value is None or value <= 0:
+            return {"error": "value must be > 0"}
+        row, err = _resolve(ingredient_db_id)
+        if err:
+            return err
+        row.density_g_per_ml = float(value)
+        _mark(row); db.commit()
+        return {"id": str(row.id), "name": row.alim_nom_fr, "density_g_per_ml": row.density_g_per_ml}
+
+    def add_ingredient_alias(ingredient_db_id: str, alias_text: str) -> dict:
+        """Add an alias so future name-lookups find this canonical row.
+        Skips if alias equals the canonical name or already exists.
+
+        Args:
+            ingredient_db_id: UUID of the IngredientDatabase row.
+            alias_text: New alias.
+        """
+        row, err = _resolve(ingredient_db_id)
+        if err:
+            return err
+        text = (alias_text or "").strip()
+        if not text:
+            return {"error": "alias_text is required"}
+        if text.lower() == row.alim_nom_fr.lower():
+            return {"skipped": "alias equals canonical name", "id": str(row.id)}
+        existing = (
+            db.query(IngredientAlias)
+            .filter(IngredientAlias.alias_text.ilike(text))
+            .first()
+        )
+        if existing is not None:
+            return {"skipped": "alias already exists", "id": str(row.id)}
+        db.add(IngredientAlias(
+            ingredient_db_id=row.id, alias_text=text, created_by="user",
+        ))
+        _mark(row); db.commit()
+        return {"id": str(row.id), "name": row.alim_nom_fr, "alias_added": text}
+
+    def fill_ingredient_nutrition(ingredient_db_id: str, dry_run: bool = True) -> dict:
+        """Use the LLM to propose values for missing nutrient cells. With
+        dry_run=true (default) returns the proposal for review. With
+        dry_run=false the proposal is generated AND merged into the row.
+
+        Args:
+            ingredient_db_id: UUID of the IngredientDatabase row.
+            dry_run: If True (default), return the proposal without writing.
+        """
+        from backend.api.ingredients import llm_fill_proposal
+        row, err = _resolve(ingredient_db_id)
+        if err:
+            return err
+        try:
+            res = llm_fill_proposal(ingredient_id=str(row.id), db=db)
+        except HTTPException as e:
+            return {"error": e.detail}
+        proposal = res.proposal if hasattr(res, "proposal") else (res.get("proposal") or {})
+        if dry_run:
+            return {
+                "id": str(row.id),
+                "name": row.alim_nom_fr,
+                "applied": False,
+                "proposal": proposal,
+            }
+        if not proposal:
+            return {"id": str(row.id), "applied": False, "note": "no missing nutrients to fill"}
+        merged = dict(row.nutrition_data or {})
+        merged.update(proposal)
+        row.nutrition_data = merged
+        _mark(row, by="llm")
+        db.commit()
+        return {
+            "id": str(row.id),
+            "name": row.alim_nom_fr,
+            "applied": True,
+            "filled": list(proposal.keys()),
+        }
+
+    return [
+        set_ingredient_category,
+        set_ingredient_density,
+        add_ingredient_alias,
+        fill_ingredient_nutrition,
+    ]
+
+
 def _to_contents(messages: List[ChatMessage]) -> List[types.Content]:
     return [
         types.Content(role=m.role, parts=[types.Part(text=m.text)])
@@ -927,6 +1137,8 @@ def chat(req: ChatRequest, db: Session = Depends(get_db)):
             *_build_nutrition_tools(db),
             *_build_seasonality_tools(db),
             *_build_reference_read_tools(db),
+            *_build_shopping_write_tools(db),
+            *_build_reference_write_tools(db),
         ],
     )
 
