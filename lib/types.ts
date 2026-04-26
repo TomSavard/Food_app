@@ -225,6 +225,7 @@ export interface RdiNutrient {
   lower_is_better: boolean;
   source_id: string;
   source_page: number | null;
+  note?: string;
 }
 
 export interface RdiReference {

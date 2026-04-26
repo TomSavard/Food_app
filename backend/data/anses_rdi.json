@@ -1,5 +1,5 @@
 {
-  "_comment": "Adult 19-60y, sedentary baseline. Values from the two ANSES reports cited in 'sources'. Where ANSES gives a range, the central value is used. Where ANSES gives a Limite Supérieure de Sécurité (LSS) for over-consumption (sel, AG saturés, sucres), that bound is reported and 'lower_is_better' flips. `source_page` is null for now — page numbers were not verified against the PDF and have been removed. To restore: read each row's table in the PDF and fill the field.",
+  "_comment": "Adulte 19-60 ans, sédentaire. Valeurs vérifiées contre les deux rapports ANSES (numéros de page = page imprimée du PDF). Manganèse n'est pas couvert par le rapport ANSES 2021 — ligne supprimée. Pour les macros, les % AET de la Tableau 8 (macros 2016 p.138) sont convertis aux références énergétiques 2600 kcal H / 2100 kcal F (p.23). Sucres et Sel proviennent d'avis ANSES distincts non inclus ici — page null avec note.",
   "sources": {
     "vitamins_minerals": {
       "title": "Actualisation des références nutritionnelles en vitamines et minéraux",
@@ -25,19 +25,21 @@
       "female_adult": 2100,
       "lower_is_better": false,
       "source_id": "macros",
-      "source_page": null
+      "source_page": 23,
+      "note": "Référence ANSES 2016 — 10.9 MJ H, 8.8 MJ F."
     },
     {
       "ciqual_key": "Protéines, N x facteur de Jones (g 100 g)",
       "label": "Protéines",
       "unit": "g",
       "category": "macros",
-      "ref_type": "RNP",
-      "male_adult": 62,
-      "female_adult": 50,
+      "ref_type": "AS",
+      "male_adult": 98,
+      "female_adult": 79,
       "lower_is_better": false,
       "source_id": "macros",
-      "source_page": null
+      "source_page": 138,
+      "note": "Intervalle 10–20% AET (Tableau 8). Calcul à 15% × énergie de référence."
     },
     {
       "ciqual_key": "Lipides (g 100 g)",
@@ -45,11 +47,12 @@
       "unit": "g",
       "category": "macros",
       "ref_type": "AS",
-      "male_adult": 100,
-      "female_adult": 80,
+      "male_adult": 108,
+      "female_adult": 88,
       "lower_is_better": false,
       "source_id": "macros",
-      "source_page": null
+      "source_page": 138,
+      "note": "Intervalle 35–40% AET (Tableau 8). Calcul à 37,5%."
     },
     {
       "ciqual_key": "AG saturés (g 100 g)",
@@ -57,11 +60,12 @@
       "unit": "g",
       "category": "macros",
       "ref_type": "LSS",
-      "male_adult": 32,
-      "female_adult": 26,
+      "male_adult": 35,
+      "female_adult": 28,
       "lower_is_better": true,
       "source_id": "macros",
-      "source_page": null
+      "source_page": 138,
+      "note": "LSS = 12% AET."
     },
     {
       "ciqual_key": "Glucides (g 100 g)",
@@ -69,11 +73,12 @@
       "unit": "g",
       "category": "macros",
       "ref_type": "AS",
-      "male_adult": 325,
-      "female_adult": 263,
+      "male_adult": 309,
+      "female_adult": 249,
       "lower_is_better": false,
       "source_id": "macros",
-      "source_page": null
+      "source_page": 138,
+      "note": "Intervalle 40–55% AET (Tableau 8). Calcul à 47,5%."
     },
     {
       "ciqual_key": "Sucres (g 100 g)",
@@ -85,7 +90,8 @@
       "female_adult": 100,
       "lower_is_better": true,
       "source_id": "macros",
-      "source_page": null
+      "source_page": null,
+      "note": "Recommandation ANSES 2017 (avis distinct). À vérifier dans Anses 2017a."
     },
     {
       "ciqual_key": "Fibres alimentaires (g 100 g)",
@@ -97,7 +103,7 @@
       "female_adult": 30,
       "lower_is_better": false,
       "source_id": "macros",
-      "source_page": null
+      "source_page": 183
     },
     {
       "ciqual_key": "Sel chlorure de sodium (g 100 g)",
@@ -109,7 +115,8 @@
       "female_adult": 6.5,
       "lower_is_better": true,
       "source_id": "macros",
-      "source_page": null
+      "source_page": null,
+      "note": "Recommandation issue d'avis ANSES distincts (2002, 2019)."
     },
     {
       "ciqual_key": "Calcium (mg 100 g)",
@@ -121,7 +128,8 @@
       "female_adult": 950,
       "lower_is_better": false,
       "source_id": "vitamins_minerals",
-      "source_page": null
+      "source_page": 19,
+      "note": "Adulte ≥ 25 ans (1000 mg pour 18–24 ans)."
     },
     {
       "ciqual_key": "Fer (mg 100 g)",
@@ -133,7 +141,8 @@
       "female_adult": 16,
       "lower_is_better": false,
       "source_id": "vitamins_minerals",
-      "source_page": null
+      "source_page": 19,
+      "note": "Femme : 11 mg si pertes faibles/modérées, 16 mg si pertes élevées."
     },
     {
       "ciqual_key": "Magnésium (mg 100 g)",
@@ -145,7 +154,7 @@
       "female_adult": 300,
       "lower_is_better": false,
       "source_id": "vitamins_minerals",
-      "source_page": null
+      "source_page": 17
     },
     {
       "ciqual_key": "Phosphore (mg 100 g)",
@@ -157,7 +166,7 @@
       "female_adult": 550,
       "lower_is_better": false,
       "source_id": "vitamins_minerals",
-      "source_page": null
+      "source_page": 17
     },
     {
       "ciqual_key": "Potassium (mg 100 g)",
@@ -169,7 +178,7 @@
       "female_adult": 3500,
       "lower_is_better": false,
       "source_id": "vitamins_minerals",
-      "source_page": null
+      "source_page": 18
     },
     {
       "ciqual_key": "Zinc (mg 100 g)",
@@ -177,35 +186,36 @@
       "unit": "mg",
       "category": "minerals",
       "ref_type": "RNP",
-      "male_adult": 11,
-      "female_adult": 7.5,
+      "male_adult": 11.7,
+      "female_adult": 9.3,
       "lower_is_better": false,
       "source_id": "vitamins_minerals",
-      "source_page": null
+      "source_page": 21,
+      "note": "À 600 mg/j de phytates (régime mixte typique)."
     },
     {
       "ciqual_key": "Iode (µg 100 g)",
       "label": "Iode",
       "unit": "µg",
       "category": "minerals",
-      "ref_type": "RNP",
+      "ref_type": "AS",
       "male_adult": 150,
       "female_adult": 150,
       "lower_is_better": false,
       "source_id": "vitamins_minerals",
-      "source_page": null
+      "source_page": 17
     },
     {
       "ciqual_key": "Sélénium (µg 100 g)",
       "label": "Sélénium",
       "unit": "µg",
       "category": "minerals",
-      "ref_type": "RNP",
+      "ref_type": "AS",
       "male_adult": 70,
       "female_adult": 70,
       "lower_is_better": false,
       "source_id": "vitamins_minerals",
-      "source_page": null
+      "source_page": 18
     },
     {
       "ciqual_key": "Cuivre (mg 100 g)",
@@ -213,23 +223,11 @@
       "unit": "mg",
       "category": "minerals",
       "ref_type": "AS",
-      "male_adult": 1.3,
-      "female_adult": 1.0,
+      "male_adult": 1.9,
+      "female_adult": 1.5,
       "lower_is_better": false,
       "source_id": "vitamins_minerals",
-      "source_page": null
-    },
-    {
-      "ciqual_key": "Manganèse (mg 100 g)",
-      "label": "Manganèse",
-      "unit": "mg",
-      "category": "minerals",
-      "ref_type": "AS",
-      "male_adult": 2.8,
-      "female_adult": 2.5,
-      "lower_is_better": false,
-      "source_id": "vitamins_minerals",
-      "source_page": null
+      "source_page": 17
     },
     {
       "ciqual_key": "Vitamine C (mg 100 g)",
@@ -241,19 +239,19 @@
       "female_adult": 110,
       "lower_is_better": false,
       "source_id": "vitamins_minerals",
-      "source_page": null
+      "source_page": 15
     },
     {
       "ciqual_key": "Vitamine D (µg 100 g)",
       "label": "Vitamine D",
       "unit": "µg",
       "category": "vitamins",
-      "ref_type": "RNP",
+      "ref_type": "AS",
       "male_adult": 15,
       "female_adult": 15,
       "lower_is_better": false,
       "source_id": "vitamins_minerals",
-      "source_page": null
+      "source_page": 16
     },
     {
       "ciqual_key": "Activité vitaminique A, équivalents rétinol (µg 100 g)",
@@ -265,7 +263,7 @@
       "female_adult": 650,
       "lower_is_better": false,
       "source_id": "vitamins_minerals",
-      "source_page": null
+      "source_page": 14
     },
     {
       "ciqual_key": "Vitamine E (mg 100 g)",
@@ -273,11 +271,11 @@
       "unit": "mg",
       "category": "vitamins",
       "ref_type": "AS",
-      "male_adult": 10.5,
-      "female_adult": 9.9,
+      "male_adult": 10,
+      "female_adult": 9,
       "lower_is_better": false,
       "source_id": "vitamins_minerals",
-      "source_page": null
+      "source_page": 16
     },
     {
       "ciqual_key": "Vitamine K1 (µg 100 g)",
@@ -289,7 +287,7 @@
       "female_adult": 79,
       "lower_is_better": false,
       "source_id": "vitamins_minerals",
-      "source_page": null
+      "source_page": 16
     },
     {
       "ciqual_key": "Vitamine B1 ou Thiamine (mg 100 g)",
@@ -297,11 +295,12 @@
       "unit": "mg",
       "category": "vitamins",
       "ref_type": "RNP",
-      "male_adult": 1.5,
-      "female_adult": 1.2,
+      "male_adult": 1.1,
+      "female_adult": 0.9,
       "lower_is_better": false,
       "source_id": "vitamins_minerals",
-      "source_page": null
+      "source_page": 14,
+      "note": "RNP = 0,1 mg/MJ. Calcul à 10,9 MJ H et 8,8 MJ F."
     },
     {
       "ciqual_key": "Vitamine B2 ou Riboflavine (mg 100 g)",
@@ -313,7 +312,7 @@
       "female_adult": 1.6,
       "lower_is_better": false,
       "source_id": "vitamins_minerals",
-      "source_page": null
+      "source_page": 14
     },
     {
       "ciqual_key": "Vitamine B3 ou PP ou Niacine (mg 100 g)",
@@ -321,11 +320,12 @@
       "unit": "mg",
       "category": "vitamins",
       "ref_type": "RNP",
-      "male_adult": 16,
-      "female_adult": 11,
+      "male_adult": 17,
+      "female_adult": 14,
       "lower_is_better": false,
       "source_id": "vitamins_minerals",
-      "source_page": null
+      "source_page": 14,
+      "note": "RNP = 1,6 mg EN/MJ. Soit 17,4 mg/j H et 14,0 mg/j F."
     },
     {
       "ciqual_key": "Vitamine B5 ou Acide pantothénique (mg 100 g)",
@@ -333,11 +333,11 @@
       "unit": "mg",
       "category": "vitamins",
       "ref_type": "AS",
-      "male_adult": 5.0,
-      "female_adult": 5.0,
+      "male_adult": 6,
+      "female_adult": 5,
       "lower_is_better": false,
       "source_id": "vitamins_minerals",
-      "source_page": null
+      "source_page": 15
     },
     {
       "ciqual_key": "Vitamine B6 (mg 100 g)",
@@ -349,7 +349,7 @@
       "female_adult": 1.6,
       "lower_is_better": false,
       "source_id": "vitamins_minerals",
-      "source_page": null
+      "source_page": 15
     },
     {
       "ciqual_key": "Vitamine B9 ou Folates totaux (µg 100 g)",
@@ -361,7 +361,8 @@
       "female_adult": 330,
       "lower_is_better": false,
       "source_id": "vitamins_minerals",
-      "source_page": null
+      "source_page": 15,
+      "note": "Exprimé en équivalent folates alimentaires (EFA)."
     },
     {
       "ciqual_key": "Vitamine B12 (µg 100 g)",
@@ -373,7 +374,7 @@
       "female_adult": 4,
       "lower_is_better": false,
       "source_id": "vitamins_minerals",
-      "source_page": null
+      "source_page": 15
     }
   ]
 }

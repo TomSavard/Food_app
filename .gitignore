@@ -86,3 +86,4 @@ Table*.xls
 
 # Interfel seasonality PDF (encoded into backend/data/seasonality.json)
 calendrier-de-saison-fl-*.pdf
+.anses_refs/

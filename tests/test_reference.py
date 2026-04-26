@@ -5,7 +5,24 @@ from backend.services import reference
 def test_rdi_payload_loads():
     p = reference.rdi_payload()
     assert "sources" in p and "nutrients" in p
-    assert len(p["nutrients"]) >= 30
+    assert len(p["nutrients"]) >= 25
+
+
+def test_rdi_energy_matches_anses_2016():
+    male = reference.rdi_for("male")
+    female = reference.rdi_for("female")
+    cal = "Energie, Règlement UE N° 1169 2011 (kcal 100 g)"
+    # ANSES 2016 macros report, p.23: 2600 kcal H, 2100 kcal F.
+    assert male[cal] == 2600
+    assert female[cal] == 2100
+
+
+def test_rdi_pages_set_for_documented_nutrients():
+    p = reference.rdi_payload()
+    pages = [n["source_page"] for n in p["nutrients"]
+             if n["source_id"] == "vitamins_minerals"]
+    # All vitamins/minerals rows should have a page from the ANSES 2021 PDF.
+    assert all(isinstance(pg, int) for pg in pages), pages
 
 
 def test_rdi_for_male_vs_female_differ():

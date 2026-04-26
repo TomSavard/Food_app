@@ -130,7 +130,7 @@ function RdiTab() {
                 const value = sex === "male" ? n.male_adult : n.female_adult;
                 const src = data.sources[n.source_id];
                 return (
-                  <tr key={n.ciqual_key} className="border-t">
+                  <tr key={n.ciqual_key} className="border-t align-top">
                     <td className="px-3 py-1.5">{n.label}</td>
                     <td className="px-3 py-1.5 text-right tabular-nums">
                       {value} {n.unit}
@@ -159,6 +159,11 @@ function RdiTab() {
                         </a>
                       ) : (
                         "—"
+                      )}
+                      {n.note && (
+                        <div className="mt-0.5 text-[10px] italic text-muted-foreground">
+                          {n.note}
+                        </div>
                       )}
                     </td>
                   </tr>
