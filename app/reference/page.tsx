@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ExternalLink } from "lucide-react";
+import { Tooltip } from "@/components/ui/tooltip";
 import * as api from "@/lib/api";
 import type {
   InSeasonResponse,
@@ -78,6 +79,13 @@ const CAT_LABEL: Record<RdiNutrient["category"], string> = {
   vitamins: "Vitamines",
 };
 
+const TYPE_DEFINITION: Record<RdiNutrient["ref_type"], string> = {
+  BNM: "Besoin Nutritionnel Moyen — apport qui couvre les besoins de 50 % de la population (médiane). Indicatif, pas une cible.",
+  RNP: "Référence Nutritionnelle pour la Population — apport qui couvre ~97,5 % de la population (BNM + 2 écarts-types). Cible quotidienne à atteindre.",
+  AS:  "Apport Satisfaisant — utilisé quand les données ne permettent pas de fixer une RNP. Apport observé chez une population en bonne santé ; cible raisonnable.",
+  LSS: "Limite Supérieure de Sécurité — apport maximum considéré comme sûr. Plafond à ne pas dépasser, pas une cible.",
+};
+
 function RdiTab() {
   const [data, setData] = useState<RdiReference | null>(null);
   const [sex, setSex] = useState<Sex>(() => {
@@ -141,7 +149,9 @@ function RdiTab() {
                       )}
                     </td>
                     <td className="px-3 py-1.5 text-xs text-muted-foreground">
-                      {n.ref_type}
+                      <Tooltip content={TYPE_DEFINITION[n.ref_type]}>
+                        <span>{n.ref_type}</span>
+                      </Tooltip>
                     </td>
                     <td className="px-3 py-1.5 text-xs">
                       {src ? (
