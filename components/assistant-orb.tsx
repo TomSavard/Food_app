@@ -35,6 +35,8 @@ uniform float u_time;
 uniform float u_hover;   // 0..1, smoothed
 uniform vec3  u_color;   // primary (linear RGB)
 
+#define PI 3.14159265
+
 // Hash & value noise.
 float hash(vec2 p) {
   return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
@@ -43,11 +45,11 @@ float noise(vec2 p) {
   vec2 i = floor(p);
   vec2 f = fract(p);
   vec2 u = f * f * (3.0 - 2.0 * f);
-  float a = hash(i);
-  float b = hash(i + vec2(1.0, 0.0));
-  float c = hash(i + vec2(0.0, 1.0));
-  float d = hash(i + vec2(1.0, 1.0));
-  return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
+  return mix(
+    mix(hash(i),                hash(i + vec2(1.0, 0.0)), u.x),
+    mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x),
+    u.y
+  );
 }
 float fbm(vec2 p) {
   float s = 0.0;
@@ -63,43 +65,65 @@ float fbm(vec2 p) {
 void main() {
   vec2 uv = v - 0.5;
   float d = length(uv);
+  float ang = atan(uv.y, uv.x);
 
-  // Time accelerates on hover.
-  float t = u_time * mix(0.18, 0.55, u_hover);
+  // Time scales with hover.
+  float t = u_time * mix(0.25, 0.85, u_hover);
 
-  // Two flow fields drifting opposite directions: gives the swirl.
-  float n1 = fbm(uv * 3.5 + vec2( t * 0.6,  t * 0.4));
-  float n2 = fbm(uv * 5.0 + vec2(-t * 0.5,  t * 0.7) + 11.3);
-  float n  = mix(n1, n2, 0.5);
+  // Organic rim wobble: radius depends slightly on angle + time.
+  float wob = fbm(vec2(ang * 1.2 + t * 0.4, t * 0.25)) - 0.5;
+  float rimMid   = 0.43 + wob * 0.018;
+  float rimWidth = mix(0.026, 0.040, u_hover);
 
-  // Soft circular mask + fluid edge ripple from the noise.
-  float edgeSoft = mix(0.020, 0.060, u_hover);
-  float radius  = 0.46 + (n - 0.5) * 0.05;
-  float mask    = smoothstep(radius, radius - edgeSoft, d);
-  float halo    = smoothstep(0.62, 0.46, d) * mix(0.18, 0.32, u_hover);
+  // Soft Gaussian rim — thin glowing band, exp falloff both sides.
+  float r = (d - rimMid) / rimWidth;
+  float rim = exp(-r * r);
 
-  // Color: deep accent in center, brighter accent toward edges, modulated by noise.
-  vec3 deep   = u_color * 0.55;
-  vec3 bright = mix(u_color, vec3(1.0), 0.35);
-  float radialMix = smoothstep(0.0, 0.45, d);            // center → edge
-  float swirlMix  = smoothstep(0.35, 0.75, n);
-  vec3 col = mix(deep, bright, radialMix * 0.6 + swirlMix * 0.4);
+  // Iridescence around the rim: cycle hue with angle + time.
+  float hueAng = ang / (2.0 * PI) + 0.5;
+  float cyc1 = sin(hueAng * 4.0 * PI + t * 1.4) * 0.5 + 0.5;
+  float cyc2 = cos(hueAng * 2.0 * PI - t * 0.8) * 0.5 + 0.5;
+  vec3 tintCyan    = mix(u_color, vec3(0.45, 0.95, 1.00), 0.55);
+  vec3 tintMagenta = mix(u_color, vec3(0.95, 0.55, 1.00), 0.55);
+  vec3 rimCol = mix(u_color, tintCyan, cyc1);
+  rimCol = mix(rimCol, tintMagenta, cyc2 * 0.55);
+  // Push toward white at the brightest part of the cycle for a gleam.
+  rimCol += vec3(0.18) * cyc1;
 
-  // Specular: small white highlight that drifts gently.
-  vec2 specOff = vec2(-0.14 + sin(t * 0.8) * 0.02,
-                       0.16 + cos(t * 0.6) * 0.015);
-  float spec = smoothstep(0.10, 0.0, length(uv - specOff));
-  col += vec3(spec) * mix(0.35, 0.6, u_hover);
+  // Interior: very faint drifting wisps. Mostly see-through.
+  vec2 flow = vec2(t * 0.55, -t * 0.40);
+  float wisp = fbm(uv * 5.5 + flow);
+  float interiorMask = smoothstep(rimMid, 0.0, d);
+  float interior = wisp * interiorMask * mix(0.05, 0.14, u_hover);
 
-  // Hover slightly brightens the whole sphere.
-  col *= mix(1.0, 1.15, u_hover);
+  // Specular reflection — small bright drifting spot inside the bubble.
+  vec2 specPos = vec2(-0.13 + sin(t * 0.5) * 0.025,
+                       0.17 + cos(t * 0.4) * 0.020);
+  float specD = length(uv - specPos) / 0.07;
+  float spec = exp(-specD * specD) * mix(0.55, 0.95, u_hover);
 
-  // Halo (premultiplied alpha-friendly).
-  vec3 haloCol = u_color * halo;
-  vec3 outCol  = col * mask + haloCol * (1.0 - mask);
-  float a = clamp(mask + halo, 0.0, 1.0);
+  // Tiny secondary highlight, lower-right, faster cycle.
+  vec2 sp2 = vec2(0.10 + sin(t * 0.9) * 0.03,
+                 -0.08 + cos(t * 1.1) * 0.025);
+  float sp2D = length(uv - sp2) / 0.04;
+  float spec2 = exp(-sp2D * sp2D) * 0.35;
 
-  gl_FragColor = vec4(outCol, a);
+  // Outer halo — soft glow outside the rim.
+  float haloD = (d - (rimMid + 0.06)) / 0.06;
+  float halo = exp(-haloD * haloD) * mix(0.18, 0.32, u_hover);
+  halo *= step(d, rimMid + 0.18);
+
+  // Compose. Premultiplied-style: color contribution scaled by its own alpha.
+  vec3  col   = rimCol * rim
+              + u_color * interior * 0.9
+              + vec3(1.0) * (spec + spec2)
+              + rimCol * halo * 0.7;
+  float alpha = rim * 0.95
+              + interior * 0.85
+              + (spec + spec2) * 0.85
+              + halo * 0.55;
+
+  gl_FragColor = vec4(col, clamp(alpha, 0.0, 1.0));
 }
 `;
 
