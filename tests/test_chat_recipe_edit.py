@@ -13,8 +13,8 @@ from backend.db.models import Ingredient, IngredientDatabase, Recipe
 
 @pytest.fixture
 def tool(db_session):
-    [t] = _build_recipe_edit_tools(db_session)
-    return t
+    tools = _build_recipe_edit_tools(db_session)
+    return next(x for x in tools if x.__name__ == "replace_ingredient_in_recipes")
 
 
 @pytest.fixture
