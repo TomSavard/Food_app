@@ -224,7 +224,7 @@ export interface RdiNutrient {
   female_adult: number;
   lower_is_better: boolean;
   source_id: string;
-  source_page: number;
+  source_page: number | null;
 }
 
 export interface RdiReference {

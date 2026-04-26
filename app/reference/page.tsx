@@ -153,7 +153,9 @@ function RdiTab() {
                         >
                           {src.publisher} {src.year}
                           <ExternalLink className="h-3 w-3" />
-                          <span className="ml-1">p. {n.source_page}</span>
+                          {n.source_page != null && (
+                            <span className="ml-1">p. {n.source_page}</span>
+                          )}
                         </a>
                       ) : (
                         "—"
