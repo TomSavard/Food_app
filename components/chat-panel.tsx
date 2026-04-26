@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { MessageCircle, X, Send } from "lucide-react";
+import { X, Send } from "lucide-react";
+import { AssistantOrb } from "@/components/assistant-orb";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { ChatMessage } from "@/lib/types";
@@ -84,11 +85,11 @@ export function ChatPanel() {
     <>
       <Button
         size="icon"
-        className="fixed bottom-6 right-6 z-50 h-14 w-14 rounded-full shadow-xl ring-1 ring-primary/30 hover:scale-105 transition-transform"
+        className="assistant-orb-host fixed bottom-6 right-6 z-50 h-14 w-14 rounded-full shadow-xl ring-1 ring-primary/30 hover:scale-105 transition-transform"
         onClick={() => setOpen((v) => !v)}
         aria-label={open ? "Fermer l'assistant" : "Ouvrir l'assistant"}
       >
-        {open ? <X className="h-5 w-5" /> : <MessageCircle className="h-5 w-5" />}
+        {open ? <X className="h-5 w-5" /> : <AssistantOrb size={32} />}
       </Button>
 
       {open && (
