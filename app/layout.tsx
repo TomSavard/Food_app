@@ -4,6 +4,7 @@ import { GeistSans } from "geist/font/sans";
 import "./globals.css";
 import { ChatPanel } from "@/components/chat-panel";
 import { Logo } from "@/components/logo";
+import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 import { ServiceWorkerRegister } from "@/components/sw-register";
 import { ThemeScript } from "@/components/theme-script";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -44,26 +45,27 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <span>Food</span>
             </Link>
             <nav className="flex items-center gap-1 text-sm">
-              <Link className="px-3 py-1.5 rounded-full hover:bg-accent/60 transition" href="/">
-                <span className="hidden sm:inline">📖 </span>Recettes
+              <Link className="hidden md:inline-block px-3 py-1.5 rounded-full hover:bg-accent/60 transition" href="/">
+                📖 Recettes
               </Link>
-              <Link className="px-3 py-1.5 rounded-full hover:bg-accent/60 transition" href="/meal-plan">
-                <span className="hidden sm:inline">📅 </span>Semaine
+              <Link className="hidden md:inline-block px-3 py-1.5 rounded-full hover:bg-accent/60 transition" href="/meal-plan">
+                📅 Semaine
               </Link>
-              <Link className="px-3 py-1.5 rounded-full hover:bg-accent/60 transition" href="/shopping">
-                <span className="hidden sm:inline">🛒 </span>Liste
+              <Link className="hidden md:inline-block px-3 py-1.5 rounded-full hover:bg-accent/60 transition" href="/shopping">
+                🛒 Liste
               </Link>
-              <Link className="px-3 py-1.5 rounded-full hover:bg-accent/60 transition" href="/ingredients">
-                <span className="hidden sm:inline">🧾 </span>Ingrédients
+              <Link className="hidden md:inline-block px-3 py-1.5 rounded-full hover:bg-accent/60 transition" href="/ingredients">
+                🧾 Ingrédients
               </Link>
-              <Link className="px-3 py-1.5 rounded-full hover:bg-accent/60 transition" href="/reference">
-                <span className="hidden sm:inline">📚 </span>Références
+              <Link className="hidden md:inline-block px-3 py-1.5 rounded-full hover:bg-accent/60 transition" href="/reference">
+                📚 Références
               </Link>
               <ThemeToggle />
             </nav>
           </div>
         </header>
-        <main className="container py-6">{children}</main>
+        <main className="container py-6 pb-24 md:pb-6">{children}</main>
+        <MobileBottomNav />
         <ChatPanel />
         <ServiceWorkerRegister />
       </body>

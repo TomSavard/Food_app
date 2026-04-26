@@ -88,7 +88,7 @@ export function ChatPanel() {
         onClick={() => setOpen((v) => !v)}
         aria-label={open ? "Fermer l'assistant" : "Ouvrir l'assistant"}
         className={
-          "assistant-orb-host fixed bottom-6 right-6 z-50 h-14 w-14 rounded-full transition-transform hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary " +
+          "assistant-orb-host fixed bottom-20 right-4 md:bottom-6 md:right-6 z-50 h-14 w-14 rounded-full transition-transform hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary " +
           (open
             ? "bg-foreground/90 text-background shadow-xl"
             : "bg-transparent")
@@ -102,7 +102,7 @@ export function ChatPanel() {
       </button>
 
       {open && (
-        <div className="glass fixed bottom-24 right-6 z-50 flex h-[520px] w-[360px] max-w-[calc(100vw-2rem)] flex-col rounded-3xl sm:right-6">
+        <div className="glass fixed bottom-36 right-4 md:bottom-24 md:right-6 z-50 flex h-[520px] max-h-[calc(100vh-10rem)] w-[360px] max-w-[calc(100vw-2rem)] flex-col rounded-3xl">
           <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
             <h3 className="text-base font-semibold tracking-tight">Assistant</h3>
             <button onClick={() => setOpen(false)} className="text-muted-foreground hover:text-foreground" aria-label="Fermer">
