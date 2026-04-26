@@ -10,7 +10,7 @@ import { ThemeScript } from "@/components/theme-script";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 export const metadata: Metadata = {
-  title: "Food App",
+  title: "MyFood",
   description: "Recipes, weekly meal planning, and shopping list.",
   manifest: "/manifest.json",
   icons: {
@@ -42,7 +42,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <div className="container flex h-14 items-center justify-between">
             <Link href="/" className="flex items-center gap-2 font-semibold text-lg tracking-tight">
               <Logo size={28} className="text-primary" />
-              <span>Food</span>
+              <span>MyFood</span>
             </Link>
             <nav className="flex items-center gap-1 text-sm">
               <Link className="hidden md:inline-block px-3 py-1.5 rounded-full hover:bg-accent/60 transition" href="/">

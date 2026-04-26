@@ -2,13 +2,27 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import {
+  IconIngredients,
+  IconListe,
+  IconRecettes,
+  IconReferences,
+  IconSemaine,
+} from "@/components/nav-icons";
 
-const ITEMS: { href: string; label: string; icon: string; match: (p: string) => boolean }[] = [
-  { href: "/", label: "Recettes", icon: "📖", match: (p) => p === "/" },
-  { href: "/meal-plan", label: "Semaine", icon: "📅", match: (p) => p.startsWith("/meal-plan") },
-  { href: "/shopping", label: "Liste", icon: "🛒", match: (p) => p.startsWith("/shopping") },
-  { href: "/ingredients", label: "Ingrédients", icon: "🧾", match: (p) => p.startsWith("/ingredients") },
-  { href: "/reference", label: "Références", icon: "📚", match: (p) => p.startsWith("/reference") },
+type Item = {
+  href: string;
+  label: string;
+  Icon: (p: { size?: number; className?: string }) => React.ReactElement;
+  match: (p: string) => boolean;
+};
+
+const ITEMS: Item[] = [
+  { href: "/", label: "Recettes", Icon: IconRecettes, match: (p) => p === "/" },
+  { href: "/meal-plan", label: "Semaine", Icon: IconSemaine, match: (p) => p.startsWith("/meal-plan") },
+  { href: "/shopping", label: "Liste", Icon: IconListe, match: (p) => p.startsWith("/shopping") },
+  { href: "/ingredients", label: "Ingrédients", Icon: IconIngredients, match: (p) => p.startsWith("/ingredients") },
+  { href: "/reference", label: "Références", Icon: IconReferences, match: (p) => p.startsWith("/reference") },
 ];
 
 export function MobileBottomNav() {
@@ -20,19 +34,19 @@ export function MobileBottomNav() {
       aria-label="Navigation principale"
     >
       <ul className="flex h-16 items-stretch justify-around">
-        {ITEMS.map((it) => {
-          const active = it.match(pathname);
+        {ITEMS.map(({ href, label, Icon, match }) => {
+          const active = match(pathname);
           return (
-            <li key={it.href} className="flex-1">
+            <li key={href} className="flex-1">
               <Link
-                href={it.href}
+                href={href}
                 className={
-                  "flex h-full flex-col items-center justify-center gap-0.5 text-[11px] transition " +
+                  "flex h-full flex-col items-center justify-center gap-1 text-[11px] transition " +
                   (active ? "text-primary font-medium" : "text-muted-foreground hover:text-foreground")
                 }
               >
-                <span aria-hidden className="text-lg leading-none">{it.icon}</span>
-                <span>{it.label}</span>
+                <Icon size={22} />
+                <span>{label}</span>
               </Link>
             </li>
           );
