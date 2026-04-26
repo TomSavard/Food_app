@@ -5,12 +5,19 @@ import "./globals.css";
 import { ChatPanel } from "@/components/chat-panel";
 import { Logo } from "@/components/logo";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
+import {
+  IconIngredients,
+  IconListe,
+  IconRecettes,
+  IconReferences,
+  IconSemaine,
+} from "@/components/nav-icons";
 import { ServiceWorkerRegister } from "@/components/sw-register";
 import { ThemeScript } from "@/components/theme-script";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 export const metadata: Metadata = {
-  title: "Food App",
+  title: "MyFood",
   description: "Recipes, weekly meal planning, and shopping list.",
   manifest: "/manifest.json",
   icons: {
@@ -42,23 +49,23 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <div className="container flex h-14 items-center justify-between">
             <Link href="/" className="flex items-center gap-2 font-semibold text-lg tracking-tight">
               <Logo size={28} className="text-primary" />
-              <span>Food</span>
+              <span>MyFood</span>
             </Link>
             <nav className="flex items-center gap-1 text-sm">
-              <Link className="hidden md:inline-block px-3 py-1.5 rounded-full hover:bg-accent/60 transition" href="/">
-                📖 Recettes
+              <Link className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full hover:bg-accent/60 transition" href="/">
+                <IconRecettes size={18} /> Recettes
               </Link>
-              <Link className="hidden md:inline-block px-3 py-1.5 rounded-full hover:bg-accent/60 transition" href="/meal-plan">
-                📅 Semaine
+              <Link className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full hover:bg-accent/60 transition" href="/meal-plan">
+                <IconSemaine size={18} /> Semaine
               </Link>
-              <Link className="hidden md:inline-block px-3 py-1.5 rounded-full hover:bg-accent/60 transition" href="/shopping">
-                🛒 Liste
+              <Link className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full hover:bg-accent/60 transition" href="/shopping">
+                <IconListe size={18} /> Liste
               </Link>
-              <Link className="hidden md:inline-block px-3 py-1.5 rounded-full hover:bg-accent/60 transition" href="/ingredients">
-                🧾 Ingrédients
+              <Link className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full hover:bg-accent/60 transition" href="/ingredients">
+                <IconIngredients size={18} /> Ingrédients
               </Link>
-              <Link className="hidden md:inline-block px-3 py-1.5 rounded-full hover:bg-accent/60 transition" href="/reference">
-                📚 Références
+              <Link className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full hover:bg-accent/60 transition" href="/reference">
+                <IconReferences size={18} /> Références
               </Link>
               <ThemeToggle />
             </nav>
