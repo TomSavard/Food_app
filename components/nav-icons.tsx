@@ -125,42 +125,34 @@ export function IconListe(props: IconProps) {
   );
 }
 
-/** Ingrédients — jar with a leaf rising from the lid. */
+/** Ingrédients — apple with a leaf. */
 export function IconIngredients(props: IconProps) {
   return (
     <Frame {...props}>
-      {/* jar body tint */}
+      {/* apple body tint */}
       <path
-        d="M6 9h12v10a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2z"
+        d="M12 7.5c-2-1.6-5.5-1.3-6.5 1.3-1.2 3.1.6 8 3.4 9.7 1.3.8 2.1.4 3.1 0s1.8-.8 3.1 0c2.8 1.7 4.6-3.2 3.4-9.7-1-2.6-4.5-2.9-6.5-1.3z"
         fill="currentColor"
         fillOpacity="0.14"
       />
-      {/* lid */}
+      {/* apple outline */}
       <path
-        d="M7 6h10v3H7z"
+        d="M12 7.5c-2-1.6-5.5-1.3-6.5 1.3-1.2 3.1.6 8 3.4 9.7 1.3.8 2.1.4 3.1 0s1.8-.8 3.1 0c2.8 1.7 4.6-3.2 3.4-9.7-1-2.6-4.5-2.9-6.5-1.3z"
         stroke="currentColor"
         strokeWidth={STROKE}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      {/* jar outline */}
+      {/* stem */}
       <path
-        d="M6 9h12v10a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2z"
-        stroke="currentColor"
-        strokeWidth={STROKE}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      {/* label line */}
-      <path
-        d="M9 14h6"
+        d="M12 7.5V5"
         stroke="currentColor"
         strokeWidth={STROKE}
         strokeLinecap="round"
       />
-      {/* sprout above lid */}
+      {/* leaf, drawn in the Logo's language */}
       <path
-        d="M12 6c-.2-1.5.6-2.5 2-2.7.2 1.5-.6 2.5-2 2.7Z"
+        d="M12 6c-.2-1.7.7-2.8 2.4-3 .2 1.7-.7 2.8-2.4 3Z"
         fill="currentColor"
       />
     </Frame>
