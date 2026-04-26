@@ -1,12 +1,13 @@
 // Service Worker for PWA.
 // Strategy: network-first for HTML/navigation, cache-first for static assets.
 // Bump CACHE_NAME whenever you change the precache list.
-const CACHE_NAME = 'food-app-v9';
+const CACHE_NAME = 'food-app-v10';
 const urlsToCache = [
     '/',
     '/meal-plan',
     '/shopping',
     '/ingredients',
+    '/reference',
     '/manifest.json',
     '/images/icon-192.png',
     '/images/icon-512.png',

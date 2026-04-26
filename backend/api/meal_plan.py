@@ -18,7 +18,7 @@ from backend.schemas import (
     MealPlanSlotUpdate,
     MealPlanWeekResponse,
 )
-from backend.services.anses import DAILY_MACROS, RDI
+from backend.services.reference import DAILY_MACROS, rdi_for
 from backend.services.shopping_list_sync import (
     cleanup_orphan_items,
     sync_slot_added,
@@ -276,6 +276,7 @@ def _zero_macros() -> dict[str, float]:
 @router.get("/nutrition", response_model=WeeklyNutritionResponse)
 def get_weekly_nutrition(
     week_start: str = Query(..., description="Monday in YYYY-MM-DD"),
+    sex: str = Query("male", pattern="^(male|female)$"),
     db: Session = Depends(get_db),
 ):
     """Aggregate nutrition over the week's slots.
@@ -367,6 +368,6 @@ def get_weekly_nutrition(
         week_start=monday.isoformat(),
         days=days,
         week=week,
-        rdi=dict(RDI),
+        rdi=rdi_for(sex),  # type: ignore[arg-type]
         untracked=untracked,
     )

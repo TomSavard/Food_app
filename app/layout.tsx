@@ -56,6 +56,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <Link className="px-3 py-1.5 rounded-full hover:bg-accent/60 transition" href="/ingredients">
                 <span className="hidden sm:inline">🧾 </span>Ingrédients
               </Link>
+              <Link className="px-3 py-1.5 rounded-full hover:bg-accent/60 transition" href="/reference">
+                <span className="hidden sm:inline">📚 </span>Références
+              </Link>
               <ThemeToggle />
             </nav>
           </div>

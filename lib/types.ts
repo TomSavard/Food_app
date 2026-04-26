@@ -202,3 +202,54 @@ export interface WeeklyNutrition {
   rdi: Record<string, number>;
   untracked: UntrackedItem[];
 }
+
+// ---- Reference (ANSES + Interfel) ----
+
+export type Sex = "male" | "female";
+
+export interface RdiSource {
+  title: string;
+  publisher: string;
+  year: number;
+  url: string;
+}
+
+export interface RdiNutrient {
+  ciqual_key: string;
+  label: string;
+  unit: string;
+  category: "macros" | "minerals" | "vitamins";
+  ref_type: "RNP" | "AS" | "LSS" | "BNM";
+  male_adult: number;
+  female_adult: number;
+  lower_is_better: boolean;
+  source_id: string;
+  source_page: number;
+}
+
+export interface RdiReference {
+  sources: Record<string, RdiSource>;
+  nutrients: RdiNutrient[];
+}
+
+export type SeasonLevel = "coeur" | "saison" | "disponibilite";
+
+export interface SeasonalityItem {
+  kind: "fruit" | "legume";
+  name: string;
+  months: Partial<Record<string, SeasonLevel>>;
+  exotic?: boolean;
+  greenhouse?: boolean;
+  notes?: string | null;
+  level?: SeasonLevel;
+}
+
+export interface SeasonalityReference {
+  source: { title: string; publisher: string; url: string; local_pdf?: string };
+  items: SeasonalityItem[];
+}
+
+export interface InSeasonResponse {
+  month: number;
+  items: SeasonalityItem[];
+}

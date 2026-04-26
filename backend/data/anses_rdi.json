@@ -1,0 +1,51 @@
+{
+  "_comment": "Adult 19-60y, sedentary baseline. Values curated from the two ANSES reports cited in 'sources'. Where ANSES gives a range, the central value is used. Where ANSES gives a Limite Supérieure de Sécurité (LSS) for over-consumption (sel, AG saturés, sucres), that bound is reported and 'lower_is_better' flips. Tom should spot-check on the cited page before final merge.",
+  "sources": {
+    "vitamins_minerals": {
+      "title": "Actualisation des références nutritionnelles en vitamines et minéraux",
+      "publisher": "ANSES",
+      "year": 2021,
+      "url": "https://www.anses.fr/fr/system/files/NUT2018SA0238Ra.pdf"
+    },
+    "macros": {
+      "title": "Actualisation des repères du PNNS — élaboration des références nutritionnelles",
+      "publisher": "ANSES",
+      "year": 2016,
+      "url": "https://www.anses.fr/fr/system/files/NUT2012SA0103Ra-2.pdf"
+    }
+  },
+  "nutrients": [
+    {"ciqual_key": "Energie, Règlement UE N° 1169 2011 (kcal 100 g)", "label": "Énergie", "unit": "kcal", "category": "macros", "ref_type": "BNM", "male_adult": 2600, "female_adult": 2100, "lower_is_better": false, "source_id": "macros", "source_page": 105},
+    {"ciqual_key": "Protéines, N x facteur de Jones (g 100 g)", "label": "Protéines", "unit": "g", "category": "macros", "ref_type": "RNP", "male_adult": 62, "female_adult": 50, "lower_is_better": false, "source_id": "macros", "source_page": 56},
+    {"ciqual_key": "Lipides (g 100 g)", "label": "Lipides", "unit": "g", "category": "macros", "ref_type": "AS", "male_adult": 100, "female_adult": 80, "lower_is_better": false, "source_id": "macros", "source_page": 67},
+    {"ciqual_key": "AG saturés (g 100 g)", "label": "AG saturés", "unit": "g", "category": "macros", "ref_type": "LSS", "male_adult": 32, "female_adult": 26, "lower_is_better": true, "source_id": "macros", "source_page": 70},
+    {"ciqual_key": "Glucides (g 100 g)", "label": "Glucides", "unit": "g", "category": "macros", "ref_type": "AS", "male_adult": 325, "female_adult": 263, "lower_is_better": false, "source_id": "macros", "source_page": 78},
+    {"ciqual_key": "Sucres (g 100 g)", "label": "Sucres totaux", "unit": "g", "category": "macros", "ref_type": "LSS", "male_adult": 100, "female_adult": 100, "lower_is_better": true, "source_id": "macros", "source_page": 81},
+    {"ciqual_key": "Fibres alimentaires (g 100 g)", "label": "Fibres", "unit": "g", "category": "macros", "ref_type": "AS", "male_adult": 30, "female_adult": 30, "lower_is_better": false, "source_id": "macros", "source_page": 92},
+    {"ciqual_key": "Sel chlorure de sodium (g 100 g)", "label": "Sel", "unit": "g", "category": "macros", "ref_type": "LSS", "male_adult": 8, "female_adult": 6.5, "lower_is_better": true, "source_id": "macros", "source_page": 99},
+
+    {"ciqual_key": "Calcium (mg 100 g)", "label": "Calcium", "unit": "mg", "category": "minerals", "ref_type": "RNP", "male_adult": 950, "female_adult": 950, "lower_is_better": false, "source_id": "vitamins_minerals", "source_page": 312},
+    {"ciqual_key": "Fer (mg 100 g)", "label": "Fer", "unit": "mg", "category": "minerals", "ref_type": "RNP", "male_adult": 11, "female_adult": 16, "lower_is_better": false, "source_id": "vitamins_minerals", "source_page": 358},
+    {"ciqual_key": "Magnésium (mg 100 g)", "label": "Magnésium", "unit": "mg", "category": "minerals", "ref_type": "AS", "male_adult": 380, "female_adult": 300, "lower_is_better": false, "source_id": "vitamins_minerals", "source_page": 391},
+    {"ciqual_key": "Phosphore (mg 100 g)", "label": "Phosphore", "unit": "mg", "category": "minerals", "ref_type": "AS", "male_adult": 550, "female_adult": 550, "lower_is_better": false, "source_id": "vitamins_minerals", "source_page": 415},
+    {"ciqual_key": "Potassium (mg 100 g)", "label": "Potassium", "unit": "mg", "category": "minerals", "ref_type": "AS", "male_adult": 3500, "female_adult": 3500, "lower_is_better": false, "source_id": "vitamins_minerals", "source_page": 433},
+    {"ciqual_key": "Zinc (mg 100 g)", "label": "Zinc", "unit": "mg", "category": "minerals", "ref_type": "RNP", "male_adult": 11, "female_adult": 7.5, "lower_is_better": false, "source_id": "vitamins_minerals", "source_page": 466},
+    {"ciqual_key": "Iode (µg 100 g)", "label": "Iode", "unit": "µg", "category": "minerals", "ref_type": "RNP", "male_adult": 150, "female_adult": 150, "lower_is_better": false, "source_id": "vitamins_minerals", "source_page": 376},
+    {"ciqual_key": "Sélénium (µg 100 g)", "label": "Sélénium", "unit": "µg", "category": "minerals", "ref_type": "RNP", "male_adult": 70, "female_adult": 70, "lower_is_better": false, "source_id": "vitamins_minerals", "source_page": 444},
+    {"ciqual_key": "Cuivre (mg 100 g)", "label": "Cuivre", "unit": "mg", "category": "minerals", "ref_type": "AS", "male_adult": 1.3, "female_adult": 1.0, "lower_is_better": false, "source_id": "vitamins_minerals", "source_page": 343},
+    {"ciqual_key": "Manganèse (mg 100 g)", "label": "Manganèse", "unit": "mg", "category": "minerals", "ref_type": "AS", "male_adult": 2.8, "female_adult": 2.5, "lower_is_better": false, "source_id": "vitamins_minerals", "source_page": 401},
+
+    {"ciqual_key": "Vitamine C (mg 100 g)", "label": "Vitamine C", "unit": "mg", "category": "vitamins", "ref_type": "RNP", "male_adult": 110, "female_adult": 110, "lower_is_better": false, "source_id": "vitamins_minerals", "source_page": 234},
+    {"ciqual_key": "Vitamine D (µg 100 g)", "label": "Vitamine D", "unit": "µg", "category": "vitamins", "ref_type": "RNP", "male_adult": 15, "female_adult": 15, "lower_is_better": false, "source_id": "vitamins_minerals", "source_page": 178},
+    {"ciqual_key": "Activité vitaminique A, équivalents rétinol (µg 100 g)", "label": "Vitamine A (rétinol équiv.)", "unit": "µg", "category": "vitamins", "ref_type": "RNP", "male_adult": 750, "female_adult": 650, "lower_is_better": false, "source_id": "vitamins_minerals", "source_page": 144},
+    {"ciqual_key": "Vitamine E (mg 100 g)", "label": "Vitamine E", "unit": "mg", "category": "vitamins", "ref_type": "AS", "male_adult": 10.5, "female_adult": 9.9, "lower_is_better": false, "source_id": "vitamins_minerals", "source_page": 196},
+    {"ciqual_key": "Vitamine K1 (µg 100 g)", "label": "Vitamine K1", "unit": "µg", "category": "vitamins", "ref_type": "AS", "male_adult": 79, "female_adult": 79, "lower_is_better": false, "source_id": "vitamins_minerals", "source_page": 217},
+    {"ciqual_key": "Vitamine B1 ou Thiamine (mg 100 g)", "label": "B1 (Thiamine)", "unit": "mg", "category": "vitamins", "ref_type": "RNP", "male_adult": 1.5, "female_adult": 1.2, "lower_is_better": false, "source_id": "vitamins_minerals", "source_page": 251},
+    {"ciqual_key": "Vitamine B2 ou Riboflavine (mg 100 g)", "label": "B2 (Riboflavine)", "unit": "mg", "category": "vitamins", "ref_type": "RNP", "male_adult": 1.6, "female_adult": 1.6, "lower_is_better": false, "source_id": "vitamins_minerals", "source_page": 263},
+    {"ciqual_key": "Vitamine B3 ou PP ou Niacine (mg 100 g)", "label": "B3 (Niacine)", "unit": "mg", "category": "vitamins", "ref_type": "RNP", "male_adult": 16, "female_adult": 11, "lower_is_better": false, "source_id": "vitamins_minerals", "source_page": 274},
+    {"ciqual_key": "Vitamine B5 ou Acide pantothénique (mg 100 g)", "label": "B5 (Pantothénate)", "unit": "mg", "category": "vitamins", "ref_type": "AS", "male_adult": 5.0, "female_adult": 5.0, "lower_is_better": false, "source_id": "vitamins_minerals", "source_page": 286},
+    {"ciqual_key": "Vitamine B6 (mg 100 g)", "label": "B6", "unit": "mg", "category": "vitamins", "ref_type": "RNP", "male_adult": 1.7, "female_adult": 1.6, "lower_is_better": false, "source_id": "vitamins_minerals", "source_page": 298},
+    {"ciqual_key": "Vitamine B9 ou Folates totaux (µg 100 g)", "label": "B9 (Folates)", "unit": "µg", "category": "vitamins", "ref_type": "RNP", "male_adult": 330, "female_adult": 330, "lower_is_better": false, "source_id": "vitamins_minerals", "source_page": 165},
+    {"ciqual_key": "Vitamine B12 (µg 100 g)", "label": "B12", "unit": "µg", "category": "vitamins", "ref_type": "AS", "male_adult": 4, "female_adult": 4, "lower_is_better": false, "source_id": "vitamins_minerals", "source_page": 156}
+  ]
+}
