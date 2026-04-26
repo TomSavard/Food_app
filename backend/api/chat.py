@@ -24,19 +24,22 @@ from backend.db.session import get_db
 router = APIRouter(prefix="/api/chat", tags=["chat"])
 
 SYSTEM_INSTRUCTION = (
-    "You are a helpful in-app assistant for the user's personal food app. "
-    "Tools available: list_recipes (browse the user's saved recipes); "
-    "get_meal_plan, add_meal_to_day, remove_meal, generate_meal_plan "
-    "(read and edit the weekly meal plan — each day is an ordered stack of meals); "
-    "categorize_shopping_list (sort the shopping list into supermarket sections "
-    "for efficient shopping); "
-    "replace_ingredient_in_recipes (bulk-rename an ingredient across all recipes; "
-    "ALWAYS run with dry_run=true first to preview, then ask the user to confirm "
-    "before calling again with dry_run=false). "
-    "Dates are ISO YYYY-MM-DD; weeks start on Monday. "
-    "When the user asks about their recipes, meal plan, or shopping list "
-    "organization, call the relevant tools and answer from what they return. "
-    "Be concise. Reply in the user's language."
+    "You are a helpful in-app assistant for the user's personal food app.\n"
+    "\n"
+    "You can:\n"
+    "- browse the user's recipes (search, fetch detail, fetch nutrition)\n"
+    "- read and edit the weekly meal plan (add/remove meals, regenerate the week)\n"
+    "- read the shopping list and re-categorize it by supermarket section\n"
+    "- bulk-rename an ingredient across all recipes\n"
+    "- look up the ingredient reference DB\n"
+    "- answer nutrition questions (weekly intake, ANSES targets, untracked items)\n"
+    "  and seasonality questions (what's in season this month; suggest seasonal recipes)\n"
+    "\n"
+    "For destructive operations (delete, bulk replace) ALWAYS run with dry_run=true "
+    "first, show the preview, and only re-run with dry_run=false on user confirmation.\n"
+    "\n"
+    "Dates are ISO YYYY-MM-DD; weeks start on Monday. Be concise. "
+    "Reply in the user's language."
 )
 
 
@@ -378,6 +381,250 @@ def _build_recipe_edit_tools(db: Session):
     return [replace_ingredient_in_recipes]
 
 
+def _build_recipe_read_tools(db: Session):
+    """Read-only recipe access — full detail, overview, per-recipe nutrition."""
+
+    def get_recipe(recipe_id: str) -> dict:
+        """Fetch one recipe in full: name, description, prep/cook time, servings,
+        cuisine, tags, every ingredient (with its CIQUAL FK if linked) and every
+        instruction in step order.
+
+        Args:
+            recipe_id: UUID of the recipe.
+        """
+        from uuid import UUID
+        try:
+            uid = UUID(recipe_id)
+        except ValueError:
+            return {"error": f"Invalid recipe_id: {recipe_id}"}
+        r = (
+            db.query(Recipe)
+            .options(selectinload(Recipe.ingredients), selectinload(Recipe.instructions))
+            .filter(Recipe.recipe_id == uid)
+            .first()
+        )
+        if not r:
+            return {"error": "Recipe not found"}
+        return {
+            "recipe_id": str(r.recipe_id),
+            "name": r.name,
+            "description": r.description or "",
+            "prep_time": r.prep_time,
+            "cook_time": r.cook_time,
+            "servings": r.servings,
+            "cuisine_type": r.cuisine_type or "",
+            "tags": list(r.tags or []),
+            "is_favorite": bool(r.is_favorite),
+            "ingredients": [
+                {
+                    "ingredient_id": str(i.ingredient_id),
+                    "name": i.name,
+                    "quantity": i.quantity,
+                    "unit": i.unit,
+                    "notes": i.notes or "",
+                    "ingredient_db_id": str(i.ingredient_db_id) if i.ingredient_db_id else None,
+                }
+                for i in r.ingredients
+            ],
+            "instructions": [
+                {"step_number": s.step_number, "text": s.instruction_text}
+                for s in r.instructions
+            ],
+        }
+
+    def recipe_overview() -> dict:
+        """Summarise the user's recipe collection: total count, favorites,
+        top cuisines, top tags, and how many ingredients are linked to a
+        CIQUAL canonical row vs. unlinked. Useful for orienting the
+        assistant before deciding what to do next."""
+        all_recipes = (
+            db.query(Recipe).options(selectinload(Recipe.ingredients)).all()
+        )
+        total = len(all_recipes)
+        favorites = sum(1 for r in all_recipes if r.is_favorite)
+        cuisines: dict[str, int] = {}
+        tag_counts: dict[str, int] = {}
+        n_ings = 0
+        n_linked = 0
+        for r in all_recipes:
+            if r.cuisine_type:
+                cuisines[r.cuisine_type] = cuisines.get(r.cuisine_type, 0) + 1
+            for t in r.tags or []:
+                tag_counts[t] = tag_counts.get(t, 0) + 1
+            for ing in r.ingredients or []:
+                n_ings += 1
+                if ing.ingredient_db_id is not None:
+                    n_linked += 1
+        top = lambda d, k=5: sorted(d.items(), key=lambda x: -x[1])[:k]  # noqa: E731
+        return {
+            "total_recipes": total,
+            "favorites": favorites,
+            "top_cuisines": [{"name": n, "count": c} for n, c in top(cuisines)],
+            "top_tags": [{"name": n, "count": c} for n, c in top(tag_counts, 8)],
+            "total_ingredients": n_ings,
+            "linked_to_db": n_linked,
+            "unlinked": n_ings - n_linked,
+        }
+
+    def get_recipe_nutrition(recipe_id: str) -> dict:
+        """Compute total + per-serving nutrition for a recipe (calories,
+        proteins, lipides, glucides, salt, AG saturés). Backed by the same
+        logic as /api/recipes/{id}/nutrition.
+
+        Args:
+            recipe_id: UUID of the recipe.
+        """
+        from uuid import UUID
+        from backend.utils.nutrition import compute_recipe_nutrition
+        try:
+            uid = UUID(recipe_id)
+        except ValueError:
+            return {"error": f"Invalid recipe_id: {recipe_id}"}
+        r = (
+            db.query(Recipe)
+            .options(selectinload(Recipe.ingredients))
+            .filter(Recipe.recipe_id == uid)
+            .first()
+        )
+        if not r:
+            return {"error": "Recipe not found"}
+        nutrition = compute_recipe_nutrition(r.ingredients, db)
+        servings = r.servings if r.servings and r.servings > 0 else 1
+        nutrition["per_serving"] = {k: round(v / servings, 2) for k, v in nutrition.items()}
+        nutrition["servings"] = servings
+        nutrition["recipe_name"] = r.name
+        return nutrition
+
+    return [get_recipe, recipe_overview, get_recipe_nutrition]
+
+
+def _build_shopping_read_tools(db: Session):
+    """Read-only access to the shopping list."""
+
+    def get_shopping_list() -> dict:
+        """Current shopping list: every ingredient with its category, check
+        state, and contributing source (manual or which recipe added it)."""
+        from backend.api.shopping_list import _query_items  # reuse the existing serializer
+        items = _query_items(db, include_checked=True)
+        return {
+            "total": len(items),
+            "items": [
+                {
+                    "item_id": str(it.item_id),
+                    "name": it.name,
+                    "category": it.category,
+                    "is_checked": it.is_checked,
+                    "contributions": [
+                        {"quantity_text": c.quantity_text, "source_label": c.source_label}
+                        for c in it.contributions
+                    ],
+                }
+                for it in items
+            ],
+        }
+
+    return [get_shopping_list]
+
+
+def _build_nutrition_tools(db: Session):
+    """Read-only access to weekly aggregated nutrition."""
+
+    def get_weekly_nutrition(week_start: str, sex: str = "male") -> dict:
+        """Aggregate nutrition over the given week: per-day macros, week totals
+        for every CIQUAL nutrient, ANSES daily targets for the given sex,
+        and a list of ingredients that couldn't be tracked (missing FK,
+        missing density, or empty nutrition row).
+
+        Args:
+            week_start: Monday of the week, ISO YYYY-MM-DD.
+            sex: 'male' or 'female'. Selects the ANSES target column.
+        """
+        from backend.api.meal_plan import get_weekly_nutrition as endpoint
+        try:
+            res = endpoint(week_start=week_start, sex=sex, db=db)
+        except HTTPException as e:
+            return {"error": e.detail}
+        return res.model_dump() if hasattr(res, "model_dump") else dict(res)
+
+    return [get_weekly_nutrition]
+
+
+def _build_seasonality_tools(db: Session):
+    """Seasonality lookup + ranked recipe suggestions for a given month."""
+
+    def get_in_season(month: Optional[int] = None) -> dict:
+        """Fruits and vegetables in season for the given month (1–12).
+        Defaults to the current month. Each item carries a level:
+        'coeur' (cœur de saison) > 'saison' > 'disponibilite'.
+
+        Args:
+            month: 1..12. Optional; current month if omitted.
+        """
+        from backend.services.reference import seasonality_for
+        m = month if month is not None else date.today().month
+        items = seasonality_for(m)
+        return {"month": m, "items": items}
+
+    def suggest_seasonal_recipes(month: Optional[int] = None, k: int = 5) -> dict:
+        """Rank the user's saved recipes by how well their ingredients align
+        with what's in season for the given month. Returns the top-k.
+
+        Args:
+            month: 1..12. Optional; current month if omitted.
+            k: number of recipes to return (default 5, max 20).
+        """
+        from backend.services.seasonality_match import rank_recipes
+        m = month if month is not None else date.today().month
+        kk = max(1, min(k, 20))
+        recipes = (
+            db.query(Recipe)
+            .options(selectinload(Recipe.ingredients))
+            .all()
+        )
+        ranked = rank_recipes(recipes, m, k=kk)
+        return {"month": m, "k": kk, "recipes": ranked}
+
+    return [get_in_season, suggest_seasonal_recipes]
+
+
+def _build_reference_read_tools(db: Session):
+    """Read-only lookup into the ingredient reference DB (CIQUAL + curated)."""
+
+    def find_ingredient_in_db(name: str) -> dict:
+        """Search the ingredient knowledge base by name OR alias. Returns
+        up to 8 candidates ranked by relevance, with each row's category,
+        source, modified flag, density (when set), and which nutrient
+        cells are missing — useful before deciding to curate.
+
+        Args:
+            name: free-text query; matches alim_nom_fr or any alias.
+        """
+        from backend.api.ingredients import search_ingredients, get_ingredient
+        hits = search_ingredients(q=name, limit=8, db=db)
+        out = []
+        for h in hits:
+            detail = get_ingredient(ingredient_id=h.id, db=db)
+            d = detail.model_dump() if hasattr(detail, "model_dump") else dict(detail)
+            missing = [
+                k for k, v in (d.get("nutrition_data") or {}).items()
+                if v is None or v == ""
+            ]
+            out.append({
+                "id": d["id"],
+                "name": d["name"],
+                "category": d.get("category"),
+                "source": d.get("source"),
+                "modified": d.get("modified", False),
+                "modified_by": d.get("modified_by"),
+                "density_g_per_ml": d.get("density_g_per_ml"),
+                "aliases": [a["alias_text"] for a in d.get("aliases", [])],
+                "missing_nutrients_count": len(missing),
+            })
+        return {"query": name, "candidates": out}
+
+    return [find_ingredient_in_db]
+
+
 def _to_contents(messages: List[ChatMessage]) -> List[types.Content]:
     return [
         types.Content(role=m.role, parts=[types.Part(text=m.text)])
@@ -398,9 +645,14 @@ def chat(req: ChatRequest, db: Session = Depends(get_db)):
         system_instruction=SYSTEM_INSTRUCTION,
         tools=[
             _build_list_recipes_tool(db),
+            *_build_recipe_read_tools(db),
             *_build_meal_plan_tools(db),
             *_build_shopping_tools(db),
+            *_build_shopping_read_tools(db),
             *_build_recipe_edit_tools(db),
+            *_build_nutrition_tools(db),
+            *_build_seasonality_tools(db),
+            *_build_reference_read_tools(db),
         ],
     )
 
