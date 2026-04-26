@@ -127,11 +127,12 @@ export function IconListe(props: IconProps) {
 
 /** Ingrédients — symmetric apple with a clearly visible leaf. */
 export function IconIngredients(props: IconProps) {
-  // Body path: symmetric around x=12. Top notch at (12, 8.2), bottom at (12, 19).
+  // Body path: symmetric around x=12. Fills the frame (y 6.5 → 20)
+  // so the apple visually weighs the same as the other icons.
   const body =
-    "M12 8.2 C13.6 6.6 16.6 6.8 17.8 9.4 C19.1 12.2 18.4 16.6 15.6 18.4 " +
-    "C14.3 19.2 13 18.7 12 18.7 C11 18.7 9.7 19.2 8.4 18.4 " +
-    "C5.6 16.6 4.9 12.2 6.2 9.4 C7.4 6.8 10.4 6.6 12 8.2 Z";
+    "M12 6.8 C13.9 5.2 17.6 5.6 18.9 8.6 C19.9 11.6 19.2 16.6 16 19.4 " +
+    "C14.5 20.2 13 19.7 12 19.7 C11 19.7 9.5 20.2 8 19.4 " +
+    "C4.8 16.6 4.1 11.6 5.1 8.6 C6.4 5.6 10.1 5.2 12 6.8 Z";
   return (
     <Frame {...props}>
       {/* apple body tint */}
@@ -144,16 +145,16 @@ export function IconIngredients(props: IconProps) {
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      {/* stem, slightly tilted so the leaf attaches on the side */}
+      {/* short stem */}
       <path
-        d="M12 8.2 L12 5"
+        d="M12 6.8 L12 4.4"
         stroke="currentColor"
         strokeWidth={STROKE}
         strokeLinecap="round"
       />
-      {/* leaf — larger teardrop, anchored on the stem at ~y=5.6 */}
+      {/* leaf — large teardrop tucked next to the stem */}
       <path
-        d="M12 5.6 C13.4 3.4 16.5 3.0 17.8 4.0 C17.4 6.0 15.0 7.2 12 5.6 Z"
+        d="M12 5.2 C13.6 2.9 17.0 2.6 18.4 3.7 C18.0 5.9 15.3 7.2 12 5.2 Z"
         fill="currentColor"
       />
     </Frame>
