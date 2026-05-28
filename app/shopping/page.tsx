@@ -62,7 +62,9 @@ export default function ShoppingPage() {
   }, [load]);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 8, delay: 100 },
+    }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
