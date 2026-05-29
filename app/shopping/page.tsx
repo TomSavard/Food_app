@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Plus, Sparkles, Trash2, X } from "lucide-react";
+import { GripVertical, Plus, Sparkles, Trash2, X } from "lucide-react";
 import {
   DndContext,
   DragEndEvent,
@@ -63,7 +63,7 @@ export default function ShoppingPage() {
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
-      activationConstraint: { distance: 8, delay: 500, tolerance: 4 },
+      activationConstraint: { distance: 3 },
     }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
@@ -435,14 +435,14 @@ function SortableRow({
     <div
       ref={setNodeRef}
       style={style}
-      className={isDragging ? "cursor-grabbing" : "cursor-grab"}
+      className={isDragging ? "cursor-grabbing" : ""}
       {...attributes}
-      {...listeners}
     >
       <ItemRow
         item={item}
         onToggleChecked={onToggleChecked}
         onRemoveContribution={onRemoveContribution}
+        listeners={listeners}
       />
     </div>
   );
@@ -453,22 +453,33 @@ function ItemRow({
   onToggleChecked,
   onRemoveContribution,
   isOverlay,
+  listeners,
 }: {
   item: ShoppingItem;
   onToggleChecked: (it: ShoppingItem) => void;
   onRemoveContribution: (item_id: string, contribution_id: string) => void;
   isOverlay?: boolean;
+  listeners?: Record<string, any>;
 }) {
   const total = aggregate(item.contributions);
   return (
     <div
       className={
-        "surface select-none p-3 touch-none " +
+        "surface select-none p-3 " +
         (isOverlay ? "scale-[1.02] shadow-2xl ring-1 ring-primary/40 rotate-[0.5deg] " : "") +
         (item.is_checked ? "opacity-60" : "")
       }
     >
-      <div className="flex items-start gap-3">
+      <div className="flex items-start gap-2">
+        {listeners && (
+          <button
+            {...listeners}
+            className="mt-1.5 flex h-5 w-5 shrink-0 items-center justify-center rounded p-0.5 text-muted-foreground/50 hover:text-foreground"
+            aria-label="Glisser pour réorganiser"
+          >
+            <GripVertical className="h-4 w-4" />
+          </button>
+        )}
         <input
           type="checkbox"
           checked={item.is_checked}
