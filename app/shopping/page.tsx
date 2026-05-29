@@ -472,7 +472,7 @@ function ItemRow({
         {listeners && (
           <button
             {...listeners}
-            className="mt-1.5 flex h-5 w-5 shrink-0 items-center justify-center rounded p-0.5 text-muted-foreground/50 hover:text-foreground"
+            className="mt-1.5 flex h-5 w-5 shrink-0 items-center justify-center rounded p-0.5 touch-none text-muted-foreground/50 hover:text-foreground"
             aria-label="Glisser pour réorganiser"
           >
             <GripVertical className="h-4 w-4" />
