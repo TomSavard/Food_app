@@ -115,7 +115,7 @@ export function IngredientNameCombobox({
         <Check className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-emerald-500" />
       )}
       {open && query.trim().length > 0 && (
-        <div className="absolute z-20 mt-1 w-full rounded-md border bg-popover shadow-lg backdrop-blur-none">
+        <div className="absolute z-20 mt-1 w-full rounded-md border bg-card shadow-lg">
           {loading && (
             <div className="px-3 py-2 text-xs text-muted-foreground">
               Recherche…
