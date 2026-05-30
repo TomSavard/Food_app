@@ -115,7 +115,7 @@ export function IngredientNameCombobox({
         <Check className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-emerald-500" />
       )}
       {open && query.trim().length > 0 && (
-        <div className="absolute z-20 mt-1 w-full rounded-md border bg-popover shadow-lg">
+        <div className="absolute z-20 mt-1 w-full rounded-md border bg-popover shadow-lg backdrop-blur-none">
           {loading && (
             <div className="px-3 py-2 text-xs text-muted-foreground">
               Recherche…
@@ -133,7 +133,7 @@ export function IngredientNameCombobox({
               onClick={() => pick(r)}
               className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm hover:bg-accent"
             >
-              <span className="truncate">{r.name}</span>
+              <span className="break-all text-left" title={r.name}>{r.name.length > 20 ? r.name.slice(0, 20) + '…' : r.name}</span>
               {!r.has_nutrition_data && (
                 <span className="text-xs text-muted-foreground">sans données</span>
               )}
