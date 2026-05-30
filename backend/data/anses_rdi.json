@@ -428,8 +428,8 @@
       "female_adult": 70,
       "lower_is_better": false,
       "source_id": "vitamins_minerals",
-      "source_page": null,
-      "note": "Référence EFSA. Source à confirmer. Valeur à vérifier dans la source d'origine."
+      "source_page": 16,
+      "note": "Référence EFSA"
     }
   ]
 }
