@@ -60,12 +60,12 @@
       "unit": "g",
       "category": "macros",
       "ref_type": "AS",
-      "male_adult": 0,
-      "female_adult": 0,
+      "male_adult": 101,
+      "female_adult": 82,
       "lower_is_better": false,
       "source_id": "macros",
       "source_page": 23,
-      "note": "35 à 40 % de l'énergie totale. Optimisation des apports et réduction des risques."
+      "note": "35 % de l'énergie totale. Calcul : H → 2600 × 0,35 ÷ 9 = 101 g/j ; F → 2100 × 0,35 ÷ 9 = 82 g/j."
     },
     {
       "ciqual_key": "Glucides (g 100 g)",
