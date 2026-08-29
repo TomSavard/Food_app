@@ -18,7 +18,7 @@ from backend.schemas import (
     MealPlanSlotUpdate,
     MealPlanWeekResponse,
 )
-from backend.services.reference import DAILY_MACROS, rdi_for
+from backend.services.reference import DAILY_MACROS, lower_is_better_set, rdi_for
 from backend.services.shopping_list_sync import (
     cleanup_orphan_items,
     sync_slot_added,
@@ -267,6 +267,7 @@ class WeeklyNutritionResponse(BaseModel):
     week: dict[str, float]
     rdi: dict[str, float]
     untracked: list[UntrackedItem]
+    lower_is_better: list[str]
 
 
 def _zero_macros() -> dict[str, float]:
@@ -369,5 +370,6 @@ def get_weekly_nutrition(
         days=days,
         week=week,
         rdi=rdi_for(sex),  # type: ignore[arg-type]
+        lower_is_better=list(lower_is_better_set()),
         untracked=untracked,
     )

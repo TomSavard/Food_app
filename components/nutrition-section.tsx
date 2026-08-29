@@ -29,7 +29,6 @@ const DAILY_ROWS: { key: string; label: string; unit: string }[] = [
   { key: K.agSat, label: "AG saturés", unit: "g" },
 ];
 
-const LOWER_IS_BETTER = new Set<string>([K.sel, K.agSat, K.sucres]);
 
 const MICRO_GROUPS: { title: string; rows: { key: string; label: string; unit: string }[] }[] = [
   {
@@ -270,7 +269,7 @@ function WeekOverview({ data }: { data: WeeklyNutrition }) {
           const total = data.week[row.key] || 0;
           const target = (data.rdi[row.key] || 0) * 7;
           const pct = target > 0 ? (total / target) * 100 : 0;
-          const lower = LOWER_IS_BETTER.has(row.key);
+          const lower = data.lower_is_better.includes(row.key);
           const color = pctColor(pct, lower);
           return (
             <div key={row.key} className="rounded-lg border bg-card p-3">
@@ -304,7 +303,7 @@ function DailyBreakdown({ data }: { data: WeeklyNutrition }) {
       <div className="space-y-1">
         {DAILY_ROWS.map((row) => {
           const target = data.rdi[row.key] || 0;
-          const lower = LOWER_IS_BETTER.has(row.key);
+          const lower = data.lower_is_better.includes(row.key);
           const weekTotal = data.week[row.key] || 0;
           return (
             <div

@@ -76,7 +76,7 @@ temp/
 tmp/
 .vercel
 .env*.local
-CLAUDE.md
+AGENTS.md
 
 # Build artifacts
 tsconfig.tsbuildinfo

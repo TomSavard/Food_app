@@ -201,6 +201,7 @@ export interface WeeklyNutrition {
   week: Record<string, number>;
   rdi: Record<string, number>;
   untracked: UntrackedItem[];
+  lower_is_better: string[];
 }
 
 // ---- Reference (ANSES + Interfel) ----

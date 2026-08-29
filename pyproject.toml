@@ -1,0 +1,7 @@
+[tool.pytest.ini_options]
+markers = [
+    "integration: marks tests as integration tests (requires Neon database, slow)",
+    "unit: marks tests as fast unit tests (runs against SQLite, default)",
+]
+testpaths = ["tests/unit"]
+addopts = "-v"

@@ -1,12 +1,9 @@
 """
-Database models.
+SQLite-compatible model definitions.
 
-Automatically selects PostgreSQL or SQLite types depending on the
-current DATABASE_URL.  When the URL contains 'sqlite' the models use
-SQLite-compatible column types so the same codebase works for both
-production (Neon/PostgreSQL) and local unit testing (in-memory SQLite).
+Maps PostgreSQL types (UUID, JSONB, ARRAY) to SQLite equivalents
+so the same test logic can run against both databases.
 """
-import os
 import uuid
 from datetime import datetime, timezone
 
@@ -22,47 +19,35 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
 )
+from sqlalchemy.dialects.sqlite import JSON
 from sqlalchemy.orm import relationship
-
-# ---------------------------------------------------------------------------
-# Dialect-aware type selection
-# ---------------------------------------------------------------------------
-_is_sqlite = "sqlite" in os.getenv("DATABASE_URL", "")
-
-if _is_sqlite:
-    from sqlalchemy.dialects.sqlite import JSON as _JSON
-    def _uuid_col(**kw):
-        return String(36, **kw)
-    _JSONB = _JSON
-    _ARRAY = Text
-else:
-    from sqlalchemy.dialects.postgresql import UUID as _PGUUID
-    from sqlalchemy.dialects.postgresql import JSONB as _PGJSONB
-    from sqlalchemy.dialects.postgresql import ARRAY as _PGARRAY
-    def _uuid_col(**kw):
-        return _PGUUID(as_uuid=True, **kw)
-    _JSONB = _PGJSONB
-    _ARRAY = _PGARRAY
 
 from backend.db.session import Base
 
 
 # ---------------------------------------------------------------------------
-# Models
+# Type aliases that map PostgreSQL types to SQLite equivalents
+# ---------------------------------------------------------------------------
+UUID = String(36)        # PostgreSQL UUID -> SQLite TEXT (36-char hex)
+JSONB = JSON             # PostgreSQL JSONB -> SQLite JSON
+ARRAY = Text             # PostgreSQL ARRAY -> SQLite TEXT (serialized as JSON)
+
+
+# ---------------------------------------------------------------------------
+# Models (mirroring backend/db/models.py but with SQLite-compatible types)
 # ---------------------------------------------------------------------------
 
 class Recipe(Base):
-    """Recipe model"""
     __tablename__ = "recipes"
 
-    recipe_id = Column(_uuid_col(), primary_key=True, default=uuid.uuid4)
+    recipe_id = Column(UUID, primary_key=True, default=uuid.uuid4)
     name = Column(String(255), nullable=False, index=True)
     description = Column(Text)
-    prep_time = Column(Integer, default=0)  # minutes
-    cook_time = Column(Integer, default=0)  # minutes
+    prep_time = Column(Integer, default=0)
+    cook_time = Column(Integer, default=0)
     servings = Column(Integer, default=1)
     cuisine_type = Column(String(100), index=True)
-    tags = Column(_ARRAY, default=[])
+    tags = Column(ARRAY, default=[])
     image_url = Column(String(500))
     is_favorite = Column(Boolean, default=False, index=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
@@ -72,25 +57,36 @@ class Recipe(Base):
         onupdate=lambda: datetime.now(timezone.utc),
     )
 
-    ingredients = relationship("Ingredient", back_populates="recipe", cascade="all, delete-orphan")
-    instructions = relationship("Instruction", back_populates="recipe", cascade="all, delete-orphan", order_by="Instruction.step_number")
+    ingredients = relationship(
+        "Ingredient", back_populates="recipe", cascade="all, delete-orphan"
+    )
+    instructions = relationship(
+        "Instruction",
+        back_populates="recipe",
+        cascade="all, delete-orphan",
+        order_by="Instruction.step_number",
+    )
 
     def __repr__(self):
         return f"<Recipe(name='{self.name}', recipe_id='{self.recipe_id}')>"
 
 
 class Ingredient(Base):
-    """Ingredient model - belongs to a recipe"""
     __tablename__ = "ingredients"
 
-    ingredient_id = Column(_uuid_col(), primary_key=True, default=uuid.uuid4)
-    recipe_id = Column(_uuid_col(), ForeignKey("recipes.recipe_id", ondelete="CASCADE"), nullable=False, index=True)
+    ingredient_id = Column(UUID, primary_key=True, default=uuid.uuid4)
+    recipe_id = Column(
+        UUID,
+        ForeignKey("recipes.recipe_id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     name = Column(String(255), nullable=False, index=True)
     quantity = Column(Float, default=0.0)
     unit = Column(String(50), default="")
     notes = Column(String(500), default="")
     ingredient_db_id = Column(
-        _uuid_col(),
+        UUID,
         ForeignKey("ingredient_database.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
@@ -104,11 +100,15 @@ class Ingredient(Base):
 
 
 class Instruction(Base):
-    """Cooking instruction step - belongs to a recipe"""
     __tablename__ = "instructions"
 
-    instruction_id = Column(_uuid_col(), primary_key=True, default=uuid.uuid4)
-    recipe_id = Column(_uuid_col(), ForeignKey("recipes.recipe_id", ondelete="CASCADE"), nullable=False, index=True)
+    instruction_id = Column(UUID, primary_key=True, default=uuid.uuid4)
+    recipe_id = Column(
+        UUID,
+        ForeignKey("recipes.recipe_id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     step_number = Column(Integer, nullable=False)
     instruction_text = Column(Text, nullable=False)
 
@@ -119,17 +119,16 @@ class Instruction(Base):
 
 
 class MealPlanSlot(Base):
-    """One meal in the day's stack."""
     __tablename__ = "meal_plan_slots"
     __table_args__ = (
         UniqueConstraint("slot_date", "position", name="uq_meal_plan_slot_date_position"),
     )
 
-    slot_id = Column(_uuid_col(), primary_key=True, default=uuid.uuid4)
+    slot_id = Column(UUID, primary_key=True, default=uuid.uuid4)
     slot_date = Column(Date, nullable=False, index=True)
     position = Column(Integer, nullable=False)
     recipe_id = Column(
-        _uuid_col(),
+        UUID,
         ForeignKey("recipes.recipe_id", ondelete="CASCADE"),
         nullable=False,
         index=True,
@@ -149,16 +148,15 @@ class MealPlanSlot(Base):
 
 
 class ShoppingList(Base):
-    """One ingredient on the shopping list."""
     __tablename__ = "shopping_list"
 
-    item_id = Column(_uuid_col(), primary_key=True, default=uuid.uuid4)
+    item_id = Column(UUID, primary_key=True, default=uuid.uuid4)
     name = Column(String(255), nullable=False, index=True)
     position = Column(Integer, nullable=False, default=0)
     is_checked = Column(Boolean, default=False, index=True)
     category = Column(String(50), nullable=True, index=True)
     ingredient_db_id = Column(
-        _uuid_col(),
+        UUID,
         ForeignKey("ingredient_database.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
@@ -182,12 +180,11 @@ class ShoppingList(Base):
 
 
 class ShoppingListContribution(Base):
-    """One source contributing to a shopping-list item."""
     __tablename__ = "shopping_list_contributions"
 
-    contribution_id = Column(_uuid_col(), primary_key=True, default=uuid.uuid4)
+    contribution_id = Column(UUID, primary_key=True, default=uuid.uuid4)
     item_id = Column(
-        _uuid_col(),
+        UUID,
         ForeignKey("shopping_list.item_id", ondelete="CASCADE"),
         nullable=False,
         index=True,
@@ -195,12 +192,12 @@ class ShoppingListContribution(Base):
     quantity_text = Column(String(100), nullable=False, default="")
     source_label = Column(String(255), nullable=False, default="Manuel")
     recipe_id = Column(
-        _uuid_col(),
+        UUID,
         ForeignKey("recipes.recipe_id", ondelete="SET NULL"),
         nullable=True,
     )
     slot_id = Column(
-        _uuid_col(),
+        UUID,
         ForeignKey("meal_plan_slots.slot_id", ondelete="CASCADE"),
         nullable=True,
         index=True,
@@ -211,12 +208,11 @@ class ShoppingListContribution(Base):
 
 
 class IngredientDatabase(Base):
-    """Ingredient knowledge base."""
     __tablename__ = "ingredient_database"
 
-    id = Column(_uuid_col(), primary_key=True, default=uuid.uuid4)
+    id = Column(UUID, primary_key=True, default=uuid.uuid4)
     alim_nom_fr = Column(String(255), nullable=False, unique=True, index=True)
-    nutrition_data = Column(_JSONB)
+    nutrition_data = Column(JSONB)
     category = Column(String(50), nullable=True, index=True)
     source = Column(String(20), nullable=False, default="ciqual")
     modified = Column(Boolean, nullable=False, default=False)
@@ -241,12 +237,11 @@ class IngredientDatabase(Base):
 
 
 class IngredientAlias(Base):
-    """Free-text → CIQUAL canonical match."""
     __tablename__ = "ingredient_aliases"
 
-    alias_id = Column(_uuid_col(), primary_key=True, default=uuid.uuid4)
+    alias_id = Column(UUID, primary_key=True, default=uuid.uuid4)
     ingredient_db_id = Column(
-        _uuid_col(),
+        UUID,
         ForeignKey("ingredient_database.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
