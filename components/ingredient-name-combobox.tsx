@@ -133,7 +133,7 @@ export function IngredientNameCombobox({
               onClick={() => pick(r)}
               className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm hover:bg-accent"
             >
-              <span className="break-all text-left" title={r.name}>{r.name.length > 20 ? r.name.slice(0, 20) + '…' : r.name}</span>
+              <span className="break-all text-left">{r.name}</span>
               {!r.has_nutrition_data && (
                 <span className="text-xs text-muted-foreground">sans données</span>
               )}
