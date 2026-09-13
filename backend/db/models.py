@@ -177,6 +177,7 @@ class IngredientDatabase(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     alim_nom_fr = Column(String(255), nullable=False, unique=True, index=True)
+    embedding = Column(ARRAY(Float))  # 768-d text embedding (text-embedding-004)
     nutrition_data = Column(JSONB)
     category = Column(String(50), nullable=True, index=True)
     source = Column(String(20), nullable=False, default="ciqual")  # 'ciqual' | 'user' | 'llm'

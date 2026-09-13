@@ -6,6 +6,7 @@ Load CIQUAL 2025 (Table Ciqual 2025_FR_2025_11_03.xls) into ingredient_database.
 - Loads all 84 columns of the file into JSONB. Newlines in column headers
   are normalized to spaces and runs of whitespace collapsed.
 - Asserts the 6 promoted nutrients exist before writing anything.
+- Computes a 768-d text embedding for each ingredient name (Gemini text-embedding-004).
 
 Usage:
   DATABASE_URL=postgresql://... python scripts/load_ciqual_2025.py [path/to/Table.xls]
@@ -46,6 +47,23 @@ PROMOTED_KEYS = [
 def normalize_col(name: str) -> str:
     """Collapse newlines + whitespace runs to single spaces."""
     return re.sub(r"\s+", " ", name.replace("\n", " ")).strip()
+
+
+def _compute_embedding(name: str) -> list[float] | None:
+    """Compute a 768-d text embedding via Gemini text-embedding-004."""
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        return None
+    try:
+        from google import genai
+        client = genai.Client(api_key=api_key)
+        response = client.models.embed_content(
+            model="text-embedding-004",
+            contents=[name],
+        )
+        return response.embeddings[0].values  # type: ignore[union-attr]
+    except Exception:
+        return None
 
 
 def main(xls_path: Path) -> None:
@@ -93,6 +111,7 @@ def main(xls_path: Path) -> None:
         inserted = 0
         skipped_curated = 0
         skipped_duplicate = 0
+        skipped_no_embedding = 0
         seen_names: set[str] = set()
         for _, row in df.iterrows():
             name = row.get("alim_nom_fr")
@@ -120,10 +139,16 @@ def main(xls_path: Path) -> None:
                         float(val) if isinstance(val, (int, float)) else str(val)
                     )
 
+            # Compute embedding (optional — runs silently if GEMINI_API_KEY is missing).
+            embedding = _compute_embedding(name.strip())
+            if embedding is None:
+                skipped_no_embedding += 1
+
             db.add(
                 IngredientDatabase(
                     alim_nom_fr=name.strip(),
                     nutrition_data=nutrition_data,
+                    embedding=embedding,
                     source="ciqual",
                     modified=False,
                 )
@@ -133,8 +158,11 @@ def main(xls_path: Path) -> None:
         db.commit()
         print(
             f"✅ inserted {inserted} rows "
-            f"(skipped {skipped_curated} curated, {skipped_duplicate} dup names)"
+            f"(skipped {skipped_curated} curated, {skipped_duplicate} dup names"
         )
+        if skipped_no_embedding:
+            print(f"   {skipped_no_embedding} rows without embedding (no GEMINI_API_KEY)")
+        print(")")
     except Exception:
         db.rollback()
         raise

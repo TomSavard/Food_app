@@ -29,6 +29,14 @@ from backend.db.session import get_db  # noqa: E402
 from backend.main import app  # noqa: E402
 
 
+def _ensure_embedding_column(session):
+    """Ensure the embedding column exists on ingredient_database."""
+    session.execute(text(
+        "ALTER TABLE ingredient_database ADD COLUMN IF NOT EXISTS embedding FLOAT[]"
+    ))
+    session.flush()
+
+
 def _truncate_tables(session):
     """Delete all rows in FK order so each test starts from a clean slate."""
     tables = [
@@ -65,6 +73,7 @@ def db_session(engine):
     )
     session = SessionLocal()
     try:
+        _ensure_embedding_column(session)
         _truncate_tables(session)
         yield session
     finally:

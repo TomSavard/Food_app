@@ -24,6 +24,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from backend.db.models import IngredientAlias, IngredientDatabase
 from backend.db.session import get_db
+from backend.services import ingredient_match
 from backend.services.categorize import CATEGORIES
 
 router = APIRouter(prefix="/api/ingredients", tags=["ingredients"])
@@ -146,36 +147,24 @@ def search_ingredients(
     limit: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),
 ):
-    """Autocomplete. Matches canonical name OR any alias."""
+    """Autocomplete. Uses embedding-based nearest-neighbor search with
+    alias fast-path. Exact-match aliases short-circuit first."""
     needle = q.strip().lower()
     if not needle:
         return []
-    pattern = f"%{needle}%"
 
-    # Direct name matches.
-    name_rows = (
-        db.query(IngredientDatabase)
-        .filter(IngredientDatabase.alim_nom_fr.ilike(pattern))
-        .limit(limit * 2)
-        .all()
-    )
-    # Alias matches → resolve to canonical.
-    alias_rows = (
-        db.query(IngredientAlias)
-        .filter(IngredientAlias.alias_text.ilike(pattern))
-        .limit(limit * 2)
-        .all()
-    )
-    by_id: dict[str, IngredientDatabase] = {str(r.id): r for r in name_rows}
-    for a in alias_rows:
-        if str(a.ingredient_db_id) not in by_id:
-            ref = db.get(IngredientDatabase, a.ingredient_db_id)
-            if ref:
-                by_id[str(ref.id)] = ref
+    # Exact alias match (fast path).
+    exact = ingredient_match.lookup_exact(db, q)
+    if exact:
+        return [IngredientSearchResponse(
+            id=str(exact.id), name=exact.alim_nom_fr,
+            has_nutrition_data=bool(exact.nutrition_data),
+        )]
 
-    # Score: exact > startswith > contains.
+    # Embedding-based nearest neighbors.
+    rows = ingredient_match.embedding_candidates(db, q, limit=limit * 5)
     scored = []
-    for r in by_id.values():
+    for r in rows:
         n = r.alim_nom_fr.lower()
         if n == needle:
             score = 1000
@@ -210,19 +199,12 @@ def list_ingredients(
     q = db.query(IngredientDatabase)
     if search:
         pat = f"%{search.strip().lower()}%"
-        # Subquery so the alias match piggybacks on the GIN trigram index instead
-        # of round-tripping a (potentially large) id list back to Postgres.
-        alias_subq = (
-            db.query(IngredientAlias.ingredient_db_id)
-            .filter(IngredientAlias.alias_text.ilike(pat))
-            .subquery()
+        # Embedding-based search instead of ILIKE for fuzzy matching.
+        candidate_rows = ingredient_match.embedding_candidates(
+            db, search, limit=limit * 10
         )
-        q = q.filter(
-            or_(
-                IngredientDatabase.alim_nom_fr.ilike(pat),
-                IngredientDatabase.id.in_(alias_subq.select()),
-            )
-        )
+        candidate_ids = {r.id for r in candidate_rows}
+        q = q.filter(IngredientDatabase.id.in_(candidate_ids))
     if category:
         q = q.filter(IngredientDatabase.category == category)
     if modified is not None:
