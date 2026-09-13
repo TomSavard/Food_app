@@ -1,7 +1,9 @@
 """Tests for /api/ingredients browse + curation endpoints."""
 from datetime import datetime, timezone
+import json
 
 import pytest
+from sqlalchemy import text
 
 from backend.db.models import IngredientAlias, IngredientDatabase
 
@@ -128,8 +130,6 @@ def test_search_uses_embedding_when_alias_missing(client, db_session, make_ingre
     r3 = make_ingredient("Carottes, crues")
     db_session.flush()
 
-    import json
-    from sqlalchemy import text
     vec = [0.0] * 256
     for row in (r1, r2, r3):
         db_session.execute(text('''

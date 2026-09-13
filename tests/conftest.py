@@ -33,6 +33,8 @@ def _ensure_embedding_column(session):
     """Ensure pgvector extension exists and migration runs (if table/column exist).
 
     Gracefully skips if the test database lacks pgvector or the table.
+    If pgvector is unavailable, ensure the column exists as float8[]
+    so that embedding writes don't leave the transaction in a failed state.
     """
     try:
         session.execute(text('CREATE EXTENSION IF NOT EXISTS vector'))
@@ -50,8 +52,16 @@ def _ensure_embedding_column(session):
         '''))
         session.flush()
     except Exception:
-        # pgvector not available or column doesn't exist — skip migration.
-        pass
+        # pgvector not available or column doesn't exist.
+        # Ensure the column exists as float8[] so embedding writes don't abort the transaction.
+        try:
+            session.execute(text('''
+                ALTER TABLE ingredient_database
+                ADD COLUMN IF NOT EXISTS embedding float8[]
+            '''))
+            session.flush()
+        except Exception:
+            pass  # column might already exist — skip.
 
 
 def _truncate_tables(session):

@@ -127,25 +127,35 @@ def _bm25_score(text: str, query: str) -> float:
     return score
 
 
+def _is_pgvector_available(db: Session) -> bool:
+    """Check whether the pgvector extension is installed."""
+    try:
+        result = db.execute(text(
+            "SELECT count(*) FROM pg_extension WHERE extname = 'vector'"
+        )).scalar()
+        return result > 0
+    except Exception:
+        return False
+
+
 def _lazy_compute_embedding(db: Session, row: IngredientDatabase):
     """Compute and store the embedding for a row (if no embeddings exist yet).
 
     Gracefully skips when pgvector isn't available (e.g. CI test env).
     """
-    try:
-        has_embeddings = db.execute(text('''
-            SELECT count(*) FROM ingredient_database WHERE embedding IS NOT NULL
-        ''')).scalar()
-        if has_embeddings > 0:
-            return
-        vec = _compute_query_embedding(row.alim_nom_fr)
-        if vec is not None:
-            db.execute(text('''
-                UPDATE ingredient_database SET embedding = :vec WHERE id = :id
-            '''), {'vec': json.dumps(vec), 'id': str(row.id)})
-            db.flush()
-    except Exception:
-        db.rollback()  # pgvector not available — silently skip.
+    if not _is_pgvector_available(db):
+        return
+    has_embeddings = db.execute(text('''
+        SELECT count(*) FROM ingredient_database WHERE embedding IS NOT NULL
+    ''')).scalar()
+    if has_embeddings > 0:
+        return
+    vec = _compute_query_embedding(row.alim_nom_fr)
+    if vec is not None:
+        db.execute(text('''
+            UPDATE ingredient_database SET embedding = :vec WHERE id = :id
+        '''), {'vec': json.dumps(vec), 'id': str(row.id)})
+        db.flush()
 
 
 def embedding_candidates(
@@ -158,39 +168,34 @@ def embedding_candidates(
     if not os.getenv("GEMINI_API_KEY"):
         return _trigram_candidates(db, name, limit)
 
+    if not _is_pgvector_available(db):
+        return _trigram_candidates(db, name, limit)
+
     query_vec = _compute_query_embedding(name)
     if query_vec is None:
-        return []
+        return _trigram_candidates(db, name, limit)
 
     # Check if any rows have embeddings (coarse existence check via raw SQL).
-    try:
-        has_embeddings = db.execute(text('''
-            SELECT count(*) FROM ingredient_database WHERE embedding IS NOT NULL
-        ''')).scalar() > 0
-    except Exception:
-        db.rollback()  # column might not exist
-        return _trigram_candidates(db, name, limit)
+    has_embeddings = db.execute(text('''
+        SELECT count(*) FROM ingredient_database WHERE embedding IS NOT NULL
+    ''')).scalar() > 0
 
     if not has_embeddings:
         return _trigram_candidates(db, name, limit)
 
     # Vector distance query (pgvector).
-    try:
-        rows = db.execute(
-            text(
-                f"""
-                SELECT id, alim_nom_fr
-                FROM ingredient_database
-                WHERE embedding IS NOT NULL
-                ORDER BY embedding <-> :vec
-                LIMIT :top_n
-                """
-            ),
-            {"vec": json.dumps(query_vec), "top_n": EMBEDDING_CANDIDATE_LIMIT * 2},
-        ).all()
-    except Exception:
-        db.rollback()  # pgvector extension or column missing
-        return _trigram_candidates(db, name, limit)
+    rows = db.execute(
+        text(
+            f"""
+            SELECT id, alim_nom_fr
+            FROM ingredient_database
+            WHERE embedding IS NOT NULL
+            ORDER BY embedding <-> :vec
+            LIMIT :top_n
+            """
+        ),
+        {"vec": json.dumps(query_vec), "top_n": EMBEDDING_CANDIDATE_LIMIT * 2},
+    ).all()
 
     if not rows:
         return _trigram_candidates(db, name, limit)
@@ -235,7 +240,6 @@ def embedding_candidates(
         scored.sort(key=lambda x: x[0], reverse=True)
         return [c for _, c in scored[:limit]]
     except Exception:
-        db.rollback()  # pgvector/read failed — fall back to trigram
         return _trigram_candidates(db, name, limit)
 
 
@@ -341,15 +345,13 @@ def confirm_match(
         )
     )
 
-    # Write alias, then try to compute embedding (skip if pgvector unavailable).
-    try:
+    # Write alias, then compute embedding if pgvector is available (skip otherwise).
+    if _is_pgvector_available(db):
         has_embeddings = db.execute(text('''
             SELECT count(*) FROM ingredient_database WHERE embedding IS NOT NULL
         ''')).scalar()
         if has_embeddings == 0:
             _lazy_compute_embedding(db, canonical)
-    except Exception:
-        db.rollback()  # pgvector not available — silently skip.
 
     # Flush the alias (always succeeds).
     db.flush()
@@ -393,12 +395,10 @@ def create_new(
     )
     db.flush()
     # Compute embedding for the new row (idempotent, stored once — skip if pgvector unavailable).
-    try:
+    if _is_pgvector_available(db):
         count = db.execute(text('''
             SELECT count(*) FROM ingredient_database WHERE embedding IS NOT NULL
         ''')).scalar()
         if count == 0:
             _lazy_compute_embedding(db, row)
-    except Exception:
-        db.rollback()  # pgvector not available — silently skip.
     return row
