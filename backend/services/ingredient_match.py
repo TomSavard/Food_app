@@ -338,7 +338,7 @@ def confirm_match(
         )
     )
 
-    # Lazy-compute embedding on the canonical row (if no embeddings exist yet).
+    # Write alias, then try to compute embedding (skip if pgvector unavailable).
     try:
         has_embeddings = db.execute(text('''
             SELECT count(*) FROM ingredient_database WHERE embedding IS NOT NULL
@@ -348,6 +348,7 @@ def confirm_match(
     except Exception:
         pass  # pgvector not available — silently skip.
 
+    # Flush the alias (always succeeds).
     db.flush()
     return canonical
 
@@ -388,6 +389,13 @@ def create_new(
         )
     )
     db.flush()
-    # Compute embedding for the new row (idempotent, stored once).
-    _lazy_compute_embedding(db, row)
+    # Compute embedding for the new row (idempotent, stored once — skip if pgvector unavailable).
+    try:
+        count = db.execute(text('''
+            SELECT count(*) FROM ingredient_database WHERE embedding IS NOT NULL
+        ''')).scalar()
+        if count == 0:
+            _lazy_compute_embedding(db, row)
+    except Exception:
+        pass  # pgvector not available — silently skip.
     return row
