@@ -29,6 +29,41 @@ from backend.db.session import get_db  # noqa: E402
 from backend.main import app  # noqa: E402
 
 
+def _ensure_embedding_column(session):
+    """Ensure pgvector extension exists and migration runs (if table/column exist).
+
+    Gracefully skips if the test database lacks pgvector or the table.
+    If pgvector is unavailable, ensure the column exists as float8[]
+    so that embedding writes don't leave the transaction in a failed state.
+    """
+    try:
+        session.execute(text('CREATE EXTENSION IF NOT EXISTS vector'))
+        # Check if embedding column exists (it might be float8[] or missing).
+        has_col = session.execute(text('''
+            SELECT count(*) FROM information_schema.columns
+            WHERE table_name = 'ingredient_database' AND column_name = 'embedding'
+        ''')).scalar()
+        if has_col == 0:
+            return  # no embedding column at all — skip.
+        session.execute(text('''
+            ALTER TABLE ingredient_database
+            ALTER COLUMN embedding TYPE vector(256)
+            USING embedding::vector(256)
+        '''))
+        session.flush()
+    except Exception:
+        # pgvector not available or column doesn't exist.
+        # Ensure the column exists as float8[] so embedding writes don't abort the transaction.
+        try:
+            session.execute(text('''
+                ALTER TABLE ingredient_database
+                ADD COLUMN IF NOT EXISTS embedding float8[]
+            '''))
+            session.flush()
+        except Exception:
+            pass  # column might already exist — skip.
+
+
 def _truncate_tables(session):
     """Delete all rows in FK order so each test starts from a clean slate."""
     tables = [
@@ -42,8 +77,12 @@ def _truncate_tables(session):
         "ingredient_database",
     ]
     for table in tables:
-        session.execute(text(f"DELETE FROM {table}"))
-    session.flush()
+        try:
+            session.execute(text(f"DELETE FROM {table}"))
+            session.flush()
+        except Exception:
+            # Table might not exist yet — skip.
+            pass
 
 
 @pytest.fixture(scope="session")
@@ -65,6 +104,7 @@ def db_session(engine):
     )
     session = SessionLocal()
     try:
+        _ensure_embedding_column(session)
         _truncate_tables(session)
         yield session
     finally:

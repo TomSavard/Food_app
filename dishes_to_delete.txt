@@ -1,0 +1,435 @@
+# Prepared dishes proposed for deletion
+# CIQUAL group: entrées et plats composés (stocks/bouillons excluded)
+# 400 rows
+# used by a recipe: 0
+
+## autres plats végétariens  (21)
+  Bouchées ou émincé au soja et blé  (ne convient pas aux véganes ou végétaliens), préemballé
+  Bouchées ou émincé végétal au soja et blé (convient aux véganes ou végétaliens), préemballé
+  Boulette végétale au soja et/ou blé, préemballée
+  Bâtonnet pané soja et blé (convient aux véganes ou végétaliens), préemballée
+  Galette de céréales au fromage (sans soja), préemballée
+  Galette de céréales aux légumes (sans soja), préemballée
+  Galette ou pavé au blé (seitan) et légumes, préemballé
+  Galette ou pavé au blé et soja (convient aux véganes ou végétaliens), préemballé
+  Galette ou pavé au blé et soja (ne convient pas aux véganes ou végétaliens), préemballé
+  Galette ou pavé au soja
+  Galette ou pavé au soja et fromage, préemballé
+  Galette ou pavé au soja et légumes, préemballé
+  Galette ou pavé au soja, fromage et légumes, préemballé
+  Galette ou pavé aux lentilles, soja et légumes, préemballé
+  Haché végétal à base de soja, préemballé
+  Nuggets ou croquette panée de blé (sans soja), préemballé
+  Nuggets ou croquette panée de soja et blé (convient aux véganes ou végétaliens), préemballé
+  Nuggets ou croquette panée de soja et blé (ne convient pas aux véganes ou végétaliens), préemballé
+  Pané soja et blé (ne convient pas aux véganes ou végétaliens)
+  Pané soja, blé et fromage, type cordon bleu, préemballé
+  Ravioli au tofu, à la sauce tomate, préemballés
+
+## feuilletées et autres entrées  (26)
+  Beignet de viande, volaille ou poisson, fait maison, cuit
+  Bouchée à la reine, au poisson et fruits de mer, faite maison
+  Bouchée à la reine, garnie (aliment moyen)
+  Bouchée à la reine, à la viande/volaille/quenelle
+  Brick à l'oeuf, fait maison, cuit
+  Brick à la pomme de terre, fait maison, cuit
+  Cake salé (garniture : fromage, légumes, viande, poisson, volaille, etc.), préemballé
+  Croissant au jambon fromage, fait maison
+  Croissant au jambon fromage, préemballé
+  Feuilleté ou friand au fromage, préemballé, cuit
+  Feuilleté ou friand au fromage, préemballé, à cuire
+  Feuilleté ou friand au poisson et/ou fruits de mer, préemballé, à cuire
+  Feuilleté ou friand aux escargots, préemballé
+  Feuilleté ou friand jambon fromage, fait maison
+  Feuilleté ou friand jambon fromage, préemballé
+  Feuilleté ou friand salé (aliment moyen)
+  Feuilleté ou friand à la viande, préemballé
+  Nem ou pâté impérial, au porc, préemballé, cuit
+  Nem ou pâté impérial, au poulet, préemballé, cuit
+  Nem ou pâté impérial, aux crevettes et/ou au crabe, préemballé, cuit
+  Nem ou pâté impérial, préemballé, cuit (aliment moyen)
+  Rouleau de printemps
+  Samossa ou samoussa ou brick au boeuf, fait maison, cuit
+  Samossa ou samoussa ou brick garni, préemballé, cuit
+  Samoussa ou samossa ou brick garni, fait maison, cuit
+  Spécialité chinoise type bouchée à la vapeur, préemballée, cuite
+
+## pizzas, tartes et crêpes salées  (49)
+  Burritos au boeuf
+  Crêpe ou galette au poisson et / ou fruits de mer, préemballée
+  Crêpe ou galette aux noix de Saint-Jacques, préemballée
+  Crêpe ou galette béchamel et champignon, préemballée, cuite
+  Crêpe ou galette béchamel et champignon, préemballée, surgelée
+  Crêpe ou galette béchamel et fromage, préemballée
+  Crêpe ou galette béchamel et jambon, préemballée
+  Crêpe ou galette béchamel, jambon et fromage et champignon, préemballée
+  Crêpe ou galette béchamel, jambon et fromage, préemballée
+  Crêpe ou galette chèvre, lardon, préemballée
+  Crêpe ou galette complète (oeuf, jambon, fromage), préemballée
+  Fajita au poulet, préparé maison avec un kit
+  Ficelle picarde, préemballée
+  Flammenkueche ou tarte flambée aux lardons, préemballée
+  Pastilla au poulet, préemballée
+  Pissaladière, préemballée
+  Pizza (aliment moyen)
+  Pizza au chorizo ou salami, préemballée
+  Pizza au chèvre et lardons, préemballée
+  Pizza au chèvre, préemballée
+  Pizza au fromage ou pizza margherita, préemballée
+  Pizza au poulet, préemballée
+  Pizza au saumon, préemballée
+  Pizza au speck ou jambon cru, préemballée
+  Pizza au thon, préemballée
+  Pizza aux fromages, préemballée
+  Pizza aux fruits de mer, préemballée
+  Pizza aux lardons, oignons et fromage, préemballée
+  Pizza aux légumes ou pizza 4 saisons, préemballée
+  Pizza champignons fromage, préemballée
+  Pizza jambon fromage champignons ou pizza royale, reine ou regina, préemballée
+  Pizza jambon fromage, préemballée
+  Pizza kebab, préemballée
+  Pizza type raclette ou tartiflette, préemballée
+  Pizza à la viande, type bolognaise, préemballée
+  Quiche lorraine, préemballée
+  Tarte au fromage, préemballée
+  Tarte au maroilles ou flamiche au maroilles, préemballée
+  Tarte au saumon, préemballée
+  Tarte aux légumes, préemballée
+  Tarte aux noix de Saint-Jacques, préemballée
+  Tarte ou quiche salée (aliment moyen)
+  Tarte ou tourte aux poireaux, préemballée
+  Tarte à l'oignon, préemballée
+  Tarte à la provençale, préemballée
+  Tarte à la tomate, préemballée
+  Tarte épinard chèvre, préemballée
+  Tielle sétoise, préemballée
+  Tourte au riesling (porc, riesling, champignons), préemballée
+
+## plats de céréales/pâtes  (31)
+  Blé dur précuit, cuisiné, en sachet micro-ondable
+  Couscous de légumes, préemballé
+  Feuille de vigne farcie au riz ou dolmas, égouttée, préemballée
+  Gratin de pâtes au jambon, préemballé
+  Lasagnes ou canellonis à la viande (bolognaise), préemballés
+  Lasagnes ou cannellonis au fromage et aux épinards, préemballés
+  Lasagnes ou cannellonis au poisson, préemballées
+  Lasagnes ou cannellonis aux légumes et au fromage de chèvre, préemballés, cuits
+  Lasagnes ou cannellonis aux légumes, préemballées, cuits
+  Nouilles asiatiques cuisinées (boeuf, poulet, légumes…) non instantanées
+  Nouilles asiatiques instantanées, aromatisées, cuites
+  Nouilles aux crevettes, préemballées, sautées/poêlées
+  Pâtes en sauce aux fromages (spaghetti, tagliatelles…), préemballées
+  Pâtes fraîches farcies (ex : raviolis, tortellinis), au boeuf (ex : bolognaise), préemballées, crues
+  Pâtes fraîches farcies (ex : raviolis, tortellinis), au boeuf (ex : bolognaise), préemballées, cuites
+  Pâtes fraîches farcies (ex : raviolis, tortellinis), au fromage et aux légumes, préemballées, crues
+  Pâtes fraîches farcies (ex : raviolis, tortellinis), au fromage et aux légumes, préemballées, cuites
+  Pâtes fraîches farcies (ex : raviolis, tortellinis), aux légumes, préemballées, crues
+  Pâtes fraîches farcies (ex : raviolis, tortellinis), aux légumes, préemballées, cuites
+  Pâtes fraîches farcies (ex : raviolis, tortellinis), cuites (aliment moyen)
+  Pâtes fraîches farcies (ex : raviolis, tortellinis, ravioles du Dauphiné), au fromage, préemballées, crues
+  Pâtes fraîches farcies (ex : raviolis, tortellinis, ravioles du Dauphiné), au fromage, préemballées, cuites
+  Pâtes à la bolognaise (spaghetti, tagliatelles…), préemballées
+  Pâtes à la carbonara (spaghetti, tagliatelles…), préemballées
+  Ravioli au boeuf, sauce tomate, appertisé
+  Ravioli aux légumes, à la sauce tomate, appertisés
+  Ravioli chinois à la vapeur à la crevette, cuit
+  Risotto, aux fromages, préemballé
+  Risotto, aux fruits de mer, préemballé
+  Risotto, aux légumes, préemballé
+  Riz cantonais, préemballé
+
+## plats de fromage  (7)
+  Aligot (purée de pomme de terre à la tomme fraîche), préemballé
+  Fromage de chèvre pané à dorer, préemballé
+  Fromage pané au jambon, préemballé
+  Gougère
+  Préparation à base de fromage(s) pour fondue savoyarde, préemballée
+  Soufflé au fromage
+  Tartiflette (pommes de terre, reblochon, lardons…), préemballée
+
+## plats de légumes/légumineuses  (25)
+  Beignet de légumes
+  Choucroute cuisinée aux lardons, sans garniture, égouttée, cuite
+  Endive au jambon, préemballée
+  Falafel ou boulette de pois-chiche et/ou fève, préemballé
+  Falafel ou boulette de pois-chiche et/ou fève, vente à emporter
+  Flan de légumes aux oeufs
+  Gratin d'aubergine, préemballé
+  Gratin dauphinois, préemballé
+  Gratin de chou-fleur, préemballé
+  Gratin de légumes en sauce blanche type béchamel, préemballé, cuit
+  Gratin de légumes, fait maison
+  Gratin de légumes, préemballé
+  Haricots blancs à la sauce tomate, appertisés
+  Palet ou galette de légumes, préfrit, surgelé
+  Palet ou galette de légumes, préfrit, surgelé, cuit
+  Piperade basquaise, préemballée
+  Poêlée de légumes assaisonnés aux champignons ("champêtre"), surgelée
+  Poêlée de légumes assaisonnés grillée, méridionale ou méditerranéenne, surgelée, crue
+  Poêlée de légumes assaisonnés sans champignon, surgelée, crue
+  Poêlée de légumes assaisonnés à l'asiatiques ou wok de légumes, surgelée, crue
+  Ratatouille cuisinée, préemballée
+  Riste d'aubergines (aubergines, tomates, oignons), préemballée
+  Terrine ou mousse de légumes, premballée
+  Tomate à la provençale, fait maison
+  Épinard à la crème, préemballé
+
+## plats de poisson et féculents  (5)
+  Couscous au poisson
+  Gratin de poisson et purée ou brandade aux pommes de terre ou parmentier de poisson, préemballé
+  Paëlla (poulet fruit de mer, chorizo, colin), fait maison
+  Paëlla, préemballée
+  Sushi ou maki aux produits de la mer
+
+## plats de poisson sans garniture  (19)
+  Brochette de crevettes
+  Brochette de poisson
+  Gratin ou cassolette de poisson et / ou fruits de mer, préemballé, cru
+  Gratin ou cassolette de poisson et / ou fruits de mer, préemballé, cuit
+  Moules farcies (matière grasse, persillade…), préemballées, crues
+  Moules marinières (oignons et vin blanc), préemballées
+  Poisson blanc en sauce, préemballé (aliment moyen)
+  Poisson blanc sauce oseille, préemballé
+  Poisson blanc à l'estragon, préemballé
+  Poisson blanc à la bordelaise (chapelure, huile…), préemballé
+  Poisson blanc à la florentine (sauce aux épinards), préemballé
+  Poisson blanc à la marinière (sauce aux oignons, vin blanc, moules), préemballé
+  Poisson blanc à la parisienne (sauce aux champignons), préemballé
+  Poisson blanc à la provençale ou niçoise (sauce tomate), préemballé
+  Poisson blanc à la sauce moutarde, préemballé
+  Poisson blanc, cuit (aliment moyen)
+  Poisson cuit (aliment moyen)
+  Saumon farci, préemballé
+  Saumon sauce à l'oseille, préemballé
+
+## plats de viande et féculents  (9)
+  Couscous au mouton
+  Couscous au poulet
+  Couscous royal (avec plusieurs viandes), préemballé
+  Couscous à la viande ou au poulet, allégé en matière grasse, préemballé,
+  Couscous à la viande, préemballé
+  Hachis parmentier à la viande, préemballé
+  Parmentier de canard, préemballé, cuit
+  Parmentier de canard, préemballé, à cuire
+  Poêlée de pommes de terre préfrites, lardons ou poulet, et autres, sans légumes verts, préemballée
+
+## plats de viande et légumes/légumineuses  (20)
+  Boeuf aux carottes, préemballé
+  Cassoulet au canard ou oie, appertisé
+  Cassoulet au porc, appertisé
+  Cassoulet, appertisé
+  Chili con carne, préemballé
+  Chop suey (porc ou poulet, légumes), préemballé
+  Chou farci, préemballé
+  Choucroute garnie, préemballée
+  Légumes farcis (sauf tomate)
+  Meloukhia, plat à base de boeuf et corète, fait maison
+  Moussaka, préemballée
+  Navarin d'agneau aux légumes
+  Osso buco de veau à la milanaise (jarret de porc , légumes, vin blanc)
+  Petit salé ou saucisse aux lentilles, préemballé
+  Pot-au-feu, préemballé
+  Potée auvergnate (chou et porc)
+  Poulet basquaise, préemballé
+  Tajine de mouton, préemballé
+  Tajine de poulet, préemballé
+  Tomate farcie, préemballée
+
+## plats de viande sans garniture  (39)
+  Blanquette de veau, préemballée
+  Boeuf bourguignon, préemballé
+  Boulettes au boeuf et à l'agneau (type kefta), préemballées, crues
+  Boulettes au boeuf et à l'agneau (type kefta), préemballées, cuites
+  Boulettes au boeuf, cuites
+  Boulettes au boeuf, à la sauce tomate, préemballées
+  Boulettes au porc et au boeuf (à la suédoise), préemballées, crues
+  Boulettes au porc et au boeuf (à la suédoise), préemballées, cuites
+  Brochette d'agneau
+  Brochette de boeuf, crue
+  Brochette de boeuf, cuite
+  Brochette de porc, crue
+  Brochette de volaille, crue
+  Brochette de volaille, cuite
+  Brochette mixte de viande
+  Canard en sauce (poivre vert, chasseur, etc.), préemballé
+  Carpaccio de boeuf, avec marinade (huile, herbes, fromage), fait maison
+  Coq au vin
+  Cordon bleu de volaille, préemballé
+  Escalope panée, viennoise ou milanaise, dinde, cuite
+  Escalope panée, viennoise ou milanaise, poulet, cuite
+  Escalope panée, viennoise ou milanaise, veau, cuite
+  Langue de boeuf sauce madère, préemballée
+  Lapin à la moutarde, préemballé
+  Nuggets ou croquette panée de poulet (contenant du soja), préemballé
+  Nuggets ou croquette panée de poulet, préemballé
+  Nuggets ou croquette panée de volaille, préemballé
+  Palette à la diable, préemballée
+  Paupiette de veau
+  Paupiette de veau, préemballée, rôtie/cuite au four
+  Paupiette de volaille
+  Porc au caramel, préemballé
+  Poulet au curry et au lait de coco, préemballé
+  Poulet, manchons marinés, préemballés, rôtis/cuits au four
+  Sauté d'agneau au curry, préemballé
+  Tripes à la mode de Caen (estomac et pied de boeuf, carottes…), préemballées
+  Tripes à la tomate ou à la provençale, préemballées
+  Viande en sauce (aliment moyen)
+  Yakitori (brochettes japonaises grillées en sauce)
+
+## salades composées et crudités  (39)
+  Champignons à la grecque, préemballés
+  Macédoine de légumes en salade, avec sauce, préemballée
+  Salade Alaska au surimi, ananas, carottes, avec sauce, préemballée
+  Salade César au poulet (salade verte, fromage, croûtons, sauce), préemballée
+  Salade composée avec viande ou poisson, appertisée
+  Salade composée à base de crudités et poulet, avec sauce, préemballée
+  Salade composée à base de crudités et produits de la mer, avec sauce, préemballée
+  Salade composée à base de crudités, charcuterie et fromage, avec sauce, préemballée
+  Salade composée à base de crudités, oeuf et produits de la mer, avec sauce, préemballée
+  Salade composée à base de crudités, poulet et fromage, avec sauce, préemballée
+  Salade de betterave, avec sauce, préemballée
+  Salade de carottes râpées, avec sauce, préemballée
+  Salade de cervelas, avec sauce, préemballée
+  Salade de chou et carotte ou coleslaw, avec sauce, préemballée
+  Salade de chou rouge, avec sauce, préemballée
+  Salade de concombre à la crème/fromage blanc, préemballée
+  Salade de céleri et carotte rémoulade, préemballée
+  Salade de céleri rémoulade, préemballée
+  Salade de lentilles et saucisse fumée, préemballée
+  Salade de museau de boeuf, avec sauce, préemballée
+  Salade de museau de porc, avec sauce, préemballée
+  Salade de pomme de terre au thon, préemballée
+  Salade de pomme de terre à la piémontaise, préemballée
+  Salade de pomme de terre à la saucisse, préemballée
+  Salade de pommes de terre, faite maison
+  Salade de pâtes au fromage et légumes, avec sauce
+  Salade de pâtes au jambon cru, fromage et crudités, avec sauce, préemballée
+  Salade de pâtes au poulet et crudités, avec sauce, préemballée
+  Salade de pâtes au poulet, fromage et crudités, avec sauce, préemballée
+  Salade de pâtes au surimi, avec sauce, préemballée
+  Salade de pâtes aux légumes et poisson ou viande, avec sauce, préemballée
+  Salade de pâtes aux poulet, oeuf, fromage et crudités, avec sauce, préemballée
+  Salade de riz au thon et légumes, avec sauce, préemballée
+  Salade de riz, appertisée
+  Salade de thon et légumes, appertisée
+  Salade grecque, avec sauce, préemballée
+  Salade végétarienne à base de boulgour et/ou quinoa et légumes, préemballée
+  Taboulé ou salade de semoule au poulet, préemballé
+  Taboulé ou salade de semoule aux légumes, préemballé
+
+## sandwichs  (67)
+  Burger au poisson, de restauration rapide
+  Burger au poulet, de restauration rapide
+  Burger au poulet, préemballé
+  Cheeseburger, de restauration rapide
+  Cheeseburger, préemballé
+  Croque-madame, fait maison
+  Croque-monsieur, jambon, fromage et beurre, fait maison
+  Croque-monsieur, préemballé
+  Double cheeseburger, de restauration rapide
+  Focaccia, garnie
+  Fougasse, garnie
+  Hamburger, de restauration rapide
+  Hot-dog, préemballé
+  Pan bagnat
+  Sandwich (aliment moyen)
+  Sandwich baguette (aliment moyen)
+  Sandwich baguette, camembert beurre, fait maison
+  Sandwich baguette, camembert beurre, vente à emporter
+  Sandwich baguette, crudités diverses mayonnaise
+  Sandwich baguette, dinde crudités mayonnaise
+  Sandwich baguette, jambon beurre, fait maison
+  Sandwich baguette, jambon beurre, vente à emporter
+  Sandwich baguette, jambon emmental beurre
+  Sandwich baguette, jambon emmental, préemballé
+  Sandwich baguette, jambon emmental, vente à emporter
+  Sandwich baguette, jambon, oeuf, crudités, beurre
+  Sandwich baguette, merguez ketchup moutarde
+  Sandwich baguette, oeuf crudités mayonnaise
+  Sandwich baguette, porc crudités mayonnaise
+  Sandwich baguette, poulet crudités mayonnaise, fait maison
+  Sandwich baguette, poulet crudités mayonnaise, vente à emporter
+  Sandwich baguette, poulet crudités, préemballé
+  Sandwich baguette, pâté cornichons
+  Sandwich baguette, salami beurre
+  Sandwich baguette, saucisson beurre, fait maison
+  Sandwich baguette, saucisson beurre, vente à emporter
+  Sandwich baguette, saumon fumé beurre
+  Sandwich baguette, thon crudités mayonnaise, fait maison
+  Sandwich baguette, thon crudités mayonnaise, vente à emporter
+  Sandwich baguette, thon maïs crudités, préemballé
+  Sandwich grec ou kebab, baguette, crudités
+  Sandwich grec ou kebab, pita, crudités
+  Sandwich pain de mie complet, bacon crudités, préemballé
+  Sandwich pain de mie complet, jambon crudités, préemballé
+  Sandwich pain de mie complet, jambon fromage crudités, préemballé
+  Sandwich pain de mie complet, jambon fromage, préemballé
+  Sandwich pain de mie complet, jambon oeuf crudités, préemballé
+  Sandwich pain de mie complet, jambon, préemballé
+  Sandwich pain de mie complet, poulet crudités, préemballé
+  Sandwich pain de mie complet, poulet, préemballé
+  Sandwich pain de mie complet, saucisson ou rosette, préemballé
+  Sandwich pain de mie complet, saumon fumé, préemballé
+  Sandwich pain de mie complet, thon crudités, préemballé
+  Sandwich pain de mie complet, thon oeuf crudités, préemballé
+  Sandwich pain polaire, jambon fromage, préemballé
+  Sandwich pain polaire, poulet crudités, préemballé
+  Sandwich pain polaire, saumon, préemballé
+  Sandwich pain viennois, jambon oeuf crudités, préemballé
+  Sandwich pain viennois, poulet crudités, préemballé
+  Sandwich pain viennois, poulet oeuf crudités, préemballé
+  Sandwich pain viennois, thon oeuf crudités, préemballé
+  Sandwich panini, jambon cru mozzarella, tomates
+  Sandwich panini, trois fromages
+  Toasts ou canapés salés, garnitures diverses, préemballés
+  Wrap jambon crudités
+  Wrap poulet crudités
+  Wrap végétarien fromage crudités
+
+## soupes  (46)
+  Soupe (aliment moyen)
+  Soupe asiatique, avec poulet et pâtes, préemballée à réchauffer
+  Soupe asiatique, avec pâtes, déshydratée reconstituée
+  Soupe asiatique, avec pâtes, préemballée à réchauffer
+  Soupe au boeuf et aux vermicelles, déshydratée reconstituée
+  Soupe au cresson, déshydratée reconstituée
+  Soupe au cresson, préemballée à réchauffer
+  Soupe au pistou, déshydratée reconstituée
+  Soupe au pistou, préemballée à réchauffer
+  Soupe au potiron, déshydratée reconstituée
+  Soupe au potiron, préemballée à réchauffer
+  Soupe aux asperges, déshydratée reconstituée
+  Soupe aux asperges, préemballée à réchauffer
+  Soupe aux champignons, déshydratée reconstituée
+  Soupe aux champignons, préemballée à réchauffer
+  Soupe aux céréales et aux légumes, déshydratée reconstituée
+  Soupe aux lentilles, préemballée à réchauffer
+  Soupe aux légumes avec fromage, préemballée à réchauffer
+  Soupe aux légumes et aux vermicelles, déshydratée reconstituée
+  Soupe aux légumes et aux vermicelles, préemballée à réchauffer
+  Soupe aux légumes variés, déshydratée reconstituée
+  Soupe aux légumes variés, préemballée à réchauffer
+  Soupe aux légumes verts, déshydratée reconstituée
+  Soupe aux légumes verts, préemballée à réchauffer
+  Soupe aux poireaux et pommes de terre, déshydratée reconstituée
+  Soupe aux poireaux et pommes de terre, préemballée à réchauffer
+  Soupe aux pois cassés, préemballée à réchauffer
+  Soupe chorba frik, à base de viande et de frik
+  Soupe de poissons et/ou crustacés, déshydratée reconstituée
+  Soupe de poissons et/ou crustacés, préemballée à réchauffer
+  Soupe froide type gaspacho ou gazpacho, préemballée
+  Soupe marocaine, déshydratée reconstituée
+  Soupe minestrone, déshydratée reconstituée
+  Soupe minestrone, préemballée à réchauffer
+  Soupe miso, déshydratée reconstituée
+  Soupe à l'oignon, déshydratée reconstituée
+  Soupe à l'oignon, préemballée à réchauffer
+  Soupe à la carotte, préemballée à réchauffer
+  Soupe à la tomate et aux vermicelles, déshydratée reconstituée
+  Soupe à la tomate et aux vermicelles, préemballée à réchauffer
+  Soupe à la tomate, déshydratée reconstituée
+  Soupe à la tomate, préemballée à réchauffer
+  Soupe à la volaille et aux légumes, déshydratée reconstituée
+  Soupe à la volaille et aux légumes, préemballée à réchauffer
+  Soupe à la volaille et aux vermicelles, déshydratée reconstituée
+  Soupe à la volaille et aux vermicelles, préemballée à réchauffer

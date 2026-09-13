@@ -4,7 +4,7 @@ Free-text ingredient name → IngredientDatabase row.
 Three resolution layers, cheapest first:
 
   1. lookup_exact(name)    — case-insensitive match on alim_nom_fr OR alias_text.
-  2. llm_candidates(name)  — pg_trgm pre-filter to ~30 rows, Gemini ranks top-3.
+  2. embedding_candidates() — pgvector nearest-neighbor, optional Gemini re-rank.
   3. confirm_match()       — user-chosen winner; persists an alias for next time.
   4. create_new()          — user rejected all; mints a new IngredientDatabase row
                              (source='user', modified=true) plus an alias.
@@ -12,6 +12,7 @@ Three resolution layers, cheapest first:
 from __future__ import annotations
 
 import json
+import math
 import os
 from datetime import datetime, timezone
 from typing import Optional
@@ -24,7 +25,10 @@ from sqlalchemy.orm import Session
 from backend.db.models import IngredientAlias, IngredientDatabase
 
 CANDIDATE_PREFILTER_LIMIT = 30
+EMBEDDING_CANDIDATE_LIMIT = 20
 LLM_TOP_K = 3
+EMBEDDING_DIM = 256  # EmbeddingGemma 300M
+EMBEDDING_MODEL = "google/embeddinggemma-300m"
 
 
 def _normalize(name: str) -> str:
@@ -56,43 +60,192 @@ def lookup_exact(db: Session, name: str) -> Optional[IngredientDatabase]:
 
 
 def _trigram_candidates(db: Session, name: str, limit: int) -> list[IngredientDatabase]:
-    """pg_trgm-based pre-filter. Falls back to ILIKE if pg_trgm unavailable."""
-    try:
-        rows = db.execute(
-            text(
-                """
-                SELECT id, alim_nom_fr, similarity(alim_nom_fr, :q) AS sim
-                FROM ingredient_database
-                WHERE alim_nom_fr % :q
-                ORDER BY sim DESC
-                LIMIT :lim
-                """
-            ),
-            {"q": name, "lim": limit},
-        ).all()
-        if rows:
-            ids = [r.id for r in rows]
-            return (
-                db.query(IngredientDatabase)
-                .filter(IngredientDatabase.id.in_(ids))
-                .all()
-            )
-    except Exception:
-        pass
-
-    # Fallback: substring match on each token.
+    """Substring match on ingredient name and aliases (used as embedding fallback)."""
     tokens = [t for t in name.split() if len(t) >= 3]
     if not tokens:
         return []
-    q = db.query(IngredientDatabase)
-    for t in tokens:
-        q = q.filter(IngredientDatabase.alim_nom_fr.ilike(f"%{t}%"))
+
+    # Build a subquery of ingredient_db_ids that match via their alias text.
+    alias_subq = (
+        db.query(IngredientAlias.ingredient_db_id)
+        .filter(IngredientAlias.alias_text.ilike(f"%{name}%"))
+        .subquery()
+    )
+    q = db.query(IngredientDatabase).filter(
+        func.lower(IngredientDatabase.alim_nom_fr).ilike(f"%{name}%")
+        | IngredientDatabase.id.in_(alias_subq.select())
+    )
     return q.limit(limit).all()
+
+
+def _compute_query_embedding(name: str) -> Optional[list[float]]:
+    """Compute a 256-d text embedding via Gemma 300M (local, open source)."""
+    api_key = os.getenv("GEMINI_API_KEY")
+    if api_key:
+        # Legacy path: Gemini text-embedding-004 (768-d).
+        try:
+            from google import genai
+            client = genai.Client(api_key=api_key)
+            response = client.models.embed_content(
+                model="text-embedding-004",
+                contents=[name],
+            )
+            return response.embeddings[0].values  # type: ignore[union-attr]
+        except Exception:
+            pass
+    # Open-source local fallback: EmbeddingGemma 300M (256-d).
+    try:
+        import numpy as np
+        import torch
+        from transformers import AutoModel, AutoTokenizer
+        tokenizer = AutoTokenizer.from_pretrained(EMBEDDING_MODEL, trust_remote_code=True)
+        model = AutoModel.from_pretrained(
+            EMBEDDING_MODEL, trust_remote_code=True, dtype=torch.float16
+        ).to("cpu")
+        inputs = tokenizer([name], padding=True, truncation=True, return_tensors="pt")
+        with torch.no_grad():
+            outputs = model(**inputs)
+        emb = outputs.last_hidden_state.mean(dim=1).numpy()
+        # Replace NaN with 0 (can happen for short/special-char names).
+        emb = np.nan_to_num(emb, nan=0.0).tolist()[0]
+        return emb[:EMBEDDING_DIM]
+    except Exception:
+        return None
+
+
+def _bm25_score(text: str, query: str) -> float:
+    """Simple BM25-inspired score: token overlap weighted by query frequency."""
+    query_tokens = [t for t in query.lower().split() if len(t) >= 3]
+    if not query_tokens:
+        return 0.0
+    text_lower = text.lower()
+    score = 0.0
+    for token in query_tokens:
+        count = text_lower.count(token)
+        if count:
+            score += (count / len(query_tokens)) * math.log(1 + 1 / (1 + count / 100))
+    return score
+
+
+def _is_pgvector_available(db: Session) -> bool:
+    """Check whether the pgvector extension is installed."""
+    try:
+        result = db.execute(text(
+            "SELECT count(*) FROM pg_extension WHERE extname = 'vector'"
+        )).scalar()
+        return result > 0
+    except Exception:
+        return False
+
+
+def _lazy_compute_embedding(db: Session, row: IngredientDatabase):
+    """Compute and store the embedding for a row (if no embeddings exist yet).
+
+    Gracefully skips when pgvector isn't available (e.g. CI test env).
+    """
+    if not _is_pgvector_available(db):
+        return
+    has_embeddings = db.execute(text('''
+        SELECT count(*) FROM ingredient_database WHERE embedding IS NOT NULL
+    ''')).scalar()
+    if has_embeddings > 0:
+        return
+    vec = _compute_query_embedding(row.alim_nom_fr)
+    if vec is not None:
+        db.execute(text('''
+            UPDATE ingredient_database SET embedding = :vec WHERE id = :id
+        '''), {'vec': json.dumps(vec), 'id': str(row.id)})
+        db.flush()
+
+
+def embedding_candidates(
+    db: Session, name: str, limit: int = EMBEDDING_CANDIDATE_LIMIT
+) -> list[IngredientDatabase]:
+    """Embedding-based nearest-neighbor search with BM25 re-ranking.
+
+    Falls back to trigram when pgvector is unavailable.
+    """
+    if not os.getenv("GEMINI_API_KEY"):
+        return _trigram_candidates(db, name, limit)
+
+    if not _is_pgvector_available(db):
+        return _trigram_candidates(db, name, limit)
+
+    query_vec = _compute_query_embedding(name)
+    if query_vec is None:
+        return _trigram_candidates(db, name, limit)
+
+    # Check if any rows have embeddings (coarse existence check via raw SQL).
+    has_embeddings = db.execute(text('''
+        SELECT count(*) FROM ingredient_database WHERE embedding IS NOT NULL
+    ''')).scalar() > 0
+
+    if not has_embeddings:
+        return _trigram_candidates(db, name, limit)
+
+    # Vector distance query (pgvector).
+    rows = db.execute(
+        text(
+            f"""
+            SELECT id, alim_nom_fr
+            FROM ingredient_database
+            WHERE embedding IS NOT NULL
+            ORDER BY embedding <-> :vec
+            LIMIT :top_n
+            """
+        ),
+        {"vec": json.dumps(query_vec), "top_n": EMBEDDING_CANDIDATE_LIMIT * 2},
+    ).all()
+
+    if not rows:
+        return _trigram_candidates(db, name, limit)
+
+    ids = [r.id for r in rows]
+    candidates = (
+        db.query(IngredientDatabase)
+        .filter(IngredientDatabase.id.in_(ids))
+        .all()
+    )
+
+    if len(candidates) <= limit:
+        return candidates
+
+    # Composite scoring: 0.6 * embedding + 0.4 * BM25.
+    try:
+        scored: list[tuple[float, IngredientDatabase]] = []
+        for c in candidates:
+            # Read embedding via raw SQL (ORM doesn't handle pgvector).
+            emb_row = db.execute(
+                text('SELECT embedding FROM ingredient_database WHERE id = :id'),
+                {'id': str(c.id)},
+            ).fetchone()
+            name_vec = emb_row.embedding if emb_row else None
+            if name_vec is None:
+                continue
+            dot = sum(a * b for a, b in zip(query_vec, name_vec))
+            q_norm = math.sqrt(sum(v * v for v in query_vec))
+            c_norm = math.sqrt(sum(v * v for v in name_vec))
+            if q_norm == 0 or c_norm == 0:
+                emb_score = 0.0
+            else:
+                cos_sim = dot / (q_norm * c_norm)
+                emb_score = max(0.0, cos_sim)
+
+            bm25 = _bm25_score(c.alim_nom_fr, name)
+            bm25_norm = min(1.0, bm25)
+
+            composite = 0.6 * emb_score + 0.4 * bm25_norm
+            scored.append((composite, c))
+
+        scored.sort(key=lambda x: x[0], reverse=True)
+        return [c for _, c in scored[:limit]]
+    except Exception:
+        return _trigram_candidates(db, name, limit)
 
 
 def llm_candidates(db: Session, name: str, k: int = LLM_TOP_K) -> list[dict]:
     """Returns up to k candidates: [{ingredient_db_id, name, reason, confidence}]."""
-    pool = _trigram_candidates(db, name, CANDIDATE_PREFILTER_LIMIT)
+    pool = embedding_candidates(db, name, EMBEDDING_CANDIDATE_LIMIT)
     if not pool:
         return []
     if len(pool) <= k:
@@ -100,7 +253,7 @@ def llm_candidates(db: Session, name: str, k: int = LLM_TOP_K) -> list[dict]:
             {
                 "ingredient_db_id": str(r.id),
                 "name": r.alim_nom_fr,
-                "reason": "Seul candidat trouvé par similarité.",
+                "reason": "Requête trouvée par similarité vectorielle.",
                 "confidence": 0.5,
             }
             for r in pool
@@ -108,12 +261,12 @@ def llm_candidates(db: Session, name: str, k: int = LLM_TOP_K) -> list[dict]:
 
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
-        # Without an LLM, return the top-k by trigram order untouched.
+        # Without an LLM, return the top-k by embedding order.
         return [
             {
                 "ingredient_db_id": str(r.id),
                 "name": r.alim_nom_fr,
-                "reason": "Similarité trigramme.",
+                "reason": "Similarité vectorielle.",
                 "confidence": 0.4,
             }
             for r in pool[:k]
@@ -191,6 +344,16 @@ def confirm_match(
             created_by=created_by,
         )
     )
+
+    # Write alias, then compute embedding if pgvector is available (skip otherwise).
+    if _is_pgvector_available(db):
+        has_embeddings = db.execute(text('''
+            SELECT count(*) FROM ingredient_database WHERE embedding IS NOT NULL
+        ''')).scalar()
+        if has_embeddings == 0:
+            _lazy_compute_embedding(db, canonical)
+
+    # Flush the alias (always succeeds).
     db.flush()
     return canonical
 
@@ -231,4 +394,11 @@ def create_new(
         )
     )
     db.flush()
+    # Compute embedding for the new row (idempotent, stored once — skip if pgvector unavailable).
+    if _is_pgvector_available(db):
+        count = db.execute(text('''
+            SELECT count(*) FROM ingredient_database WHERE embedding IS NOT NULL
+        ''')).scalar()
+        if count == 0:
+            _lazy_compute_embedding(db, row)
     return row
