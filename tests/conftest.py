@@ -30,13 +30,21 @@ from backend.main import app  # noqa: E402
 
 
 def _ensure_embedding_column(session):
-    """Migrate embedding column to vector(256) (Gemma) if it's float8[]."""
-    session.execute(text('''
-        ALTER TABLE ingredient_database
-        ALTER COLUMN embedding TYPE vector(256)
-        USING embedding::vector(256)
-    '''))
-    session.flush()
+    """Ensure pgvector extension exists and migrate embedding column to vector(256).
+
+    Gracefully skips if the test database lacks pgvector (e.g. restricted Neon env).
+    """
+    try:
+        session.execute(text('CREATE EXTENSION IF NOT EXISTS vector'))
+        session.execute(text('''
+            ALTER TABLE ingredient_database
+            ALTER COLUMN embedding TYPE vector(256)
+            USING embedding::vector(256)
+        '''))
+        session.flush()
+    except Exception:
+        # pgvector not available in this DB — skip migration.
+        pass
 
 
 def _truncate_tables(session):

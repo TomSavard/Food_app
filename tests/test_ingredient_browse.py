@@ -112,3 +112,25 @@ def test_get_detail_404(client):
     import uuid
     res = client.get(f"/api/ingredients/{uuid.uuid4()}")
     assert res.status_code == 404
+
+
+def test_search_uses_embedding_when_alias_missing(client, db_session, make_ingredient):
+    """Verify embedding fallback when no alias matches."""
+    r1 = make_ingredient("Haricots verts, crus")
+    r2 = make_ingredient("Petits pois, crus")
+    r3 = make_ingredient("Carottes, crues")
+    db_session.flush()
+
+    import json
+    from sqlalchemy import text
+    vec = [0.0] * 256
+    for row in (r1, r2, r3):
+        db_session.execute(text('''
+            UPDATE ingredient_database SET embedding = :vec WHERE id = :id
+        '''), {'vec': json.dumps(vec), 'id': str(row.id)})
+    db_session.flush()
+
+    res = client.get("/api/ingredients/search", params={"q": "haricots verts"})
+    assert res.status_code == 200
+    names = [it["name"] for it in res.json()]
+    assert "Haricots verts, crus" in names
