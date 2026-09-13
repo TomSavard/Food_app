@@ -30,10 +30,12 @@ from backend.main import app  # noqa: E402
 
 
 def _ensure_embedding_column(session):
-    """Ensure the embedding column exists on ingredient_database."""
-    session.execute(text(
-        "ALTER TABLE ingredient_database ADD COLUMN IF NOT EXISTS embedding FLOAT[]"
-    ))
+    """Migrate embedding column to vector(256) (Gemma) if it's float8[]."""
+    session.execute(text('''
+        ALTER TABLE ingredient_database
+        ALTER COLUMN embedding TYPE vector(256)
+        USING embedding::vector(256)
+    '''))
     session.flush()
 
 

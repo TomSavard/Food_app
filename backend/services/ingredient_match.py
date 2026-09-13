@@ -27,7 +27,8 @@ from backend.db.models import IngredientAlias, IngredientDatabase
 CANDIDATE_PREFILTER_LIMIT = 30
 EMBEDDING_CANDIDATE_LIMIT = 20
 LLM_TOP_K = 3
-EMBEDDING_MODEL = "text-embedding-004"
+EMBEDDING_DIM = 256  # EmbeddingGemma 300M
+EMBEDDING_MODEL = "google/embeddinggemma-300m"
 
 
 def _normalize(name: str) -> str:
@@ -59,31 +60,7 @@ def lookup_exact(db: Session, name: str) -> Optional[IngredientDatabase]:
 
 
 def _trigram_candidates(db: Session, name: str, limit: int) -> list[IngredientDatabase]:
-    """pg_trgm-based pre-filter. Falls back to ILIKE if pg_trgm unavailable."""
-    try:
-        rows = db.execute(
-            text(
-                """
-                SELECT id, alim_nom_fr, similarity(alim_nom_fr, :q) AS sim
-                FROM ingredient_database
-                WHERE alim_nom_fr % :q
-                ORDER BY sim DESC
-                LIMIT :lim
-                """
-            ),
-            {"q": name, "lim": limit},
-        ).all()
-        if rows:
-            ids = [r.id for r in rows]
-            return (
-                db.query(IngredientDatabase)
-                .filter(IngredientDatabase.id.in_(ids))
-                .all()
-            )
-    except Exception:
-        pass
-
-    # Fallback: substring match on each token (name + alias text).
+    """Substring match on ingredient name and aliases (used as embedding fallback)."""
     tokens = [t for t in name.split() if len(t) >= 3]
     if not tokens:
         return []
@@ -102,18 +79,36 @@ def _trigram_candidates(db: Session, name: str, limit: int) -> list[IngredientDa
 
 
 def _compute_query_embedding(name: str) -> Optional[list[float]]:
-    """Compute a 768-d text embedding via Gemini text-embedding-004."""
+    """Compute a 256-d text embedding via Gemma 300M (local, open source)."""
     api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key:
-        return None
+    if api_key:
+        # Legacy path: Gemini text-embedding-004 (768-d).
+        try:
+            from google import genai
+            client = genai.Client(api_key=api_key)
+            response = client.models.embed_content(
+                model="text-embedding-004",
+                contents=[name],
+            )
+            return response.embeddings[0].values  # type: ignore[union-attr]
+        except Exception:
+            pass
+    # Open-source local fallback: EmbeddingGemma 300M (256-d).
     try:
-        from google import genai
-        client = genai.Client(api_key=api_key)
-        response = client.models.embed_content(
-            model=EMBEDDING_MODEL,
-            contents=[name],
-        )
-        return response.embeddings[0].values  # type: ignore[union-attr]
+        import numpy as np
+        import torch
+        from transformers import AutoModel, AutoTokenizer
+        tokenizer = AutoTokenizer.from_pretrained(EMBEDDING_MODEL, trust_remote_code=True)
+        model = AutoModel.from_pretrained(
+            EMBEDDING_MODEL, trust_remote_code=True, dtype=torch.float16
+        ).to("cpu")
+        inputs = tokenizer([name], padding=True, truncation=True, return_tensors="pt")
+        with torch.no_grad():
+            outputs = model(**inputs)
+        emb = outputs.last_hidden_state.mean(dim=1).numpy()
+        # Replace NaN with 0 (can happen for short/special-char names).
+        emb = np.nan_to_num(emb, nan=0.0).tolist()[0]
+        return emb[:EMBEDDING_DIM]
     except Exception:
         return None
 
@@ -133,39 +128,37 @@ def _bm25_score(text: str, query: str) -> float:
 
 
 def _lazy_compute_embedding(db: Session, row: IngredientDatabase):
-    """Compute and store the embedding for a row if it's NULL."""
-    if row.embedding is not None:
-        return
-    api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key:
-        return
+    """Compute and store the embedding for a row (if no embeddings exist yet)."""
+    # Check if any embeddings exist (raw SQL, since ORM doesn't handle pgvector).
+    has_embeddings = db.execute(text('''
+        SELECT count(*) FROM ingredient_database WHERE embedding IS NOT NULL
+    ''')).scalar()
+    if has_embeddings > 0:
+        return  # embeddings already exist, no need to compute for this row
+    # No embeddings yet → compute and store one (triggers the lazy-compute path).
     vec = _compute_query_embedding(row.alim_nom_fr)
     if vec is not None:
-        row.embedding = vec
+        db.execute(text('''
+            UPDATE ingredient_database SET embedding = :vec WHERE id = :id
+        '''), {'vec': json.dumps(vec), 'id': str(row.id)})
         db.flush()
 
 
 def embedding_candidates(
     db: Session, name: str, limit: int = EMBEDDING_CANDIDATE_LIMIT
 ) -> list[IngredientDatabase]:
-    """Embedding-based nearest-neighbor search with BM25 re-ranking.
-
-    If GEMINI_API_KEY is not set, falls back to _trigram_candidates().
-    """
-    # Fast path: no embedding config → use trigram.
+    """Embedding-based nearest-neighbor search with BM25 re-ranking."""
     if not os.getenv("GEMINI_API_KEY"):
         return _trigram_candidates(db, name, limit)
 
     query_vec = _compute_query_embedding(name)
     if query_vec is None:
-        return _trigram_candidates(db, name, limit)
+        return []
 
-    # Check if any rows have embeddings (coarse existence check).
-    has_embeddings = db.query(
-        func.count(IngredientDatabase.embedding).filter(
-            IngredientDatabase.embedding.isnot(None)
-        )
-    ).scalar() > 0
+    # Check if any rows have embeddings (coarse existence check via raw SQL).
+    has_embeddings = db.execute(text('''
+        SELECT count(*) FROM ingredient_database WHERE embedding IS NOT NULL
+    ''')).scalar() > 0
 
     if not has_embeddings:
         return _trigram_candidates(db, name, limit)
@@ -185,7 +178,7 @@ def embedding_candidates(
             {"vec": json.dumps(query_vec), "top_n": EMBEDDING_CANDIDATE_LIMIT * 2},
         ).all()
     except Exception:
-        return _trigram_candidates(db, name, limit)
+        return []
 
     if not rows:
         return []
@@ -330,8 +323,11 @@ def confirm_match(
         )
     )
 
-    # Lazy-compute embedding on the canonical row (if NULL).
-    if canonical.embedding is None:
+    # Lazy-compute embedding on the canonical row (if no embeddings exist yet).
+    has_embeddings = db.execute(text('''
+        SELECT count(*) FROM ingredient_database WHERE embedding IS NOT NULL
+    ''')).scalar()
+    if has_embeddings == 0:
         _lazy_compute_embedding(db, canonical)
 
     db.flush()

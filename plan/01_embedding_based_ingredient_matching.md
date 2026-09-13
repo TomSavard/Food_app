@@ -27,8 +27,8 @@ User input: "celemi"
 
 | Decision | Value | Rationale |
 |----------|-------|-----------|
-| Embedding model | `google/text-embedding-004` (768-d) | Already using Gemini, small + accurate enough |
-| Storage | pgvector `VECTOR(768)` column | ANN search on 84K+ rows; Neon supports pgvector |
+| Embedding model | `google/gemma-3-300m-it` (256-d) | Open-source, runs locally on Apple Silicon via MLX/transformers |
+| Storage | pgvector `VECTOR(256)` column | ANN search on 2,840 rows; Neon supports pgvector |
 | Index | `hnsw` (M=16, ef_construction=64) | Faster query than `ivfflat` at this scale |
 | Distance metric | `<=>` (Euclidean) or cosine via pgvector | Built-in, fast |
 | Candidate count | 20 (vs 30 trigram) | Tighter pool = fewer irrelevant + less LLM cost |
@@ -65,12 +65,12 @@ User input: "celemi"
 - `scripts/load_ciqual_2025.py` → compute embeddings for new CIQUAL rows during import
 
 **What happens:**
-1. New column: `embedding VECTOR(768)` on `ingredient_database` table (nullable)
+1. New column: `embedding VECTOR(256)` on `ingredient_database` table (nullable)
 2. New index: `CREATE INDEX idx_ingredient_embedding ON ingredient_database USING hnsw (embedding vector_l2_ops)`
-3. `load_ciqual_2025.py` calls `genai.embed_content(model="text-embedding-004", content=name)` for each row and stores the 768-d array
+3. `load_ciqual_2025.py` computes 256-d EmbeddingGemma 300M embeddings for each row (local, no API key)
 4. Existing rows have `NULL` embeddings — they get embedded on-demand (lazy compute)
 
-**Cost:** ~0.0002 USD per embedding × 84K rows ≈ $17 one-time
+**Cost:** $0 (local model, no API key)
 
 ### Phase 2 — Embedding Search Service (drop-in replacement)
 
@@ -93,7 +93,7 @@ def embedding_candidates(db: Session, name: str, limit: int = 20) -> list[Ingred
 ```
 
 **Key implementation notes:**
-- Retrieve the 768-d array as Python list from pgvector
+- Retrieve the 256-d array as Python list from pgvector
 - Compute cosine similarity: `1 - (dot(a, b) / (||a|| * ||b||))` in SQL via pgvector
 - BM25: simple token-based term frequency for the 50 candidates (no full-text index needed)
 
@@ -169,3 +169,5 @@ def embedding_candidates(db: Session, name: str, limit: int = 20) -> list[Ingred
 | 2026-09-13 | 1 | ✅ Done | Added `embedding` column, updated `load_ciqual_2025.py` |
 | 2026-09-13 | 2 | ✅ Done | Added `embedding_candidates()`, updated `ingredients.py` autocomplete |
 | 2026-09-13 | 3 | ✅ Done | `create_new()` and `confirm_match()` compute embeddings on-demand |
+| 2026-09-13 | 4 | ✅ Done | Removed pg_trgm references, `ingredient_match.py` cleaned, 159 tests pass |
+| 2026-09-13 | 5 | ✅ Done | pgvector installed, column → `vector(256)`, 100% embeddings (Gemma 300M) |

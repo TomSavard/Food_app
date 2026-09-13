@@ -6,7 +6,7 @@ Load CIQUAL 2025 (Table Ciqual 2025_FR_2025_11_03.xls) into ingredient_database.
 - Loads all 84 columns of the file into JSONB. Newlines in column headers
   are normalized to spaces and runs of whitespace collapsed.
 - Asserts the 6 promoted nutrients exist before writing anything.
-- Computes a 768-d text embedding for each ingredient name (Gemini text-embedding-004).
+- Computes a 256-d text embedding for each ingredient name (EmbeddingGemma 300M, local).
 
 Usage:
   DATABASE_URL=postgresql://... python scripts/load_ciqual_2025.py [path/to/Table.xls]
@@ -23,6 +23,7 @@ import pandas as pd
 # Ensure backend imports work when run from repo root.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from sqlalchemy import text
 from sqlalchemy.orm import sessionmaker  # noqa: E402
 
 from backend.db.models import IngredientDatabase  # noqa: E402
@@ -50,18 +51,18 @@ def normalize_col(name: str) -> str:
 
 
 def _compute_embedding(name: str) -> list[float] | None:
-    """Compute a 768-d text embedding via Gemini text-embedding-004."""
-    api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key:
-        return None
+    """Compute a 256-d text embedding via EmbeddingGemma 300M (local, open source)."""
     try:
-        from google import genai
-        client = genai.Client(api_key=api_key)
-        response = client.models.embed_content(
-            model="text-embedding-004",
-            contents=[name],
-        )
-        return response.embeddings[0].values  # type: ignore[union-attr]
+        import torch
+        from transformers import AutoModel, AutoTokenizer
+        tokenizer = AutoTokenizer.from_pretrained("google/embeddinggemma-300m", trust_remote_code=True)
+        model = AutoModel.from_pretrained(
+            "google/embeddinggemma-300m", trust_remote_code=True, torch_dtype=torch.float16
+        ).to("cpu")
+        inputs = tokenizer([name.strip()], padding=True, truncation=True, return_tensors="pt")
+        with torch.no_grad():
+            outputs = model(**inputs)
+        return outputs.last_hidden_state.mean(dim=1).numpy().tolist()[0][:256]
     except Exception:
         return None
 
@@ -161,7 +162,7 @@ def main(xls_path: Path) -> None:
             f"(skipped {skipped_curated} curated, {skipped_duplicate} dup names"
         )
         if skipped_no_embedding:
-            print(f"   {skipped_no_embedding} rows without embedding (no GEMINI_API_KEY)")
+            print(f"   {skipped_no_embedding} rows without embedding (Gemma unavailable)")
         print(")")
     except Exception:
         db.rollback()
@@ -172,4 +173,18 @@ def main(xls_path: Path) -> None:
 
 if __name__ == "__main__":
     path = Path(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_XLS
+    
+    if sys.argv[1:2] == ["--status"]:
+        # Read-only progress report (raw SQL avoids ORM embedding column).
+        db = SessionLocal()
+        try:
+            result = db.execute(text('SELECT count(*) FROM ingredient_database'))
+            total = result.scalar()
+            result = db.execute(text('SELECT count(*) FROM ingredient_database WHERE embedding IS NOT NULL'))
+            with_embeddings = result.scalar()
+            print(f"Embedding progress: {with_embeddings}/{total} ({100*with_embeddings/max(total,1):.1f}%)")
+        finally:
+            db.close()
+        sys.exit(0)
+    
     main(path)

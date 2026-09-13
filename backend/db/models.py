@@ -1,9 +1,29 @@
-from sqlalchemy import Column, String, Integer, Float, Text, ForeignKey, DateTime, Boolean
+from sqlalchemy import Column, String, Integer, Float, Text, ForeignKey, DateTime, Boolean, LargeBinary
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID, JSONB, ARRAY
+from sqlalchemy.types import TypeDecorator
 from datetime import datetime, timezone
-import uuid
+import json, uuid
 from backend.db.session import Base
+
+
+# pgvector column type: writes as JSON array string (pgvector accepts this),
+# reads back as Python list via JSON deserialization.
+class PgVector(TypeDecorator):
+    impl = Text
+    cache_ok = True
+
+    def process_bind_param(self, value, dialect):
+        if value is None:
+            return None
+        return json.dumps(value)  # pgvector's vector type accepts JSON arrays
+
+    def process_result_value(self, value, dialect):
+        if value is None:
+            return None
+        if isinstance(value, bytes):
+            return json.loads(value.decode('utf-8'))
+        return json.loads(value)
 
 
 class Recipe(Base):
@@ -177,7 +197,7 @@ class IngredientDatabase(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     alim_nom_fr = Column(String(255), nullable=False, unique=True, index=True)
-    embedding = Column(ARRAY(Float))  # 768-d text embedding (text-embedding-004)
+    # embedding is managed via raw SQL (backfill scripts), not ORM.
     nutrition_data = Column(JSONB)
     category = Column(String(50), nullable=True, index=True)
     source = Column(String(20), nullable=False, default="ciqual")  # 'ciqual' | 'user' | 'llm'
