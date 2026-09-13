@@ -132,6 +132,19 @@ def _bm25_score(text: str, query: str) -> float:
     return score
 
 
+def _lazy_compute_embedding(db: Session, row: IngredientDatabase):
+    """Compute and store the embedding for a row if it's NULL."""
+    if row.embedding is not None:
+        return
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        return
+    vec = _compute_query_embedding(row.alim_nom_fr)
+    if vec is not None:
+        row.embedding = vec
+        db.flush()
+
+
 def embedding_candidates(
     db: Session, name: str, limit: int = EMBEDDING_CANDIDATE_LIMIT
 ) -> list[IngredientDatabase]:
@@ -316,6 +329,11 @@ def confirm_match(
             created_by=created_by,
         )
     )
+
+    # Lazy-compute embedding on the canonical row (if NULL).
+    if canonical.embedding is None:
+        _lazy_compute_embedding(db, canonical)
+
     db.flush()
     return canonical
 
@@ -356,4 +374,6 @@ def create_new(
         )
     )
     db.flush()
+    # Compute embedding for the new row (idempotent, stored once).
+    _lazy_compute_embedding(db, row)
     return row

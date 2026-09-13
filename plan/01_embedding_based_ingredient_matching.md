@@ -156,8 +156,16 @@ def embedding_candidates(db: Session, name: str, limit: int = 20) -> list[Ingred
 ## Proposed Implementation Order
 
 ```
-1. Phase 1 (schema + batch)    → verify: all CIQUAL rows have embeddings
-2. Phase 2 (search service)    → verify: new search handles typos better than ILIKE
-3. Phase 3 (lazy compute)       → verify: user-created ingredients get embeddings
-4. Phase 4 (cleanup)            → verify: 159 tests still pass, CI workflow clean
-```
+ 1. Phase 1 (schema + batch)    → verify: all CIQUAL rows have embeddings
+ 2. Phase 2 (search service)    → verify: new search handles typos better than ILIKE
+ 3. Phase 3 (lazy compute)       → verify: user-created ingredients get embeddings
+ 4. Phase 4 (cleanup)            → verify: 159 tests still pass, CI workflow clean
+ ```
+
+## Progress Log
+
+| Date | Phase | Status | Notes |
+|------|-------|--------|-------|
+| 2026-09-13 | 1 | ✅ Done | Added `embedding` column, updated `load_ciqual_2025.py` |
+| 2026-09-13 | 2 | ✅ Done | Added `embedding_candidates()`, updated `ingredients.py` autocomplete |
+| 2026-09-13 | 3 | ✅ Done | `create_new()` and `confirm_match()` compute embeddings on-demand |
