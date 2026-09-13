@@ -128,26 +128,33 @@ def _bm25_score(text: str, query: str) -> float:
 
 
 def _lazy_compute_embedding(db: Session, row: IngredientDatabase):
-    """Compute and store the embedding for a row (if no embeddings exist yet)."""
-    # Check if any embeddings exist (raw SQL, since ORM doesn't handle pgvector).
-    has_embeddings = db.execute(text('''
-        SELECT count(*) FROM ingredient_database WHERE embedding IS NOT NULL
-    ''')).scalar()
-    if has_embeddings > 0:
-        return  # embeddings already exist, no need to compute for this row
-    # No embeddings yet → compute and store one (triggers the lazy-compute path).
-    vec = _compute_query_embedding(row.alim_nom_fr)
-    if vec is not None:
-        db.execute(text('''
-            UPDATE ingredient_database SET embedding = :vec WHERE id = :id
-        '''), {'vec': json.dumps(vec), 'id': str(row.id)})
-        db.flush()
+    """Compute and store the embedding for a row (if no embeddings exist yet).
+
+    Gracefully skips when pgvector isn't available (e.g. CI test env).
+    """
+    try:
+        has_embeddings = db.execute(text('''
+            SELECT count(*) FROM ingredient_database WHERE embedding IS NOT NULL
+        ''')).scalar()
+        if has_embeddings > 0:
+            return
+        vec = _compute_query_embedding(row.alim_nom_fr)
+        if vec is not None:
+            db.execute(text('''
+                UPDATE ingredient_database SET embedding = :vec WHERE id = :id
+            '''), {'vec': json.dumps(vec), 'id': str(row.id)})
+            db.flush()
+    except Exception:
+        pass  # pgvector not available — silently skip.
 
 
 def embedding_candidates(
     db: Session, name: str, limit: int = EMBEDDING_CANDIDATE_LIMIT
 ) -> list[IngredientDatabase]:
-    """Embedding-based nearest-neighbor search with BM25 re-ranking."""
+    """Embedding-based nearest-neighbor search with BM25 re-ranking.
+
+    Falls back to trigram when pgvector is unavailable.
+    """
     if not os.getenv("GEMINI_API_KEY"):
         return _trigram_candidates(db, name, limit)
 
@@ -156,9 +163,12 @@ def embedding_candidates(
         return []
 
     # Check if any rows have embeddings (coarse existence check via raw SQL).
-    has_embeddings = db.execute(text('''
-        SELECT count(*) FROM ingredient_database WHERE embedding IS NOT NULL
-    ''')).scalar() > 0
+    try:
+        has_embeddings = db.execute(text('''
+            SELECT count(*) FROM ingredient_database WHERE embedding IS NOT NULL
+        ''')).scalar() > 0
+    except Exception:
+        return _trigram_candidates(db, name, limit)
 
     if not has_embeddings:
         return _trigram_candidates(db, name, limit)
@@ -178,10 +188,10 @@ def embedding_candidates(
             {"vec": json.dumps(query_vec), "top_n": EMBEDDING_CANDIDATE_LIMIT * 2},
         ).all()
     except Exception:
-        return []
+        return _trigram_candidates(db, name, limit)
 
     if not rows:
-        return []
+        return _trigram_candidates(db, name, limit)
 
     ids = [r.id for r in rows]
     candidates = (
@@ -194,31 +204,36 @@ def embedding_candidates(
         return candidates
 
     # Composite scoring: 0.6 * embedding + 0.4 * BM25.
-    scored: list[tuple[float, IngredientDatabase]] = []
-    for c in candidates:
-        # Get distance from the pgvector result by finding position.
-        # Compute cosine similarity from distance (distance ranges 0-2 for L2).
-        name_vec = c.embedding
-        if name_vec is None:
-            continue
-        dot = sum(a * b for a, b in zip(query_vec, name_vec))
-        q_norm = math.sqrt(sum(v * v for v in query_vec))
-        c_norm = math.sqrt(sum(v * v for v in name_vec))
-        if q_norm == 0 or c_norm == 0:
-            emb_score = 0.0
-        else:
-            cos_sim = dot / (q_norm * c_norm)
-            emb_score = max(0.0, cos_sim)
+    try:
+        scored: list[tuple[float, IngredientDatabase]] = []
+        for c in candidates:
+            # Read embedding via raw SQL (ORM doesn't handle pgvector).
+            emb_row = db.execute(
+                text('SELECT embedding FROM ingredient_database WHERE id = :id'),
+                {'id': str(c.id)},
+            ).fetchone()
+            name_vec = emb_row.embedding if emb_row else None
+            if name_vec is None:
+                continue
+            dot = sum(a * b for a, b in zip(query_vec, name_vec))
+            q_norm = math.sqrt(sum(v * v for v in query_vec))
+            c_norm = math.sqrt(sum(v * v for v in name_vec))
+            if q_norm == 0 or c_norm == 0:
+                emb_score = 0.0
+            else:
+                cos_sim = dot / (q_norm * c_norm)
+                emb_score = max(0.0, cos_sim)
 
-        bm25 = _bm25_score(c.alim_nom_fr, name)
-        # Normalize BM25 to [0, 1] range (heuristic cap at 1.0).
-        bm25_norm = min(1.0, bm25)
+            bm25 = _bm25_score(c.alim_nom_fr, name)
+            bm25_norm = min(1.0, bm25)
 
-        composite = 0.6 * emb_score + 0.4 * bm25_norm
-        scored.append((composite, c))
+            composite = 0.6 * emb_score + 0.4 * bm25_norm
+            scored.append((composite, c))
 
-    scored.sort(key=lambda x: x[0], reverse=True)
-    return [c for _, c in scored[:limit]]
+        scored.sort(key=lambda x: x[0], reverse=True)
+        return [c for _, c in scored[:limit]]
+    except Exception:
+        return _trigram_candidates(db, name, limit)
 
 
 def llm_candidates(db: Session, name: str, k: int = LLM_TOP_K) -> list[dict]:
@@ -324,11 +339,14 @@ def confirm_match(
     )
 
     # Lazy-compute embedding on the canonical row (if no embeddings exist yet).
-    has_embeddings = db.execute(text('''
-        SELECT count(*) FROM ingredient_database WHERE embedding IS NOT NULL
-    ''')).scalar()
-    if has_embeddings == 0:
-        _lazy_compute_embedding(db, canonical)
+    try:
+        has_embeddings = db.execute(text('''
+            SELECT count(*) FROM ingredient_database WHERE embedding IS NOT NULL
+        ''')).scalar()
+        if has_embeddings == 0:
+            _lazy_compute_embedding(db, canonical)
+    except Exception:
+        pass  # pgvector not available — silently skip.
 
     db.flush()
     return canonical
