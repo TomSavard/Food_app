@@ -1,98 +1,80 @@
 # Food App
 
-A personal recipe management and meal planning app with shopping list generation and nutrition tracking.
+A personal recipe management and meal planning app. Plan weekly meals, auto-generate shopping lists with quantities fused by ingredient, grouped by supermarket aisle, and track real nutrition (kcal, macros, micros) using the CIQUAL database — with LLM fallback for unmatched ingredients.
 
-Product direction: [NORTH_STAR.md](NORTH_STAR.md). Stack rationale: [INFRASTRUCTURE.md](INFRASTRUCTURE.md).
+Built as a Next.js PWA with a FastAPI backend, hosted on Vercel with a Neon Postgres database.
 
-## Stack
+See [NORTH_STAR.md](NORTH_STAR.md) for product direction and [INFRASTRUCTURE.md](INFRASTRUCTURE.md) for stack rationale.
 
-- **Frontend + API hosting:** Vercel (serverless)
-- **Backend:** FastAPI (runs as a single Vercel Python function via [api/index.py](api/index.py))
-- **Database:** Neon Postgres (pooled endpoint)
-- **Frontend:** vanilla HTML/JS PWA in [frontend/](frontend/)
+---
 
-Live: https://food-app-bice-alpha.vercel.app
+## Quick start
 
-## Project layout
-
-```
-Food_app/
-├── api/index.py          # Vercel entry point (re-exports FastAPI app)
-├── backend/              # FastAPI Python code
-│   ├── main.py
-│   ├── api/              # Route handlers (recipes, ingredients, shopping_list, chat)
-│   ├── db/               # SQLAlchemy models + session
-│   ├── schemas.py
-│   └── utils/
-├── app/                  # Next.js App Router (frontend pages)
-├── components/           # React components (incl. shadcn/ui under components/ui/)
-├── lib/                  # API client + types
-├── public/               # PWA manifest, icons, service worker
-├── alembic/              # DB migrations
-├── tests/                # pytest suite
-├── package.json          # Next.js / React deps
-├── tsconfig.json
-├── tailwind.config.ts
-├── next.config.js
-├── vercel.json           # routes /api/* to the Python function; Next.js handles the rest
-├── requirements.txt      # runtime deps (installed into the Vercel function)
-└── requirements-dev.txt  # local dev + tooling
-```
-
-## Local development
+Install dependencies:
 
 ```bash
-# First-time setup — Python
+# Python
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements-dev.txt
-cp .env.example .env   # then paste your Neon DATABASE_URL
+cp .env.example .env  # then paste your Neon DATABASE_URL
 
-# First-time setup — Node
+# Node
 npm install
+```
 
-# Pull Vercel env vars into .env.local (so vercel dev picks up DATABASE_URL)
-vercel env pull .env.local
+Choose how to run:
 
-# Run locally — Next.js + the Python function in one process
+**Single process (recommended):**
+```bash
 vercel dev
 # → http://localhost:3000
 ```
 
+**Separate servers (uvicorn + Next.js):**
+```bash
+# Terminal 1 — Python API
+uvicorn backend.main:app --port 8000
+
+# Terminal 2 — Next.js frontend
+npm run dev
+# → http://localhost:3000 (proxies /api/* to the Python server)
+```
+
+## Project structure
+
+```
+Food_app/
+├── api/index.py          # Vercel entry point (re-exports FastAPI)
+├── backend/              # FastAPI API + business logic
+│   ├── api/              # Route handlers (recipes, ingredients, chat, meal plan, shopping list)
+│   ├── db/               # SQLAlchemy models + session
+│   ├── services/         # Business logic (CIQUAL matching, seasonality, categorize)
+│   ├── schemas.py        # Pydantic types
+│   └── main.py
+├── app/                  # Next.js pages (reference, meal-plan, shopping, ingredients)
+├── components/           # React components (shadcn/ui under components/ui/)
+├── lib/                  # API client + types + utilities
+├── public/               # PWA manifest, icons, service worker
+├── config/               # alembic.ini, postcss.config.js
+├── tests/                # pytest suite
+└── scripts/              # utility scripts
+```
+
 ## Tests
 
-Tests run against a dedicated Neon test branch (cheap copy-on-write of `main`). Each test wraps work in a transaction that's rolled back on teardown, so no data leaks between runs.
+Tests run against a dedicated Neon test branch. Each test wraps work in a transaction that rolls back, so no data leaks between runs.
 
-**One-time setup:**
-1. Neon Console → your project → **Branches** → "Create branch" → from `main` → name it `test`. Copy the **pooled** connection string.
-2. `cp .env.test.example .env.test` and paste it (in `postgresql+psycopg://` form).
+**One-time setup:** create a `test` branch in Neon from `main`, copy its pooled connection string into `.env.test`.
 
-**Run:**
 ```bash
 pytest -v
 ```
 
-CI runs the same tests on every push to `main` and every PR (see [.github/workflows/test.yml](.github/workflows/test.yml)). Set `TEST_DATABASE_URL` as a GitHub Actions secret.
-
-## Database migrations
-
-Alembic runs locally against Neon — it is **not** wired into the Vercel deploy.
-
-```bash
-# Apply pending migrations
-alembic upgrade head
-
-# Create a new migration after editing app/db/models.py
-alembic revision --autogenerate -m "describe the change"
-```
-
 ## Deployment
 
-Pushes to `main` auto-deploy on Vercel (GitHub integration). Manual:
+Pushes to `main` auto-deploy on Vercel. Manual:
 
 ```bash
 vercel --prod
 ```
-
-Env var to set in Vercel project settings (Production + Development):
-- `DATABASE_URL` — Neon **pooled** connection string (hostname contains `-pooler`).

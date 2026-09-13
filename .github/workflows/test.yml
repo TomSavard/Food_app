@@ -23,7 +23,7 @@ jobs:
         run: pip install -r requirements-dev.txt
 
       - name: Apply migrations
-        run: alembic upgrade head
+        run: alembic -c config/alembic.ini upgrade head
 
       - name: Run pytest
         run: pytest -v
