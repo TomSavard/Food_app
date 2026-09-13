@@ -10,7 +10,7 @@ from pathlib import Path
 import pytest
 from dotenv import load_dotenv
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 
 # Load .env.test before importing app modules — they read env at import time.
@@ -27,6 +27,23 @@ os.environ["DATABASE_URL"] = os.environ["TEST_DATABASE_URL"]
 
 from backend.db.session import get_db  # noqa: E402
 from backend.main import app  # noqa: E402
+
+
+def _truncate_tables(session):
+    """Delete all rows in FK order so each test starts from a clean slate."""
+    tables = [
+        "ingredient_aliases",
+        "shopping_list_contributions",
+        "shopping_list",
+        "instructions",
+        "ingredients",
+        "meal_plan_slots",
+        "recipes",
+        "ingredient_database",
+    ]
+    for table in tables:
+        session.execute(text(f"DELETE FROM {table}"))
+    session.flush()
 
 
 @pytest.fixture(scope="session")
@@ -48,6 +65,7 @@ def db_session(engine):
     )
     session = SessionLocal()
     try:
+        _truncate_tables(session)
         yield session
     finally:
         session.close()

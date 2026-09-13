@@ -22,8 +22,5 @@ jobs:
       - name: Install deps
         run: pip install -r requirements-dev.txt
 
-      - name: Apply migrations
-        run: alembic upgrade head
-
       - name: Run pytest
         run: pytest -v
