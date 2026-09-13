@@ -145,7 +145,7 @@ def _lazy_compute_embedding(db: Session, row: IngredientDatabase):
             '''), {'vec': json.dumps(vec), 'id': str(row.id)})
             db.flush()
     except Exception:
-        pass  # pgvector not available — silently skip.
+        db.rollback()  # pgvector not available — silently skip.
 
 
 def embedding_candidates(
@@ -168,6 +168,7 @@ def embedding_candidates(
             SELECT count(*) FROM ingredient_database WHERE embedding IS NOT NULL
         ''')).scalar() > 0
     except Exception:
+        db.rollback()  # column might not exist
         return _trigram_candidates(db, name, limit)
 
     if not has_embeddings:
@@ -188,6 +189,7 @@ def embedding_candidates(
             {"vec": json.dumps(query_vec), "top_n": EMBEDDING_CANDIDATE_LIMIT * 2},
         ).all()
     except Exception:
+        db.rollback()  # pgvector extension or column missing
         return _trigram_candidates(db, name, limit)
 
     if not rows:
@@ -233,6 +235,7 @@ def embedding_candidates(
         scored.sort(key=lambda x: x[0], reverse=True)
         return [c for _, c in scored[:limit]]
     except Exception:
+        db.rollback()  # pgvector/read failed — fall back to trigram
         return _trigram_candidates(db, name, limit)
 
 
@@ -346,7 +349,7 @@ def confirm_match(
         if has_embeddings == 0:
             _lazy_compute_embedding(db, canonical)
     except Exception:
-        pass  # pgvector not available — silently skip.
+        db.rollback()  # pgvector not available — silently skip.
 
     # Flush the alias (always succeeds).
     db.flush()
@@ -397,5 +400,5 @@ def create_new(
         if count == 0:
             _lazy_compute_embedding(db, row)
     except Exception:
-        pass  # pgvector not available — silently skip.
+        db.rollback()  # pgvector not available — silently skip.
     return row

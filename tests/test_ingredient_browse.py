@@ -116,6 +116,13 @@ def test_get_detail_404(client):
 
 def test_search_uses_embedding_when_alias_missing(client, db_session, make_ingredient):
     """Verify embedding fallback when no alias matches."""
+    # Check if embedding column exists before running the test.
+    has_col = db_session.execute(text('''
+        SELECT count(*) FROM information_schema.columns
+        WHERE table_name = 'ingredient_database' AND column_name = 'embedding'
+    ''')).scalar() > 0
+    if not has_col:
+        pytest.skip("embedding column not present in test DB (pgvector unavailable)")
     r1 = make_ingredient("Haricots verts, crus")
     r2 = make_ingredient("Petits pois, crus")
     r3 = make_ingredient("Carottes, crues")
