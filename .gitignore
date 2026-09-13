@@ -49,9 +49,6 @@ next-env.d.ts
 .DS_Store
 Thumbs.db
 
-# Alembic
-alembic/versions/*.pyc
-
 # Logs
 *.log
 

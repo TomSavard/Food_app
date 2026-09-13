@@ -56,7 +56,7 @@ Food_app/
 ├── components/           # React components (shadcn/ui under components/ui/)
 ├── lib/                  # API client + types + utilities
 ├── public/               # PWA manifest, icons, service worker
-├── config/               # alembic.ini, postcss.config.js
+    ├── config/               # postcss.config.js
 ├── tests/                # pytest suite
 └── scripts/              # utility scripts
 ```
