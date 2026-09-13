@@ -30,12 +30,19 @@ from backend.main import app  # noqa: E402
 
 
 def _ensure_embedding_column(session):
-    """Ensure pgvector extension exists and migrate embedding column to vector(256).
+    """Ensure pgvector extension exists and migration runs (if table/column exist).
 
-    Gracefully skips if the test database lacks pgvector (e.g. restricted Neon env).
+    Gracefully skips if the test database lacks pgvector or the table.
     """
     try:
         session.execute(text('CREATE EXTENSION IF NOT EXISTS vector'))
+        # Check if embedding column exists (it might be float8[] or missing).
+        has_col = session.execute(text('''
+            SELECT count(*) FROM information_schema.columns
+            WHERE table_name = 'ingredient_database' AND column_name = 'embedding'
+        ''')).scalar()
+        if has_col == 0:
+            return  # no embedding column at all — skip.
         session.execute(text('''
             ALTER TABLE ingredient_database
             ALTER COLUMN embedding TYPE vector(256)
@@ -43,7 +50,7 @@ def _ensure_embedding_column(session):
         '''))
         session.flush()
     except Exception:
-        # pgvector not available in this DB — skip migration.
+        # pgvector not available or column doesn't exist — skip migration.
         pass
 
 
@@ -60,8 +67,12 @@ def _truncate_tables(session):
         "ingredient_database",
     ]
     for table in tables:
-        session.execute(text(f"DELETE FROM {table}"))
-    session.flush()
+        try:
+            session.execute(text(f"DELETE FROM {table}"))
+            session.flush()
+        except Exception:
+            # Table might not exist yet — skip.
+            pass
 
 
 @pytest.fixture(scope="session")
