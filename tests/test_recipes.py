@@ -109,10 +109,10 @@ def test_upload_recipe_image(client, db_session):
 
     png_data = b"\x89PNG\r\n\x1a\n" + b"\x00" * 20  # minimal fake PNG
 
-    # Use httpx.Client directly to bypass TestClient async coroutine issues
+    # Use httpx.Client directly to bypass TestClient async issues
     with httpx.Client() as http_client:
-        file_obj = httpx.BlobUpload(filename="test.png", data=png_data, content_type="image/png")
-        res = http_client.post(f"http://testserver/api/recipes/{r.recipe_id}/upload-image", files={"file": file_obj})
+        files = {"file": ("test.png", BytesIO(png_data), "image/png")}
+        res = http_client.post(f"http://testserver/api/recipes/{r.recipe_id}/upload-image", files=files)
         assert res.status_code == 200
         assert res.json()["image_url"] == f"/api/recipes/{r.recipe_id}/image.png"
 
@@ -132,8 +132,8 @@ def test_remove_recipe_image(client, db_session):
 
     png_data = b"\x89PNG\r\n\x1a\n" + b"\x00" * 20
     with httpx.Client() as http_client:
-        file_obj = httpx.BlobUpload(filename="test.png", data=png_data, content_type="image/png")
-        res = http_client.post(f"http://testserver/api/recipes/{r.recipe_id}/upload-image", files={"file": file_obj})
+        files = {"file": ("test.png", BytesIO(png_data), "image/png")}
+        res = http_client.post(f"http://testserver/api/recipes/{r.recipe_id}/upload-image", files=files)
         assert res.status_code == 200
 
         # Remove it
