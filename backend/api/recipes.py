@@ -1,8 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
 from sqlalchemy.orm import Session, selectinload
 from sqlalchemy import desc, String, func
 from typing import Optional
 from uuid import UUID
+import os
+import uuid
 
 from backend.db.session import get_db
 from backend.db.models import Recipe, Ingredient, Instruction
@@ -260,5 +262,80 @@ def toggle_recipe_favorite(
     db.commit()
     db.refresh(recipe)
     
+    return recipe
+
+
+UPLOAD_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "public", "uploads", "recipes")
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+
+ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
+
+
+def _valid_extension(filename: str) -> bool:
+    ext = os.path.splitext(filename)[1].lower()
+    return ext in ALLOWED_EXTENSIONS
+
+
+@router.post("/{recipe_id}/upload-image")
+def upload_recipe_image(
+    recipe_id: UUID,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+):
+    """Upload an image for a recipe. Returns the stored image URL."""
+    recipe = db.query(Recipe).filter(Recipe.recipe_id == recipe_id).first()
+    if not recipe:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Recipe with id {recipe_id} not found",
+        )
+
+    if not _valid_extension(file.filename or ""):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Type de fichier non supporté. Extensions supportées: {', '.join(ALLOWED_EXTENSIONS)}",
+        )
+
+    # Unique filename: {recipe_id}.{ext}
+    ext = os.path.splitext(file.filename)[1].lower()
+    filename = f"{recipe_id}{ext}"
+    filepath = os.path.join(UPLOAD_DIR, filename)
+
+    with open(filepath, "wb") as f:
+        f.write(file.read())
+
+    # Store the URL path (relative to Next.js public dir)
+    image_url = f"/uploads/recipes/{filename}"
+    recipe.image_url = image_url
+    db.commit()
+    db.refresh(recipe)
+
+    return {"image_url": image_url}
+
+
+@router.patch("/{recipe_id}/remove-image")
+def remove_recipe_image(
+    recipe_id: UUID,
+    db: Session = Depends(get_db),
+):
+    """Remove the image for a recipe."""
+    recipe = db.query(Recipe).filter(Recipe.recipe_id == recipe_id).first()
+    if not recipe:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Recipe with id {recipe_id} not found",
+        )
+
+    if recipe.image_url:
+        # Delete the file
+        filename = os.path.basename(recipe.image_url)
+        filepath = os.path.join(UPLOAD_DIR, filename)
+        if os.path.exists(filepath):
+            os.remove(filepath)
+        recipe.image_url = None
+        db.commit()
+        db.refresh(recipe)
+
     return recipe
 

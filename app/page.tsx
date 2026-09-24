@@ -1,17 +1,37 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Plus, Star, StarOff, Clock, Flame, Users } from "lucide-react";
+import { Plus, Star, Users, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import * as api from "@/lib/api";
 import type { Recipe } from "@/lib/types";
 import { RecipeFormDialog } from "@/components/recipe-form-dialog";
 import { RecipeDetailDialog } from "@/components/recipe-detail-dialog";
 
 type CategoryFilter = "all" | "plat" | "dessert" | "entrée";
+
+// Fixed sections: entrée, plat, dessert, sauce, autres
+const SECTIONS = ["Entrée", "Plat", "Dessert", "Sauce", "Autres"] as const;
+
+const SECTION_META: Record<string, React.ReactNode> = {
+  Entrée: <span className="text-lg">🥗</span>,
+  Plat: <span className="text-lg">🍽️</span>,
+  Dessert: <span className="text-lg">🍰</span>,
+  Sauce: <span className="text-lg">🫕</span>,
+  Autres: <span className="text-lg">📁</span>,
+};
+
+function classifyRecipe(recipe: Recipe): string {
+  const tags = (recipe.tags || []).map((t) =>
+    t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+  );
+  if (tags.some((t) => t.startsWith("entr"))) return "Entrée";
+  if (tags.some((t) => t.startsWith("plat"))) return "Plat";
+  if (tags.some((t) => t.startsWith("dessert"))) return "Dessert";
+  if (tags.some((t) => t.startsWith("sauce"))) return "Sauce";
+  return "Autres";
+}
 
 function useDebounced<T>(value: T, delay = 300): T {
   const [v, setV] = useState(value);
@@ -22,12 +42,163 @@ function useDebounced<T>(value: T, delay = 300): T {
   return v;
 }
 
+// ---------------------------------------------------------------------------
+// Grouped recipe list (CookBooker-inspired)
+// ---------------------------------------------------------------------------
+
+function CategoryGroup({
+  category,
+  recipes: grouped,
+  onOpen,
+  onToggleFavorite,
+  onAdd,
+}: {
+  category: string;
+  recipes: Recipe[];
+  onOpen: (id: string) => void;
+  onToggleFavorite: (r: Recipe) => void;
+  onAdd?: () => void;
+}) {
+  const [collapsed, setCollapsed] = useState(false);
+  const meta = SECTION_META[category] ?? SECTION_META["Autres"];
+
+  return (
+    <div className="rounded-lg border border-border/50 bg-card overflow-hidden">
+      <div
+        className="flex w-full cursor-pointer items-center gap-3 px-4 py-2.5 text-left hover:bg-accent/50 transition-colors"
+        onClick={() => setCollapsed((c) => !c)}
+      >
+        <ChevronDown
+          className={`h-4 w-4 shrink-0 transition-transform ${collapsed ? "" : "rotate-180"}`}
+        />
+        {meta}
+        <span className="font-semibold text-sm">{category}</span>
+        <span className="ml-auto text-xs text-muted-foreground tabular-nums">{grouped.length}</span>
+      </div>
+
+      {!collapsed && (
+        <div className="divide-y divide-border/50">
+          {grouped.map((r) => (
+            <RecipeRow
+              key={r.recipe_id}
+              recipe={r}
+              onOpen={onOpen}
+              onToggleFavorite={onToggleFavorite}
+            />
+          ))}
+          {onAdd && (
+            <div
+              className="flex w-full cursor-pointer items-center gap-3 px-4 py-2.5 text-left text-muted-foreground hover:bg-accent/50 transition-colors"
+              onClick={onAdd}
+            >
+              <Plus className="h-4 w-4" />
+              <span className="text-sm">Nouvelle recette</span>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RecipeRow({
+  recipe,
+  onOpen,
+  onToggleFavorite,
+}: {
+  recipe: Recipe;
+  onOpen: (id: string) => void;
+  onToggleFavorite: (r: Recipe) => void;
+}) {
+  return (
+    <div
+      className={`flex w-full cursor-pointer items-center gap-3 px-4 py-2.5 text-left hover:bg-accent/50 transition-colors ${recipe.is_favorite ? "bg-yellow-50/10" : ""}`}
+      onClick={() => onOpen(recipe.recipe_id)}
+    >
+      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-secondary/60 text-xs text-muted-foreground overflow-hidden">
+        {recipe.image_url ? (
+          <img src={recipe.image_url} alt={recipe.name} className="h-full w-full object-cover" />
+        ) : (
+          <span>{recipe.name.charAt(0).toUpperCase()}</span>
+        )}
+      </div>
+
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-sm font-medium">{recipe.name}</div>
+      </div>
+
+      <button
+        className="shrink-0"
+        onClick={(e) => {
+          e.stopPropagation();
+          onToggleFavorite(recipe);
+        }}
+        aria-label={recipe.is_favorite ? "Retirer des favoris" : "Ajouter aux favoris"}
+      >
+        <Star className={`h-4 w-4 ${recipe.is_favorite ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground/50"}`} />
+      </button>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Full-page search/filter bar (collapsible)
+// ---------------------------------------------------------------------------
+
+function FilterBar({
+  search,
+  setSearch,
+  ingredient,
+  setIngredient,
+  cuisine,
+  setCuisine,
+  tag,
+  setTag,
+}: {
+  search: string;
+  setSearch: (v: string) => void;
+  ingredient: string;
+  setIngredient: (v: string) => void;
+  cuisine: string;
+  setCuisine: (v: string) => void;
+  tag: string;
+  setTag: (v: string) => void;
+}) {
+  return (
+    <div className="space-y-3 rounded-lg border border-border/50 bg-card p-4">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <Input
+          placeholder="Rechercher une recette…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <Input
+          placeholder="Ingrédient (ex: poulet)…"
+          value={ingredient}
+          onChange={(e) => setIngredient(e.target.value)}
+        />
+        <Input
+          placeholder="Type de cuisine"
+          value={cuisine}
+          onChange={(e) => setCuisine(e.target.value)}
+        />
+        <Input placeholder="Tag" value={tag} onChange={(e) => setTag(e.target.value)} />
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Page
+// ---------------------------------------------------------------------------
+
 export default function RecipesPage() {
   const [search, setSearch] = useState("");
   const [ingredient, setIngredient] = useState("");
   const [cuisine, setCuisine] = useState("");
   const [tag, setTag] = useState("");
   const [category, setCategory] = useState<CategoryFilter>("all");
+  const [showFilters, setShowFilters] = useState(false);
 
   const dSearch = useDebounced(search);
   const dIngredient = useDebounced(ingredient);
@@ -66,9 +237,23 @@ export default function RecipesPage() {
   }, [load]);
 
   const filtered = useMemo(() => {
-    if (category === "all") return recipes;
-    return recipes.filter((r) => (r.tags || []).map((t) => t.toLowerCase()).includes(category));
+    let list = recipes;
+    if (category !== "all") {
+      list = list.filter((r) => (r.tags || []).map((t) => t.toLowerCase()).includes(category));
+    }
+    return list;
   }, [recipes, category]);
+
+  // Group recipes into fixed sections
+  const groups = useMemo(() => {
+    const map = new Map<string, Recipe[]>();
+    for (const s of SECTIONS) map.set(s, []);
+    for (const r of filtered) {
+      const section = classifyRecipe(r);
+      map.get(section)!.push(r);
+    }
+    return map;
+  }, [filtered]);
 
   async function onToggleFavorite(r: Recipe) {
     try {
@@ -87,57 +272,51 @@ export default function RecipesPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Mes recettes</h1>
-        <Button
-          onClick={() => {
-            setEditing(null);
-            setFormOpen(true);
-          }}
-        >
-          <Plus className="h-4 w-4" /> Ajouter
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="ghost" size="sm" onClick={() => setShowFilters((f) => !f)}>
+            {showFilters ? "Masquer filtres" : "Filtres"}
+          </Button>
+          <Button
+            onClick={() => {
+              setEditing(null);
+              setFormOpen(true);
+            }}
+          >
+            <Plus className="h-4 w-4" /> Ajouter
+          </Button>
+        </div>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-2">
-        <Input
-          placeholder="Rechercher une recette…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        <Input
-          placeholder="Rechercher par ingrédient (ex: poulet)…"
-          value={ingredient}
-          onChange={(e) => setIngredient(e.target.value)}
-        />
-        <Input
-          placeholder="Type de cuisine"
-          value={cuisine}
-          onChange={(e) => setCuisine(e.target.value)}
-        />
-        <Input placeholder="Tag" value={tag} onChange={(e) => setTag(e.target.value)} />
-      </div>
-
+      {/* Category filter pills */}
       <div className="flex flex-wrap gap-2">
-        {(
-          [
-            ["all", "Toutes"],
-            ["plat", "Plats"],
-            ["dessert", "Desserts"],
-            ["entrée", "Entrées"],
-          ] as [CategoryFilter, string][]
-        ).map(([k, label]) => (
+        {["all", "entrée", "plat", "dessert"].map((k) => (
           <Button
             key={k}
             size="sm"
             variant={category === k ? "default" : "outline"}
-            onClick={() => setCategory(k)}
+            onClick={() => setCategory(k as CategoryFilter)}
           >
-            {label}
+            {k === "all" ? "Toutes" : k.charAt(0).toUpperCase() + k.slice(1)}
           </Button>
         ))}
       </div>
+
+      {showFilters && (
+        <FilterBar
+          search={search}
+          setSearch={setSearch}
+          ingredient={ingredient}
+          setIngredient={setIngredient}
+          cuisine={cuisine}
+          setCuisine={setCuisine}
+          tag={tag}
+          setTag={setTag}
+        />
+      )}
 
       {error && <p className="text-destructive">{error}</p>}
       {loading && <p className="text-muted-foreground">Chargement…</p>}
@@ -145,68 +324,21 @@ export default function RecipesPage() {
         <p className="text-muted-foreground">Aucune recette.</p>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {filtered.map((r) => (
-          <Card
-            key={r.recipe_id}
-            className={
-              "surface-interactive min-w-0 overflow-hidden " +
-              (r.is_favorite ? "ring-1 ring-primary/40" : "")
-            }
-            onClick={() => setDetailId(r.recipe_id)}
-          >
-            <CardContent className="p-4 space-y-2 sm:p-5 sm:space-y-3">
-              <div className="flex items-start justify-between gap-2">
-                <h3 className="min-w-0 break-words font-semibold leading-tight">
-                  {r.name}
-                </h3>
-                <button
-                  className="shrink-0"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onToggleFavorite(r);
-                  }}
-                  aria-label={r.is_favorite ? "Retirer des favoris" : "Ajouter aux favoris"}
-                >
-                  {r.is_favorite ? (
-                    <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
-                  ) : (
-                    <StarOff className="h-5 w-5 text-muted-foreground" />
-                  )}
-                </button>
-              </div>
-              {r.description && (
-                <p className="text-sm text-muted-foreground line-clamp-2 break-words">
-                  {r.description}
-                </p>
-              )}
-              <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-                {r.prep_time > 0 && (
-                  <span className="inline-flex items-center gap-1">
-                    <Clock className="h-3.5 w-3.5" /> {r.prep_time} min
-                  </span>
-                )}
-                {r.cook_time > 0 && (
-                  <span className="inline-flex items-center gap-1">
-                    <Flame className="h-3.5 w-3.5" /> {r.cook_time} min
-                  </span>
-                )}
-                <span className="inline-flex items-center gap-1">
-                  <Users className="h-3.5 w-3.5" /> {r.servings}
-                </span>
-              </div>
-              {r.tags && r.tags.length > 0 && (
-                <div className="flex flex-wrap gap-1">
-                  {r.tags.slice(0, 3).map((t) => (
-                    <Badge key={t} variant="secondary">
-                      {t}
-                    </Badge>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        ))}
+      {/* Category groups */}
+      <div className="space-y-3">
+        {SECTIONS.map((section) => {
+          const recs = groups.get(section) ?? [];
+          if (recs.length === 0) return null;
+          return (
+            <CategoryGroup
+              key={section}
+              category={section}
+              recipes={recs}
+              onOpen={(id) => setDetailId(id)}
+              onToggleFavorite={onToggleFavorite}
+            />
+          );
+        })}
       </div>
 
       <RecipeDetailDialog
