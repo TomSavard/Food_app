@@ -39,6 +39,7 @@ class Recipe(Base):
     cuisine_type = Column(String(100), index=True)
     tags = Column(ARRAY(String), default=[])
     image_url = Column(String(500))  # URL or path to image (replacing Google Drive file ID)
+    image_data = Column(LargeBinary, nullable=True)  # BLOB for persistent image storage
     is_favorite = Column(Boolean, default=False, index=True)  # Star/favorite flag
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
