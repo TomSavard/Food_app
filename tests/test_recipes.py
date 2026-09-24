@@ -99,7 +99,7 @@ def test_create_recipe(client):
     assert body["ingredients"][0]["name"] == "tomate"
 
 
-def test_upload_recipe_image(client, db_session):
+async def test_upload_recipe_image(client, db_session):
     """Test uploading an image to a recipe."""
     from io import BytesIO
 
@@ -108,17 +108,17 @@ def test_upload_recipe_image(client, db_session):
 
     png_header = b"\x89PNG\r\n\x1a\n" + b"\x00" * 20  # minimal fake PNG
     file = ("test.png", BytesIO(png_header), "image/png")
-    res = client.post(f"/api/recipes/{r.recipe_id}/upload-image", files={"file": file})
+    res = await client.post(f"/api/recipes/{r.recipe_id}/upload-image", files={"file": file})
     assert res.status_code == 200
     assert res.json()["image_url"] == f"/api/recipes/{r.recipe_id}/image.png"
 
     # Fetch it back
-    res = client.get(f"/api/recipes/{r.recipe_id}/image.png")
+    res = await client.get(f"/api/recipes/{r.recipe_id}/image.png")
     assert res.status_code == 200
     assert res.content[:4] == png_header[:4]
 
 
-def test_remove_recipe_image(client, db_session):
+async def test_remove_recipe_image(client, db_session):
     """Test removing an image from a recipe."""
     from io import BytesIO
 
@@ -127,13 +127,13 @@ def test_remove_recipe_image(client, db_session):
 
     png_header = b"\x89PNG\r\n\x1a\n" + b"\x00" * 20
     file = ("test.png", BytesIO(png_header), "image/png")
-    res = client.post(f"/api/recipes/{r.recipe_id}/upload-image", files={"file": file})
+    res = await client.post(f"/api/recipes/{r.recipe_id}/upload-image", files={"file": file})
     assert res.status_code == 200
 
     # Remove it
-    res = client.patch(f"/api/recipes/{r.recipe_id}/remove-image")
+    res = await client.patch(f"/api/recipes/{r.recipe_id}/remove-image")
     assert res.status_code == 200
 
     # Fetching should 404 now
-    res = client.get(f"/api/recipes/{r.recipe_id}/image.png")
+    res = await client.get(f"/api/recipes/{r.recipe_id}/image.png")
     assert res.status_code == 404
