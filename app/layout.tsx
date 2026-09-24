@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import { GeistSans } from "geist/font/sans";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import { ChatPanel } from "@/components/chat-panel";
 import { Logo } from "@/components/logo";
@@ -75,6 +76,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <MobileBottomNav />
         <ChatPanel />
         <ServiceWorkerRegister />
+        <Analytics />
       </body>
     </html>
   );
