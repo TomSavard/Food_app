@@ -265,11 +265,16 @@ def toggle_recipe_favorite(
     return recipe
 
 
-UPLOAD_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "public", "uploads", "recipes")
-os.makedirs(UPLOAD_DIR, exist_ok=True)
-
 
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
+
+
+def _get_upload_dir():
+    """Get a writable upload directory (use /tmp for serverless)."""
+    import tempfile
+    tmp_dir = os.path.join(tempfile.gettempdir(), "food_app", "uploads", "recipes")
+    os.makedirs(tmp_dir, exist_ok=True)
+    return tmp_dir
 
 
 def _valid_extension(filename: str) -> bool:
@@ -297,10 +302,12 @@ def upload_recipe_image(
             detail=f"Type de fichier non supporté. Extensions supportées: {', '.join(ALLOWED_EXTENSIONS)}",
         )
 
+    upload_dir = _get_upload_dir()
+
     # Unique filename: {recipe_id}.{ext}
     ext = os.path.splitext(file.filename)[1].lower()
     filename = f"{recipe_id}{ext}"
-    filepath = os.path.join(UPLOAD_DIR, filename)
+    filepath = os.path.join(upload_dir, filename)
 
     with open(filepath, "wb") as f:
         f.write(file.read())
@@ -328,9 +335,10 @@ def remove_recipe_image(
         )
 
     if recipe.image_url:
-        # Delete the file
+        # Delete the file from the writable upload dir
         filename = os.path.basename(recipe.image_url)
-        filepath = os.path.join(UPLOAD_DIR, filename)
+        upload_dir = _get_upload_dir()
+        filepath = os.path.join(upload_dir, filename)
         if os.path.exists(filepath):
             os.remove(filepath)
         recipe.image_url = None
