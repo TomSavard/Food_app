@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, Camera, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -27,11 +28,14 @@ export function RecipeDetailDialog({
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [nutrition, setNutrition] = useState<RecipeNutrition | null>(null);
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!recipeId) {
       setRecipe(null);
       setNutrition(null);
+      setUploadError(null);
       return;
     }
     let cancelled = false;
@@ -51,41 +55,100 @@ export function RecipeDetailDialog({
     };
   }, [recipeId]);
 
+  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !recipe) return;
+    setUploading(true);
+    setUploadError(null);
+    try {
+      await api.uploadRecipeImage(recipe.recipe_id, file);
+      const updated = await api.getRecipe(recipe.recipe_id);
+      setRecipe(updated);
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : "Erreur");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function handleRemoveImage() {
+    if (!recipe) return;
+    try {
+      const updated = await api.removeRecipeImage(recipe.recipe_id);
+      setRecipe(updated);
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : "Erreur");
+    }
+  }
+
   return (
     <Dialog open={!!recipeId} onOpenChange={(v) => !v && onClose()}>
       <DialogContent>
         {loading && <p className="text-muted-foreground">Chargement…</p>}
         {recipe && (
           <>
-            <DialogHeader>
-              <div className="flex items-start justify-between gap-3 pr-8">
-                <DialogTitle>{recipe.name}</DialogTitle>
-                {(onEdit || onDelete) && (
-                  <div className="flex gap-1">
-                    {onEdit && (
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => onEdit(recipe)}
-                        aria-label="Modifier"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                    )}
-                    {onDelete && (
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => onDelete(recipe)}
-                        aria-label="Supprimer"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
+            <div className="flex items-start justify-between gap-3 pr-8">
+              <DialogTitle className="text-xl font-semibold">{recipe.name}</DialogTitle>
+              {(onEdit || onDelete) && (
+                <div className="flex gap-1">
+                  {onEdit && (
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => onEdit(recipe)}
+                      aria-label="Modifier"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                  )}
+                  {onDelete && (
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => onDelete(recipe)}
+                      aria-label="Supprimer"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Image management */}
+            <div className="flex items-center gap-3">
+              <label className="flex h-24 w-24 cursor-pointer items-center justify-center rounded-lg border border-dashed border-border bg-secondary/30 overflow-hidden">
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  disabled={uploading}
+                  onChange={handleImageUpload}
+                />
+                {recipe?.image_url ? (
+                  <img src={recipe.image_url} alt={recipe.name} className="h-full w-full object-cover" />
+                ) : (
+                  <span className="text-2xl text-muted-foreground">
+                    {uploading ? "…" : "+"}
+                  </span>
+                )}
+              </label>
+              <div className="flex flex-col gap-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={uploading}
+                >
+                  <Camera className="h-3 w-3" /> Changer
+                </Button>
+                {recipe?.image_url && (
+                  <Button variant="outline" size="sm" onClick={handleRemoveImage}>
+                    <X className="h-3 w-3" /> Supprimer
+                  </Button>
                 )}
               </div>
-            </DialogHeader>
+            </div>
+            {uploadError && <p className="text-xs text-destructive">{uploadError}</p>}
 
             {recipe.description && (
               <p className="text-sm whitespace-pre-wrap">{recipe.description}</p>
