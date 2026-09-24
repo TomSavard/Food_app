@@ -1,10 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session, selectinload
 from sqlalchemy import desc, String, func
 from typing import Optional
 from uuid import UUID
 import os
 import uuid
+from io import BytesIO
 
 from backend.db.session import get_db
 from backend.db.models import Recipe, Ingredient, Instruction
@@ -265,9 +267,6 @@ def toggle_recipe_favorite(
     return recipe
 
 
-UPLOAD_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "public", "uploads", "recipes")
-os.makedirs(UPLOAD_DIR, exist_ok=True)
-
 
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
 
@@ -283,7 +282,7 @@ def upload_recipe_image(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
 ):
-    """Upload an image for a recipe. Returns the stored image URL."""
+    """Upload an image for a recipe. Stores the binary data in the database."""
     recipe = db.query(Recipe).filter(Recipe.recipe_id == recipe_id).first()
     if not recipe:
         raise HTTPException(
@@ -297,21 +296,42 @@ def upload_recipe_image(
             detail=f"Type de fichier non supporté. Extensions supportées: {', '.join(ALLOWED_EXTENSIONS)}",
         )
 
-    # Unique filename: {recipe_id}.{ext}
-    ext = os.path.splitext(file.filename)[1].lower()
-    filename = f"{recipe_id}{ext}"
-    filepath = os.path.join(UPLOAD_DIR, filename)
+    # Store the binary data directly in the database
+    image_data = file.read()
+    image_ext = os.path.splitext(file.filename)[1].lower()
+    image_url = f"/api/recipes/{recipe_id}/image{image_ext}"
 
-    with open(filepath, "wb") as f:
-        f.write(file.read())
-
-    # Store the URL path (relative to Next.js public dir)
-    image_url = f"/uploads/recipes/{filename}"
+    recipe.image_data = image_data
     recipe.image_url = image_url
     db.commit()
     db.refresh(recipe)
 
     return {"image_url": image_url}
+
+
+@router.get("/{recipe_id}/image{ext:path}")
+def get_recipe_image(recipe_id: UUID, ext: str, db: Session = Depends(get_db)):
+    """Serve the image for a recipe from the database."""
+    recipe = db.query(Recipe).filter(Recipe.recipe_id == recipe_id).first()
+    if not recipe or not recipe.image_data:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No image found for recipe with id {recipe_id}",
+        )
+
+    content_type_map = {
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".png": "image/png",
+        ".webp": "image/webp",
+        ".gif": "image/gif",
+    }
+
+    content_type = content_type_map.get(ext, "image/jpeg")
+    return StreamingResponse(
+        BytesIO(recipe.image_data),
+        media_type=content_type,
+    )
 
 
 @router.patch("/{recipe_id}/remove-image")
@@ -327,15 +347,10 @@ def remove_recipe_image(
             detail=f"Recipe with id {recipe_id} not found",
         )
 
-    if recipe.image_url:
-        # Delete the file
-        filename = os.path.basename(recipe.image_url)
-        filepath = os.path.join(UPLOAD_DIR, filename)
-        if os.path.exists(filepath):
-            os.remove(filepath)
-        recipe.image_url = None
-        db.commit()
-        db.refresh(recipe)
+    recipe.image_data = None
+    recipe.image_url = None
+    db.commit()
+    db.refresh(recipe)
 
     return recipe
 

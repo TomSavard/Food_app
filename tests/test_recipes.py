@@ -9,6 +9,7 @@ def _make_recipe(db, **overrides):
         "cuisine_type": "italian",
         "tags": ["quick", "vegetarian"],
         "servings": 2,
+        "image_data": None,
     }
     defaults.update(overrides)
     recipe = Recipe(**defaults)
@@ -96,3 +97,49 @@ def test_create_recipe(client):
     assert body["name"] == "Created in test"
     assert len(body["ingredients"]) == 1
     assert body["ingredients"][0]["name"] == "tomate"
+
+
+def test_upload_recipe_image(client, db_session):
+    """Test uploading an image to a recipe."""
+    from io import BytesIO
+    import httpx
+
+    r = _make_recipe(db_session, name="Pizza")
+    db_session.flush()
+
+    png_data = b"\x89PNG\r\n\x1a\n" + b"\x00" * 20  # minimal fake PNG
+
+    # Use httpx.Client directly to bypass TestClient async issues
+    with httpx.Client() as http_client:
+        files = {"file": ("test.png", BytesIO(png_data), "image/png")}
+        res = http_client.post(f"http://testserver/api/recipes/{r.recipe_id}/upload-image", files=files)
+        assert res.status_code == 200
+        assert res.json()["image_url"] == f"/api/recipes/{r.recipe_id}/image.png"
+
+        # Fetch it back
+        res = http_client.get(f"http://testserver/api/recipes/{r.recipe_id}/image.png")
+        assert res.status_code == 200
+        assert res.content[:4] == png_data[:4]
+
+
+def test_remove_recipe_image(client, db_session):
+    """Test removing an image from a recipe."""
+    from io import BytesIO
+    import httpx
+
+    r = _make_recipe(db_session, name="Sushi")
+    db_session.flush()
+
+    png_data = b"\x89PNG\r\n\x1a\n" + b"\x00" * 20
+    with httpx.Client() as http_client:
+        files = {"file": ("test.png", BytesIO(png_data), "image/png")}
+        res = http_client.post(f"http://testserver/api/recipes/{r.recipe_id}/upload-image", files=files)
+        assert res.status_code == 200
+
+        # Remove it
+        res = http_client.patch(f"http://testserver/api/recipes/{r.recipe_id}/remove-image")
+        assert res.status_code == 200
+
+        # Fetching should 404 now
+        res = http_client.get(f"http://testserver/api/recipes/{r.recipe_id}/image.png")
+        assert res.status_code == 404

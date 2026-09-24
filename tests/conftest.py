@@ -64,6 +64,22 @@ def _ensure_embedding_column(session):
             pass  # column might already exist — skip.
 
 
+def _ensure_image_data_column(session):
+    """Ensure recipes table has image_data column for image storage tests."""
+    try:
+        has_col = session.execute(text('''
+            SELECT count(*) FROM information_schema.columns
+            WHERE table_name = 'recipes' AND column_name = 'image_data'
+        ''')).scalar()
+        if has_col == 0:
+            session.execute(text('''
+                ALTER TABLE recipes ADD COLUMN image_data BYTEA
+            '''))
+            session.flush()
+    except Exception:
+        pass  # column might already exist — skip.
+
+
 def _truncate_tables(session):
     """Delete all rows in FK order so each test starts from a clean slate."""
     tables = [
@@ -105,6 +121,7 @@ def db_session(engine):
     session = SessionLocal()
     try:
         _ensure_embedding_column(session)
+        _ensure_image_data_column(session)
         _truncate_tables(session)
         yield session
     finally:
