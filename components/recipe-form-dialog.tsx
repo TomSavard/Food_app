@@ -71,6 +71,8 @@ export function RecipeFormDialog({
   const [tagInput, setTagInput] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -103,6 +105,8 @@ export function RecipeFormDialog({
     }
     setTagInput("");
     setError(null);
+    setImageFile(null);
+    setImagePreview(editing?.image_url || null);
   }, [open, editing]);
 
   function addTag() {
@@ -144,7 +148,15 @@ export function RecipeFormDialog({
       const saved = editing
         ? await api.updateRecipe(editing.recipe_id, payload)
         : await api.createRecipe(payload);
-      onSaved(saved);
+
+      // Upload image if selected
+      if (imageFile) {
+        await api.uploadRecipeImage(saved.recipe_id, imageFile);
+        const updated = await api.getRecipe(saved.recipe_id);
+        onSaved(updated);
+      } else {
+        onSaved(saved);
+      }
       onOpenChange(false);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erreur de sauvegarde");
@@ -375,6 +387,45 @@ export function RecipeFormDialog({
           </section>
 
           {error && <p className="text-sm text-destructive">{error}</p>}
+
+          {/* Image upload */}
+          <div className="space-y-2">
+            <Label>Photo de la recette</Label>
+            <div className="flex items-center gap-4">
+              <label className="flex h-20 w-20 cursor-pointer items-center justify-center rounded-lg border border-dashed border-border bg-secondary/30">
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setImageFile(file);
+                      setImagePreview(URL.createObjectURL(file));
+                    }
+                  }}
+                />
+                {imagePreview ? (
+                  <img src={imagePreview} alt="Aperçu" className="h-full w-full rounded-lg object-cover" />
+                ) : (
+                  <span className="text-2xl text-muted-foreground">+</span>
+                )}
+              </label>
+              {imagePreview && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setImageFile(null);
+                    setImagePreview(null);
+                  }}
+                >
+                  Retirer
+                </Button>
+              )}
+            </div>
+          </div>
+
         </div>
 
         <DialogFooter>

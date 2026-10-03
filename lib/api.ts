@@ -70,6 +70,19 @@ export const toggleFavorite = (id: string, is_favorite: boolean) =>
     method: "PATCH",
   });
 
+export const uploadRecipeImage = (id: string, file: File) =>
+  http<{ image_url: string }>(`/recipes/${id}/upload-image`, {
+    method: "POST",
+    headers: { "Content-Type": "multipart/form-data" },
+    body: file,
+  });
+
+export const removeRecipeImage = (id: string) =>
+  http<Recipe>(`/recipes/${id}/remove-image`, {
+    method: "PATCH",
+    body: JSON.stringify({}),
+  });
+
 export const getRecipeNutrition = (id: string) =>
   http<RecipeNutrition>(`/recipes/${id}/nutrition`);
 
