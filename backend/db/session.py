@@ -6,25 +6,37 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 
-DATABASE_URL = os.getenv("DATABASE_URL")
+def _get_database_url():
+    """Lazily retrieve DATABASE_URL so the backend can be imported without it."""
+    return os.getenv("DATABASE_URL")
 
-if not DATABASE_URL:
-    raise RuntimeError("DATABASE_URL environment variable is not set")
 
-# Ensure SSL mode is set for Neon
-if "sslmode" not in DATABASE_URL:
-    separator = "&" if "?" in DATABASE_URL else "?"
-    DATABASE_URL = f"{DATABASE_URL}{separator}sslmode=require"
+def _build_url(raw):
+    if not raw:
+        return None
+    if "sslmode" not in raw:
+        separator = "&" if "?" in raw else "?"
+        return f"{raw}{separator}sslmode=require"
+    return raw
 
+
+_DATABASE_URL = None
 _engine = None
 _SessionLocal = None
 
+
 def get_engine():
-    """Get or create the database engine"""
-    global _engine
+    """Get or create the database engine. Raises if DATABASE_URL is not configured."""
+    global _engine, _DATABASE_URL
     if _engine is None:
+        url = _DATABASE_URL or _get_database_url()
+        if not url:
+            raise RuntimeError(
+                "DATABASE_URL environment variable is not set"
+            )
+        _DATABASE_URL = _build_url(url)
         _engine = create_engine(
-            DATABASE_URL,
+            _DATABASE_URL,
             pool_pre_ping=True,
             pool_size=1,
             max_overflow=0,
