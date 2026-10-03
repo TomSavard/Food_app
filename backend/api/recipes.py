@@ -277,7 +277,7 @@ def _valid_extension(filename: str) -> bool:
 
 
 @router.post("/{recipe_id}/upload-image")
-def upload_recipe_image(
+async def upload_recipe_image(
     recipe_id: UUID,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
@@ -297,7 +297,7 @@ def upload_recipe_image(
         )
 
     # Store the binary data directly in the database
-    image_data = file.read()
+    image_data = await file.read()
     image_ext = os.path.splitext(file.filename)[1].lower()
     image_url = f"/api/recipes/{recipe_id}/image{image_ext}"
 

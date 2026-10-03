@@ -102,44 +102,39 @@ def test_create_recipe(client):
 def test_upload_recipe_image(client, db_session):
     """Test uploading an image to a recipe."""
     from io import BytesIO
-    import httpx
 
     r = _make_recipe(db_session, name="Pizza")
     db_session.flush()
 
     png_data = b"\x89PNG\r\n\x1a\n" + b"\x00" * 20  # minimal fake PNG
 
-    # Use httpx.Client directly to bypass TestClient async issues
-    with httpx.Client() as http_client:
-        files = {"file": ("test.png", BytesIO(png_data), "image/png")}
-        res = http_client.post(f"http://testserver/api/recipes/{r.recipe_id}/upload-image", files=files)
-        assert res.status_code == 200
-        assert res.json()["image_url"] == f"/api/recipes/{r.recipe_id}/image.png"
+    files = {"file": ("test.png", BytesIO(png_data), "image/png")}
+    res = client.post(f"/api/recipes/{r.recipe_id}/upload-image", files=files)
+    assert res.status_code == 200
+    assert res.json()["image_url"] == f"/api/recipes/{r.recipe_id}/image.png"
 
-        # Fetch it back
-        res = http_client.get(f"http://testserver/api/recipes/{r.recipe_id}/image.png")
-        assert res.status_code == 200
-        assert res.content[:4] == png_data[:4]
+    # Fetch it back
+    res = client.get(f"/api/recipes/{r.recipe_id}/image.png")
+    assert res.status_code == 200
+    assert res.content[:4] == png_data[:4]
 
 
 def test_remove_recipe_image(client, db_session):
     """Test removing an image from a recipe."""
     from io import BytesIO
-    import httpx
 
     r = _make_recipe(db_session, name="Sushi")
     db_session.flush()
 
     png_data = b"\x89PNG\r\n\x1a\n" + b"\x00" * 20
-    with httpx.Client() as http_client:
-        files = {"file": ("test.png", BytesIO(png_data), "image/png")}
-        res = http_client.post(f"http://testserver/api/recipes/{r.recipe_id}/upload-image", files=files)
-        assert res.status_code == 200
+    files = {"file": ("test.png", BytesIO(png_data), "image/png")}
+    res = client.post(f"/api/recipes/{r.recipe_id}/upload-image", files=files)
+    assert res.status_code == 200
 
-        # Remove it
-        res = http_client.patch(f"http://testserver/api/recipes/{r.recipe_id}/remove-image")
-        assert res.status_code == 200
+    # Remove it
+    res = client.patch(f"/api/recipes/{r.recipe_id}/remove-image")
+    assert res.status_code == 200
 
-        # Fetching should 404 now
-        res = http_client.get(f"http://testserver/api/recipes/{r.recipe_id}/image.png")
-        assert res.status_code == 404
+    # Fetching should 404 now
+    res = client.get(f"/api/recipes/{r.recipe_id}/image.png")
+    assert res.status_code == 404
