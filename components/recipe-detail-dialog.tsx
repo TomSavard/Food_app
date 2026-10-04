@@ -84,7 +84,7 @@ export function RecipeDetailDialog({
       // Step 2: PUT directly to S3
       await fetch(upload_url, {
         method: "PUT",
-        headers: { "Content-Type": file.type },
+        headers: {},
         body: file,
       });
 

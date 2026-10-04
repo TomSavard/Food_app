@@ -92,7 +92,7 @@ class NeonStorageService(StorageService):
             Params={
                 "Bucket": self.bucket,
                 "Key": object_key,
-                "ContentType": content_type,
+                
             },
             ExpiresIn=3600,  # 1 hour
         )
