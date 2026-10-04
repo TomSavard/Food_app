@@ -20,7 +20,7 @@ const BASE = "/api";
 
 async function http<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
-    headers: { "Content-Type": "application/json", ...(init?.headers || {}) },
+    headers: init?.body instanceof FormData ? {...(init?.headers || {})} : { "Content-Type": "application/json", ...(init?.headers || {}) },
     ...init,
   });
   if (!res.ok) {
