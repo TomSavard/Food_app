@@ -15,11 +15,8 @@ import * as api from "@/lib/api";
 import type { Recipe, RecipeNutrition } from "@/lib/types";
 
 // Construct S3 public URL from env vars.
-// NEXT_PUBLIC_NEON_S3_PUBLIC_BASE = e.g. "https://abc123.s3.eu-west-3.neon.tech"
-const S3_PUBLIC_BASE = process.env.NEXT_PUBLIC_NEON_S3_PUBLIC_BASE || "";
-
-function imageToPublicUrl(objectKey: string): string {
-  return S3_PUBLIC_BASE ? `${S3_PUBLIC_BASE}/${objectKey}` : "";
+function imageToPublicUrl(recipeId: string, objectKey: string): string {
+  return `/api/recipes/${recipeId}/images/${objectKey}`;
 }
 
 export function RecipeDetailDialog({
@@ -149,7 +146,7 @@ export function RecipeDetailDialog({
                 />
                 {primaryImage ? (
                   <img
-                    src={imageToPublicUrl(primaryImage.object_key)}
+                    src={recipe ? imageToPublicUrl(recipe.recipe_id, primaryImage.object_key) : ""}
                     alt={recipe.name}
                     className="h-full w-full object-cover"
                   />

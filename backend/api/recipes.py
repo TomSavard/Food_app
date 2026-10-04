@@ -1,5 +1,7 @@
 import dataclasses
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
+from fastapi.responses import StreamingResponse
+import io
 from sqlalchemy.orm import Session, selectinload
 from sqlalchemy import desc, String, func
 from typing import Optional
@@ -395,6 +397,32 @@ def list_recipe_images(
         }
         for img in images
     ]
+
+
+@router.get("/{recipe_id}/images/{object_key:path}")
+async def get_recipe_image(
+    recipe_id: UUID,
+    object_key: str,
+    db: Session = Depends(get_db),
+):
+    """Proxy an image from S3 to the frontend."""
+    recipe = db.query(Recipe).filter(Recipe.recipe_id == recipe_id).first()
+    if not recipe:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Recipe with id {recipe_id} not found",
+        )
+
+    # Verify the object_key belongs to this recipe
+    if f"recipes/{recipe_id}/" not in object_key:
+        raise HTTPException(status_code=403, detail="Unauthorized")
+
+    storage = get_storage_service()
+    obj = storage._client.get_object(Bucket=storage.bucket, Key=object_key)
+    return StreamingResponse(
+        io.BytesIO(obj["Body"].read()),
+        media_type=obj.get("ContentType", "application/octet-stream"),
+    )
 
 
 @router.delete("/{recipe_id}/images/{image_id}", status_code=status.HTTP_204_NO_CONTENT)
