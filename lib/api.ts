@@ -70,11 +70,10 @@ export const toggleFavorite = (id: string, is_favorite: boolean) =>
     method: "PATCH",
   });
 
-export const uploadRecipeImage = (id: string, file: File) =>
-  http<{ image_url: string }>(`/recipes/${id}/upload-image`, {
+export const uploadRecipeImage = (id: string, formData: FormData) =>
+  http<{ image_id: string; object_key: string }>(`/recipes/${id}/images/upload`, {
     method: "POST",
-    headers: { "Content-Type": "multipart/form-data" },
-    body: file,
+    body: formData,
   });
 
 export const removeRecipeImage = (id: string) =>
@@ -121,12 +120,6 @@ export const completeImageUpload = (
   http<{ image_id: string; object_key: string }>(
     `/recipes/${recipeId}/images/complete?object_key=${encodeURIComponent(object_key)}`,
     { method: "PATCH" }
-  );
-
-export const uploadRecipeImage = (recipeId: string, formData: FormData) =>
-  http<{ image_id: string; object_key: string }>(
-    `/recipes/${recipeId}/images/upload`,
-    { method: "POST", body: formData }
   );
 
 export const listRecipeImages = (recipeId: string) =>
