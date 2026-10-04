@@ -300,7 +300,7 @@ async def get_presigned_upload_url(
     object_key = f"recipes/{recipe_id}/{uuid.uuid4().hex}{ext}"
     result = storage.generate_presigned_put_url(object_key, body.content_type, body.size_bytes)
 
-    return result.model_dump()
+    return dataclasses.asdict(result)
 
 
 @router.patch("/{recipe_id}/images/complete", response_model=dict)
