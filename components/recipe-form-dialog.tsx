@@ -151,7 +151,9 @@ export function RecipeFormDialog({
 
       // Upload image if selected
       if (imageFile) {
-        await api.uploadRecipeImage(saved.recipe_id, imageFile);
+        const formData = new FormData();
+        formData.append("file", imageFile);
+        await api.uploadRecipeImage(saved.recipe_id, formData);
         const updated = await api.getRecipe(saved.recipe_id);
         onSaved(updated);
       } else {
