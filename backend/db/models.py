@@ -58,7 +58,7 @@ class Recipe(Base):
         images = getattr(self, "images", [])
         if images:
             sorted_images = sorted(images, key=lambda i: i.sort_order)
-            return sorted_images[0].object_key
+            return f"/api/recipes/{self.recipe_id}/images/{sorted_images[0].object_key}"
         return self.image_url
 
 
