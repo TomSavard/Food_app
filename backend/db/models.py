@@ -1,9 +1,8 @@
-from sqlalchemy import Column, String, Integer, Float, Text, ForeignKey, DateTime, Boolean, LargeBinary, BigInteger
+from sqlalchemy import Column, String, Integer, Float, Text, ForeignKey, DateTime, Boolean, LargeBinary
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID, JSONB, ARRAY
 from sqlalchemy.types import TypeDecorator
 from datetime import datetime, timezone
-from typing import Optional
 import json, uuid
 from backend.db.session import Base
 
@@ -40,6 +39,7 @@ class Recipe(Base):
     cuisine_type = Column(String(100), index=True)
     tags = Column(ARRAY(String), default=[])
     image_url = Column(String(500))  # URL or path to image (replacing Google Drive file ID)
+    image_data = Column(LargeBinary, nullable=True)  # BLOB for persistent image storage
     is_favorite = Column(Boolean, default=False, index=True)  # Star/favorite flag
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
@@ -47,38 +47,9 @@ class Recipe(Base):
     # Relationships
     ingredients = relationship("Ingredient", back_populates="recipe", cascade="all, delete-orphan")
     instructions = relationship("Instruction", back_populates="recipe", cascade="all, delete-orphan", order_by="Instruction.step_number")
-    images = relationship("RecipeImage", back_populates="recipe", cascade="all, delete-orphan", order_by="RecipeImage.sort_order")
     
     def __repr__(self):
         return f"<Recipe(name='{self.name}', recipe_id='{self.recipe_id}')>"
-
-    # Backwards-compatible property: returns the first (primary) image URL.
-    @property
-    def primary_image_url(self) -> Optional[str]:
-        images = getattr(self, "images", [])
-        if images:
-            sorted_images = sorted(images, key=lambda i: i.sort_order)
-            return f"/api/recipes/{self.recipe_id}/images/{sorted_images[0].object_key}"
-        return self.image_url
-
-
-class RecipeImage(Base):
-    """Image metadata for a recipe. The actual file is stored in Neon Object Storage (S3)."""
-    __tablename__ = "recipe_images"
-
-    image_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    recipe_id = Column(UUID(as_uuid=True), ForeignKey("recipes.recipe_id", ondelete="CASCADE"), nullable=False, index=True)
-    object_key = Column(Text, nullable=False)
-    original_filename = Column(Text)
-    content_type = Column(Text)
-    size_bytes = Column(BigInteger)
-    sort_order = Column(Integer, nullable=False, default=0)
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
-
-    recipe = relationship("Recipe")
-
-    def __repr__(self):
-        return f"<RecipeImage(key='{self.object_key}')>"
 
 
 class Ingredient(Base):

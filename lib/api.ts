@@ -20,7 +20,7 @@ const BASE = "/api";
 
 async function http<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
-    headers: init?.body instanceof FormData ? {...(init?.headers || {})} : { "Content-Type": "application/json", ...(init?.headers || {}) },
+    headers: { "Content-Type": "application/json", ...(init?.headers || {}) },
     ...init,
   });
   if (!res.ok) {
@@ -70,10 +70,11 @@ export const toggleFavorite = (id: string, is_favorite: boolean) =>
     method: "PATCH",
   });
 
-export const uploadRecipeImage = (id: string, formData: FormData) =>
-  http<{ image_id: string; object_key: string }>(`/recipes/${id}/images/upload`, {
+export const uploadRecipeImage = (id: string, file: File) =>
+  http<{ image_url: string }>(`/recipes/${id}/upload-image`, {
     method: "POST",
-    body: formData,
+    headers: { "Content-Type": "multipart/form-data" },
+    body: file,
   });
 
 export const removeRecipeImage = (id: string) =>
@@ -84,51 +85,6 @@ export const removeRecipeImage = (id: string) =>
 
 export const getRecipeNutrition = (id: string) =>
   http<RecipeNutrition>(`/recipes/${id}/nutrition`);
-
-// ---- Recipe Images (Neon Object Storage) ----
-export interface PresignedImageUpload {
-  upload_url: string;
-  object_key: string;
-  image_id?: string;
-}
-
-export interface RecipeImageInfo {
-  image_id: string;
-  object_key: string;
-  original_filename: string | null;
-  content_type: string | null;
-  size_bytes: number | null;
-  sort_order: number;
-  created_at: string;
-}
-
-export const getPresignedImageUrl = (
-  recipeId: string,
-  content_type: string,
-  size_bytes: number,
-  original_filename?: string
-) =>
-  http<PresignedImageUpload>(`/recipes/${recipeId}/images/presigned-url`, {
-    method: "POST",
-    body: JSON.stringify({ content_type, size_bytes, original_filename }),
-  });
-
-export const completeImageUpload = (
-  recipeId: string,
-  object_key: string
-) =>
-  http<{ image_id: string; object_key: string }>(
-    `/recipes/${recipeId}/images/complete?object_key=${encodeURIComponent(object_key)}`,
-    { method: "PATCH" }
-  );
-
-export const listRecipeImages = (recipeId: string) =>
-  http<RecipeImageInfo[]>(`/recipes/${recipeId}/images`);
-
-export const deleteRecipeImage = (recipeId: string, imageId: string) =>
-  http<void>(`/recipes/${recipeId}/images/${imageId}`, {
-    method: "DELETE",
-  });
 
 // ---- Ingredient DB ----
 export const searchIngredients = (q: string, limit = 10) =>

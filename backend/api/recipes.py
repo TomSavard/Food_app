@@ -1,16 +1,15 @@
-import dataclasses
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
 from fastapi.responses import StreamingResponse
-import io
 from sqlalchemy.orm import Session, selectinload
 from sqlalchemy import desc, String, func
 from typing import Optional
 from uuid import UUID
-from pydantic import BaseModel
-import os, uuid
+import os
+import uuid
+from io import BytesIO
 
 from backend.db.session import get_db
-from backend.db.models import Recipe, Ingredient, Instruction, RecipeImage
+from backend.db.models import Recipe, Ingredient, Instruction
 from backend.schemas import (
     RecipeCreate,
     RecipeUpdate,
@@ -18,7 +17,6 @@ from backend.schemas import (
     RecipeListResponse
 )
 from backend.utils.nutrition import compute_recipe_nutrition
-from backend.storage import get_storage_service, PresignedUrlResponse
 
 router = APIRouter(prefix="/api/recipes", tags=["recipes"])
 
@@ -269,50 +267,22 @@ def toggle_recipe_favorite(
     return recipe
 
 
-# ===========================================================================
-# Image management (Neon Object Storage)
-# ===========================================================================
+
+ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
 
 
-class ImageUploadRequest(BaseModel):
-    content_type: str = "image/jpeg"
-    size_bytes: int
-    original_filename: Optional[str] = None
+def _valid_extension(filename: str) -> bool:
+    ext = os.path.splitext(filename)[1].lower()
+    return ext in ALLOWED_EXTENSIONS
 
 
-@router.post("/{recipe_id}/images/presigned-url")
-async def get_presigned_upload_url(
-    recipe_id: UUID,
-    body: ImageUploadRequest,
-    db: Session = Depends(get_db),
-):
-    """Return a presigned URL for direct upload to Neon Object Storage."""
-    recipe = db.query(Recipe).filter(Recipe.recipe_id == recipe_id).first()
-    if not recipe:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Recipe with id {recipe_id} not found",
-        )
-
-    storage = get_storage_service()
-    valid, error = storage.validate_upload(body.content_type, body.size_bytes)
-    if not valid:
-        raise HTTPException(status_code=400, detail=error)
-
-    ext = os.path.splitext(body.original_filename or "")[1].lower() or ".jpg"
-    object_key = f"recipes/{recipe_id}/{uuid.uuid4().hex}{ext}"
-    result = storage.generate_presigned_put_url(object_key, body.content_type, body.size_bytes)
-
-    return dataclasses.asdict(result)
-
-
-@router.post("/{recipe_id}/images/upload", response_model=dict)
+@router.post("/{recipe_id}/upload-image")
 async def upload_recipe_image(
     recipe_id: UUID,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
 ):
-    """Upload an image file directly to S3 via the backend."""
+    """Upload an image for a recipe. Stores the binary data in the database."""
     recipe = db.query(Recipe).filter(Recipe.recipe_id == recipe_id).first()
     if not recipe:
         raise HTTPException(
@@ -320,135 +290,67 @@ async def upload_recipe_image(
             detail=f"Recipe with id {recipe_id} not found",
         )
 
-    storage = get_storage_service()
-    valid, error = storage.validate_upload(file.content_type, file.size)
-    if not valid:
-        raise HTTPException(status_code=400, detail=error)
+    if not _valid_extension(file.filename or ""):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Type de fichier non supporté. Extensions supportées: {', '.join(ALLOWED_EXTENSIONS)}",
+        )
 
-    ext = os.path.splitext(file.filename or "")[1].lower() or ".jpg"
-    object_key = f"recipes/{recipe_id}/{uuid.uuid4().hex}{ext}"
-    await storage.upload_file(file.file, object_key, file.content_type)
+    # Store the binary data directly in the database
+    image_data = await file.read()
+    image_ext = os.path.splitext(file.filename)[1].lower()
+    image_url = f"/api/recipes/{recipe_id}/image{image_ext}"
 
-    image = RecipeImage(
-        recipe_id=recipe_id,
-        object_key=object_key,
-        original_filename=file.filename,
-        content_type=file.content_type,
-        size_bytes=file.size,
-    )
-    db.add(image)
+    recipe.image_data = image_data
+    recipe.image_url = image_url
     db.commit()
-    db.refresh(image)
+    db.refresh(recipe)
 
-    return {"image_id": str(image.image_id), "object_key": image.object_key}
+    return {"image_url": image_url}
 
 
-@router.patch("/{recipe_id}/images/complete", response_model=dict)
-async def complete_image_upload(
-    recipe_id: UUID,
-    object_key: str,
-    db: Session = Depends(get_db),
-):
-    """Register an uploaded image in the database."""
+@router.get("/{recipe_id}/image{ext:path}")
+def get_recipe_image(recipe_id: UUID, ext: str, db: Session = Depends(get_db)):
+    """Serve the image for a recipe from the database."""
     recipe = db.query(Recipe).filter(Recipe.recipe_id == recipe_id).first()
-    if not recipe:
+    if not recipe or not recipe.image_data:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Recipe with id {recipe_id} not found",
+            detail=f"No image found for recipe with id {recipe_id}",
         )
 
-    existing = db.query(RecipeImage).filter(
-        RecipeImage.recipe_id == recipe_id,
-        RecipeImage.object_key == object_key,
-    ).first()
-    if existing:
-        raise HTTPException(status_code=409, detail="Image already registered")
+    content_type_map = {
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".png": "image/png",
+        ".webp": "image/webp",
+        ".gif": "image/gif",
+    }
 
-    image = RecipeImage(
-        recipe_id=recipe_id,
-        object_key=object_key,
-    )
-    db.add(image)
-    db.commit()
-    db.refresh(image)
-
-    return {"image_id": str(image.image_id), "object_key": image.object_key}
-
-
-@router.get("/{recipe_id}/images", response_model=list[dict])
-def list_recipe_images(
-    recipe_id: UUID,
-    db: Session = Depends(get_db),
-):
-    """List all images for a recipe."""
-    images = db.query(RecipeImage).filter(
-        RecipeImage.recipe_id == recipe_id
-    ).order_by(RecipeImage.sort_order).all()
-
-    return [
-        {
-            "image_id": str(img.image_id),
-            "object_key": img.object_key,
-            "original_filename": img.original_filename,
-            "content_type": img.content_type,
-            "size_bytes": img.size_bytes,
-            "sort_order": img.sort_order,
-            "created_at": img.created_at.isoformat(),
-        }
-        for img in images
-    ]
-
-
-@router.get("/{recipe_id}/images/{object_key:path}")
-async def get_recipe_image(
-    recipe_id: UUID,
-    object_key: str,
-    db: Session = Depends(get_db),
-):
-    """Proxy an image from S3 to the frontend."""
-    recipe = db.query(Recipe).filter(Recipe.recipe_id == recipe_id).first()
-    if not recipe:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Recipe with id {recipe_id} not found",
-        )
-
-    # Verify the object_key belongs to this recipe
-    if f"recipes/{recipe_id}/" not in object_key:
-        raise HTTPException(status_code=403, detail="Unauthorized")
-
-    storage = get_storage_service()
-    obj = storage._client.get_object(Bucket=storage.bucket, Key=object_key)
+    content_type = content_type_map.get(ext, "image/jpeg")
     return StreamingResponse(
-        io.BytesIO(obj["Body"].read()),
-        media_type=obj.get("ContentType", "application/octet-stream"),
+        BytesIO(recipe.image_data),
+        media_type=content_type,
     )
 
 
-@router.delete("/{recipe_id}/images/{image_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_recipe_image(
+@router.patch("/{recipe_id}/remove-image")
+def remove_recipe_image(
     recipe_id: UUID,
-    image_id: UUID,
     db: Session = Depends(get_db),
 ):
-    """Delete an image from both Neon Object Storage and the database."""
-    image = db.query(RecipeImage).filter(
-        RecipeImage.image_id == image_id,
-        RecipeImage.recipe_id == recipe_id,
-    ).first()
-    if not image:
+    """Remove the image for a recipe."""
+    recipe = db.query(Recipe).filter(Recipe.recipe_id == recipe_id).first()
+    if not recipe:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Image not found",
+            detail=f"Recipe with id {recipe_id} not found",
         )
 
-    storage = get_storage_service()
-    result = storage.delete_object(image.object_key)
-    if not result.success:
-        raise HTTPException(status_code=500, detail=result.error)
-
-    db.delete(image)
+    recipe.image_data = None
+    recipe.image_url = None
     db.commit()
+    db.refresh(recipe)
 
-    return None
+    return recipe
 
