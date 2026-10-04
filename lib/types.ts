@@ -9,6 +9,16 @@ export interface Ingredient {
   ingredient_db_id?: string | null;
 }
 
+export interface RecipeImage {
+  image_id: string;
+  object_key: string;
+  original_filename: string | null;
+  content_type: string | null;
+  size_bytes: number | null;
+  sort_order: number;
+  created_at: string;
+}
+
 export interface Instruction {
   instruction_id?: string;
   step_number?: number;

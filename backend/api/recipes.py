@@ -3,9 +3,11 @@ from sqlalchemy.orm import Session, selectinload
 from sqlalchemy import desc, String, func
 from typing import Optional
 from uuid import UUID
+from pydantic import BaseModel
+import os, uuid
 
 from backend.db.session import get_db
-from backend.db.models import Recipe, Ingredient, Instruction
+from backend.db.models import Recipe, Ingredient, Instruction, RecipeImage
 from backend.schemas import (
     RecipeCreate,
     RecipeUpdate,
@@ -13,6 +15,7 @@ from backend.schemas import (
     RecipeListResponse
 )
 from backend.utils.nutrition import compute_recipe_nutrition
+from backend.storage import get_storage_service, PresignedUrlResponse
 
 router = APIRouter(prefix="/api/recipes", tags=["recipes"])
 
@@ -261,4 +264,125 @@ def toggle_recipe_favorite(
     db.refresh(recipe)
     
     return recipe
+
+
+# ===========================================================================
+# Image management (Neon Object Storage)
+# ===========================================================================
+
+
+class ImageUploadRequest(BaseModel):
+    content_type: str = "image/jpeg"
+    size_bytes: int
+    original_filename: Optional[str] = None
+
+
+@router.post("/{recipe_id}/images/presigned-url")
+async def get_presigned_upload_url(
+    recipe_id: UUID,
+    body: ImageUploadRequest,
+    db: Session = Depends(get_db),
+):
+    """Return a presigned URL for direct upload to Neon Object Storage."""
+    recipe = db.query(Recipe).filter(Recipe.recipe_id == recipe_id).first()
+    if not recipe:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Recipe with id {recipe_id} not found",
+        )
+
+    storage = get_storage_service()
+    valid, error = storage.validate_upload(body.content_type, body.size_bytes)
+    if not valid:
+        raise HTTPException(status_code=400, detail=error)
+
+    ext = os.path.splitext(body.original_filename or "")[1].lower() or ".jpg"
+    object_key = f"recipes/{recipe_id}/{uuid.uuid4().hex}{ext}"
+    result = storage.generate_presigned_put_url(object_key, body.content_type, body.size_bytes)
+
+    return result.model_dump()
+
+
+@router.patch("/{recipe_id}/images/complete", response_model=dict)
+async def complete_image_upload(
+    recipe_id: UUID,
+    object_key: str,
+    db: Session = Depends(get_db),
+):
+    """Register an uploaded image in the database."""
+    recipe = db.query(Recipe).filter(Recipe.recipe_id == recipe_id).first()
+    if not recipe:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Recipe with id {recipe_id} not found",
+        )
+
+    existing = db.query(RecipeImage).filter(
+        RecipeImage.recipe_id == recipe_id,
+        RecipeImage.object_key == object_key,
+    ).first()
+    if existing:
+        raise HTTPException(status_code=409, detail="Image already registered")
+
+    image = RecipeImage(
+        recipe_id=recipe_id,
+        object_key=object_key,
+    )
+    db.add(image)
+    db.commit()
+    db.refresh(image)
+
+    return {"image_id": str(image.image_id), "object_key": image.object_key}
+
+
+@router.get("/{recipe_id}/images", response_model=list[dict])
+def list_recipe_images(
+    recipe_id: UUID,
+    db: Session = Depends(get_db),
+):
+    """List all images for a recipe."""
+    images = db.query(RecipeImage).filter(
+        RecipeImage.recipe_id == recipe_id
+    ).order_by(RecipeImage.sort_order).all()
+
+    return [
+        {
+            "image_id": str(img.image_id),
+            "object_key": img.object_key,
+            "original_filename": img.original_filename,
+            "content_type": img.content_type,
+            "size_bytes": img.size_bytes,
+            "sort_order": img.sort_order,
+            "created_at": img.created_at.isoformat(),
+        }
+        for img in images
+    ]
+
+
+@router.delete("/{recipe_id}/images/{image_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_recipe_image(
+    recipe_id: UUID,
+    image_id: UUID,
+    db: Session = Depends(get_db),
+):
+    """Delete an image from both Neon Object Storage and the database."""
+    image = db.query(RecipeImage).filter(
+        RecipeImage.image_id == image_id,
+        RecipeImage.recipe_id == recipe_id,
+    ).first()
+    if not image:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Image not found",
+        )
+
+    storage = get_storage_service()
+    result = storage.delete_object(image.object_key)
+    if not result.success:
+        raise HTTPException(status_code=500, detail=result.error)
+
+    db.delete(image)
+    db.commit()
+
+    return None
 

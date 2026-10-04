@@ -14,6 +14,14 @@ import {
 import * as api from "@/lib/api";
 import type { Recipe, RecipeNutrition } from "@/lib/types";
 
+// Construct S3 public URL from env vars.
+// NEXT_PUBLIC_NEON_S3_PUBLIC_BASE = e.g. "https://abc123.s3.eu-west-3.neon.tech"
+const S3_PUBLIC_BASE = process.env.NEXT_PUBLIC_NEON_S3_PUBLIC_BASE || "";
+
+function imageToPublicUrl(objectKey: string): string {
+  return S3_PUBLIC_BASE ? `${S3_PUBLIC_BASE}/${objectKey}` : "";
+}
+
 export function RecipeDetailDialog({
   recipeId,
   onClose,
@@ -30,12 +38,14 @@ export function RecipeDetailDialog({
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [images, setImages] = useState<api.RecipeImageInfo[]>([]);
 
   useEffect(() => {
     if (!recipeId) {
       setRecipe(null);
       setNutrition(null);
       setUploadError(null);
+      setImages([]);
       return;
     }
     let cancelled = false;
@@ -43,11 +53,13 @@ export function RecipeDetailDialog({
     Promise.all([
       api.getRecipe(recipeId),
       api.getRecipeNutrition(recipeId).catch(() => null),
+      api.listRecipeImages(recipeId).catch(() => []),
     ])
-      .then(([r, n]) => {
+      .then(([r, n, imgs]) => {
         if (cancelled) return;
         setRecipe(r);
         setNutrition(n);
+        setImages(Array.isArray(imgs) ? imgs : []);
       })
       .finally(() => !cancelled && setLoading(false));
     return () => {
@@ -61,9 +73,29 @@ export function RecipeDetailDialog({
     setUploading(true);
     setUploadError(null);
     try {
-      await api.uploadRecipeImage(recipe.recipe_id, file);
+      // Step 1: get presigned URL from backend
+      const { upload_url, object_key } = await api.getPresignedImageUrl(
+        recipe.recipe_id,
+        file.type,
+        file.size,
+        file.name
+      );
+
+      // Step 2: PUT directly to S3
+      await fetch(upload_url, {
+        method: "PUT",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+
+      // Step 3: notify backend the upload is complete
+      await api.completeImageUpload(recipe.recipe_id, object_key);
+
+      // Step 4: refresh UI
       const updated = await api.getRecipe(recipe.recipe_id);
       setRecipe(updated);
+      const updatedImages = await api.listRecipeImages(recipe.recipe_id);
+      setImages(updatedImages);
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : "Erreur");
     } finally {
@@ -71,15 +103,20 @@ export function RecipeDetailDialog({
     }
   }
 
-  async function handleRemoveImage() {
+  async function handleRemoveImage(imageId: string) {
     if (!recipe) return;
     try {
-      const updated = await api.removeRecipeImage(recipe.recipe_id);
+      await api.deleteRecipeImage(recipe.recipe_id, imageId);
+      const updated = await api.getRecipe(recipe.recipe_id);
       setRecipe(updated);
+      setImages((prev) => prev.filter((img) => img.image_id !== imageId));
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : "Erreur");
     }
   }
+
+  // First image or fallback to legacy image_url
+  const primaryImage = images.length > 0 ? images[0] : null;
 
   return (
     <Dialog open={!!recipeId} onOpenChange={(v) => !v && onClose()}>
@@ -120,12 +157,18 @@ export function RecipeDetailDialog({
               <label className="flex h-24 w-24 cursor-pointer items-center justify-center rounded-lg border border-dashed border-border bg-secondary/30 overflow-hidden">
                 <input
                   type="file"
-                  accept="image/*"
+                  accept="image/jpeg,image/png,image/webp"
                   className="hidden"
                   disabled={uploading}
                   onChange={handleImageUpload}
                 />
-                {recipe?.image_url ? (
+                {primaryImage ? (
+                  <img
+                    src={imageToPublicUrl(primaryImage.object_key)}
+                    alt={recipe.name}
+                    className="h-full w-full object-cover"
+                  />
+                ) : recipe?.image_url ? (
                   <img src={recipe.image_url} alt={recipe.name} className="h-full w-full object-cover" />
                 ) : (
                   <span className="text-2xl text-muted-foreground">
@@ -139,10 +182,10 @@ export function RecipeDetailDialog({
                   size="sm"
                   disabled={uploading}
                 >
-                  <Camera className="h-3 w-3" /> Changer
+                  <Camera className="h-3 w-3" /> {primaryImage ? "Changer" : "Ajouter"}
                 </Button>
-                {recipe?.image_url && (
-                  <Button variant="outline" size="sm" onClick={handleRemoveImage}>
+                {primaryImage && (
+                  <Button variant="outline" size="sm" onClick={() => handleRemoveImage(primaryImage.image_id)}>
                     <X className="h-3 w-3" /> Supprimer
                   </Button>
                 )}
