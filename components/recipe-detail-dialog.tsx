@@ -73,25 +73,10 @@ export function RecipeDetailDialog({
     setUploading(true);
     setUploadError(null);
     try {
-      // Step 1: get presigned URL from backend
-      const { upload_url, object_key } = await api.getPresignedImageUrl(
-        recipe.recipe_id,
-        file.type,
-        file.size,
-        file.name
-      );
+      const formData = new FormData();
+      formData.append("file", file);
 
-      // Step 2: PUT directly to S3
-      await fetch(upload_url, {
-        method: "PUT",
-        headers: {},
-        body: file,
-      });
-
-      // Step 3: notify backend the upload is complete
-      await api.completeImageUpload(recipe.recipe_id, object_key);
-
-      // Step 4: refresh UI
+      const response = await api.uploadRecipeImage(recipe.recipe_id, formData);
       const updated = await api.getRecipe(recipe.recipe_id);
       setRecipe(updated);
       const updatedImages = await api.listRecipeImages(recipe.recipe_id);

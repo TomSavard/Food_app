@@ -123,6 +123,12 @@ export const completeImageUpload = (
     { method: "PATCH" }
   );
 
+export const uploadRecipeImage = (recipeId: string, formData: FormData) =>
+  http<{ image_id: string; object_key: string }>(
+    `/recipes/${recipeId}/images/upload`,
+    { method: "POST", body: formData }
+  );
+
 export const listRecipeImages = (recipeId: string) =>
   http<RecipeImageInfo[]>(`/recipes/${recipeId}/images`);
 

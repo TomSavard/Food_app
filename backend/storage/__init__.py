@@ -101,6 +101,14 @@ class NeonStorageService(StorageService):
             object_key=object_key,
         )
 
+    async def upload_file(self, file, object_key: str, content_type: str) -> None:
+        self._client.put_object(
+            Bucket=self.bucket,
+            Key=object_key,
+            Body=file,
+            ContentType=content_type,
+        )
+
     def delete_object(self, object_key: str) -> DeleteResult:
         try:
             self._client.delete_object(Bucket=self.bucket, Key=object_key)

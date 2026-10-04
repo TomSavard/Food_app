@@ -1,5 +1,5 @@
 import dataclasses
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session, selectinload
 from sqlalchemy import desc, String, func
 from typing import Optional
@@ -302,6 +302,43 @@ async def get_presigned_upload_url(
     result = storage.generate_presigned_put_url(object_key, body.content_type, body.size_bytes)
 
     return dataclasses.asdict(result)
+
+
+@router.post("/{recipe_id}/images/upload", response_model=dict)
+async def upload_recipe_image(
+    recipe_id: UUID,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+):
+    """Upload an image file directly to S3 via the backend."""
+    recipe = db.query(Recipe).filter(Recipe.recipe_id == recipe_id).first()
+    if not recipe:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Recipe with id {recipe_id} not found",
+        )
+
+    storage = get_storage_service()
+    valid, error = storage.validate_upload(file.content_type, file.size)
+    if not valid:
+        raise HTTPException(status_code=400, detail=error)
+
+    ext = os.path.splitext(file.filename or "")[1].lower() or ".jpg"
+    object_key = f"recipes/{recipe_id}/{uuid.uuid4().hex}{ext}"
+    await storage.upload_file(file.file, object_key, file.content_type)
+
+    image = RecipeImage(
+        recipe_id=recipe_id,
+        object_key=object_key,
+        original_filename=file.filename,
+        content_type=file.content_type,
+        size_bytes=file.size,
+    )
+    db.add(image)
+    db.commit()
+    db.refresh(image)
+
+    return {"image_id": str(image.image_id), "object_key": image.object_key}
 
 
 @router.patch("/{recipe_id}/images/complete", response_model=dict)
