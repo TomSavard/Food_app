@@ -198,7 +198,8 @@ def update_recipe(
                 name=ing_data.name,
                 quantity=ing_data.quantity,
                 unit=ing_data.unit,
-                notes=ing_data.notes
+                notes=ing_data.notes,
+                ingredient_db_id=ing_data.ingredient_db_id,
             )
             db.add(ingredient)
     
