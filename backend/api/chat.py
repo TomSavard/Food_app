@@ -823,8 +823,10 @@ def _build_nutrition_tools(db: Session):
             sex: 'male' or 'female'. Selects the ANSES target column.
         """
         from backend.api.meal_plan import get_weekly_nutrition as endpoint
+        num_men = 1 if sex == "male" else 0
+        num_women = 1 if sex == "female" else 0
         try:
-            res = endpoint(week_start=week_start, sex=sex, db=db)
+            res = endpoint(week_start=week_start, num_men=num_men, num_women=num_women, db=db)
         except HTTPException as e:
             return {"error": e.detail}
         return res.model_dump() if hasattr(res, "model_dump") else dict(res)
