@@ -42,26 +42,31 @@ export function RecipeDetailDialog({
       setRecipe(null);
       setNutrition(null);
       setUploadError(null);
-      setImages([]);
       return;
     }
     let cancelled = false;
     setLoading(true);
-    Promise.all([
-      api.getRecipe(recipeId),
-      api.getRecipeNutrition(recipeId).catch(() => null),
-      api.listRecipeImages(recipeId).catch(() => []),
-    ])
-      .then(([r, n, imgs]) => {
+    api.getRecipe(recipeId)
+      .then((r) => {
         if (cancelled) return;
         setRecipe(r);
-        setNutrition(n);
-        setImages(Array.isArray(imgs) ? imgs : []);
+        // Nutrition is now embedded in the recipe response.
+        if (r && "nutrition" in r) {
+          setNutrition((r as any).nutrition as RecipeNutrition);
+        }
       })
       .finally(() => !cancelled && setLoading(false));
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
+  }, [recipeId]);
+
+  // Fetch images after recipe loads (deferred, non-critical).
+  useEffect(() => {
+    if (!recipeId) { setImages([]); return; }
+    let cancelled = false;
+    api.listRecipeImages(recipeId)
+      .then((imgs) => { if (!cancelled) setImages(Array.isArray(imgs) ? imgs : []); })
+      .catch(() => {});
+    return () => { cancelled = true; };
   }, [recipeId]);
 
   async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -206,11 +211,11 @@ export function RecipeDetailDialog({
               </section>
             )}
 
-            {recipe.ingredients?.length > 0 && (
+            {recipe.ingredients && recipe.ingredients.length > 0 && (
               <section className="space-y-1">
                 <h4 className="font-semibold">Ingrédients</h4>
                 <ul className="list-disc pl-5 text-sm space-y-0.5">
-                  {recipe.ingredients.map((i, idx) => (
+                  {recipe.ingredients!.map((i, idx) => (
                     <li key={i.ingredient_id || idx}>
                       {i.quantity ? `${i.quantity} ${i.unit} ` : ""}
                       {i.name}
@@ -221,11 +226,11 @@ export function RecipeDetailDialog({
               </section>
             )}
 
-            {recipe.instructions?.length > 0 && (
+            {recipe.instructions && recipe.instructions.length > 0 && (
               <section className="space-y-1">
                 <h4 className="font-semibold">Instructions</h4>
                 <ol className="list-decimal pl-5 text-sm space-y-1">
-                  {recipe.instructions.map((s, idx) => (
+                  {recipe.instructions!.map((s, idx) => (
                     <li
                       key={s.instruction_id || idx}
                       className="whitespace-pre-wrap"

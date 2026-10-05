@@ -26,8 +26,8 @@ def get_engine():
         _engine = create_engine(
             DATABASE_URL,
             pool_pre_ping=True,
-            pool_size=1,
-            max_overflow=0,
+            pool_size=5,
+            max_overflow=10,
             pool_recycle=300,
             echo=False,
         )

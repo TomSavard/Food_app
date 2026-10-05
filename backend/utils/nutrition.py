@@ -150,11 +150,20 @@ def _per_100g(row: IngredientDatabase, key: str) -> Optional[float]:
 def compute_recipe_nutrition(
     ingredients: List[Ingredient], db: Session
 ) -> Dict[str, float]:
+    db_ids = [ing.ingredient_db_id for ing in ingredients if ing.ingredient_db_id is not None]
+    if not db_ids:
+        return {k: 0.0 for k in NUTRITION_KEYS}
+
+    rows = db.query(IngredientDatabase).filter(
+        IngredientDatabase.id.in_(db_ids)
+    ).all()
+    row_map = {row.id: row for row in rows}
+
     totals = {k: 0.0 for k in NUTRITION_KEYS}
     for ing in ingredients:
         if ing.ingredient_db_id is None:
             continue
-        row = db.get(IngredientDatabase, ing.ingredient_db_id)
+        row = row_map.get(ing.ingredient_db_id)
         if row is None:
             continue
         grams = convert_to_grams(ing.quantity, ing.unit, row.density_g_per_ml)

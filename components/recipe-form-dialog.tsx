@@ -86,8 +86,8 @@ export function RecipeFormDialog({
         cuisine_type: editing.cuisine_type || "",
         tags: [...(editing.tags || [])],
         ingredients:
-          editing.ingredients.length > 0
-            ? editing.ingredients.map((i) => ({
+          (editing.ingredients?.length ?? 0) > 0
+            ? editing.ingredients!.map((i) => ({
                 name: i.name,
                 quantity: i.quantity || 0,
                 unit: i.unit || "",
@@ -96,8 +96,8 @@ export function RecipeFormDialog({
               }))
             : empty.ingredients,
         instructions:
-          editing.instructions.length > 0
-            ? editing.instructions.map((s) => ({ instruction_text: s.instruction_text }))
+          (editing.instructions?.length ?? 0) > 0
+            ? editing.instructions!.map((s) => ({ instruction_text: s.instruction_text }))
             : empty.instructions,
       });
     } else {

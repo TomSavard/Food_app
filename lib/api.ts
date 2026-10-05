@@ -9,6 +9,7 @@ import type {
   Recipe,
   RecipeCreate,
   RecipeListResponse,
+  RecipeListSummaryResponse,
   RecipeNutrition,
   RecipeUpdate,
   ShoppingItem,
@@ -17,6 +18,11 @@ import type {
 } from "./types";
 
 const BASE = "/api";
+
+// Lightweight recipe cache: avoids re-fetching the same recipe when
+// opening/closing the dialog repeatedly (single-user app, no invalidation needed).
+const recipeCache = new Map<string, { data: Recipe; ts: number }>();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 async function http<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
@@ -52,9 +58,18 @@ function qs(params: Record<string, unknown> | object): string {
 
 // ---- Recipes ----
 export const listRecipes = (filters: RecipeFilters = {}) =>
-  http<RecipeListResponse>(`/recipes${qs(filters)}`);
+  http<RecipeListSummaryResponse>(`/recipes/summary${qs(filters)}`);
 
-export const getRecipe = (id: string) => http<Recipe>(`/recipes/${id}`);
+export const getRecipe = (id: string) => {
+  const cached = recipeCache.get(id);
+  if (cached && Date.now() - cached.ts < CACHE_TTL) {
+    return Promise.resolve(cached.data);
+  }
+  return http<Recipe>(`/recipes/${id}`).then((data) => {
+    recipeCache.set(id, { data, ts: Date.now() });
+    return data;
+  });
+};
 
 export const createRecipe = (data: RecipeCreate) =>
   http<Recipe>(`/recipes`, { method: "POST", body: JSON.stringify(data) });
