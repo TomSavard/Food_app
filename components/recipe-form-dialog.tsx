@@ -20,6 +20,23 @@ import { IngredientNameCombobox } from "@/components/ingredient-name-combobox";
 
 const UNITS = ["", "g", "kg", "mg", "ml", "cl", "l", "pcs", "c. à café", "c. à soupe"];
 
+const TAG_OPTIONS = [
+  "Accompagnements",
+  "Apéritifs",
+  "Asiatique",
+  "Boissons",
+  "Dessert",
+  "Entrée",
+  "Français",
+  "Italien",
+  "Petit-déjeuner",
+  "Plat",
+  "Salades",
+  "Sauces",
+  "Soupes",
+  "Végétarien",
+];
+
 interface IngredientRow {
   name: string;
   quantity: number;
@@ -68,8 +85,8 @@ export function RecipeFormDialog({
   onSaved: (r: Recipe) => void;
 }) {
   const [form, setForm] = useState<FormState>(empty);
-  const [tagInput, setTagInput] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [categoriesOpen, setCategoriesOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -103,18 +120,11 @@ export function RecipeFormDialog({
     } else {
       setForm(empty);
     }
-    setTagInput("");
+    setCategoriesOpen(false);
     setError(null);
     setImageFile(null);
     setImagePreview(editing?.image_url || null);
   }, [open, editing]);
-
-  function addTag() {
-    const t = tagInput.trim();
-    if (!t || form.tags.includes(t)) return;
-    setForm({ ...form, tags: [...form.tags, t] });
-    setTagInput("");
-  }
 
   async function submit() {
     if (!form.name.trim()) {
@@ -230,31 +240,37 @@ export function RecipeFormDialog({
             </div>
           </div>
 
-          <div className="grid gap-2">
-            <Label>Tags</Label>
-            <div className="flex flex-wrap gap-1">
-              {form.tags.map((t) => (
-                <Badge key={t} variant="secondary" className="cursor-pointer" onClick={() => setForm({ ...form, tags: form.tags.filter((x) => x !== t) })}>
-                  {t} ×
-                </Badge>
-              ))}
-            </div>
-            <div className="flex gap-2">
-              <Input
-                placeholder="Ajouter un tag (Entrée pour valider)"
-                value={tagInput}
-                onChange={(e) => setTagInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    addTag();
-                  }
-                }}
-              />
-              <Button type="button" variant="outline" onClick={addTag}>
-                Ajouter
-              </Button>
-            </div>
+          <div className="space-y-2">
+            <button
+              type="button"
+              className="text-sm font-medium"
+              onClick={() => setCategoriesOpen(!categoriesOpen)}
+            >
+              Catégories
+              {categoriesOpen ? " ▾" : " ▸"}
+            </button>
+            {categoriesOpen && (
+              <div className="flex flex-wrap gap-1">
+                {TAG_OPTIONS.map((tag) => {
+                  const selected = form.tags.includes(tag);
+                  return (
+                    <Badge
+                      key={tag}
+                      variant={selected ? "default" : "outline"}
+                      className={`cursor-pointer text-xs transition-opacity ${selected ? "opacity-100" : "opacity-60"}`}
+                      onClick={() => {
+                        const newTags = selected
+                          ? form.tags.filter((x) => x !== tag)
+                          : [...form.tags, tag];
+                        setForm({ ...form, tags: newTags });
+                      }}
+                    >
+                      {tag}
+                    </Badge>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           <section className="space-y-2">
