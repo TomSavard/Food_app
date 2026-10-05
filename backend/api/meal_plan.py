@@ -279,7 +279,7 @@ def _rdi_group(num_men: int, num_women: int) -> dict[str, float]:
     female = rdi_for("female")
     return {
         k: float(male.get(k, 0) * num_men + female.get(k, 0) * num_women)
-        for k in DAILY_MACROS
+        for k in rdi_for("male")  # all nutrients, not just macros
     }
 
 

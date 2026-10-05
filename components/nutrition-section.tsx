@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AlertTriangle, ChevronDown, ChevronRight } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import * as api from "@/lib/api";
 import type { UntrackedItem, WeeklyNutrition } from "@/lib/types";
 
@@ -163,16 +164,31 @@ export function NutritionSection({
         <h2 className="text-xl font-semibold">Nutrition</h2>
         <div className="flex items-center gap-2 text-xs">
           <span className="text-muted-foreground">Groupe :</span>
-          <button type="button" onClick={() => updateNumMen(Math.max(0, numMen - 1))} className="h-6 w-6 rounded-full border bg-card text-foreground hover:bg-muted">−</button>
-          <span className="w-4 text-center tabular-nums">{numMen}</span>
+          <Input
+            type="number"
+            min={0}
+            value={numMen}
+            onChange={(e) => updateNumMen(Number(e.target.value))}
+            onClick={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+            className="h-5 w-8 rounded-full px-0 text-center text-[11px]"
+            aria-label="Hommes"
+          />
           <span className="text-muted-foreground">H</span>
           <span className="text-muted-foreground/40 mx-1">+</span>
-          <button type="button" onClick={() => updateNumWomen(Math.max(0, numWomen - 1))} className="h-6 w-6 rounded-full border bg-card text-foreground hover:bg-muted">−</button>
-          <span className="w-4 text-center tabular-nums">{numWomen}</span>
+          <Input
+            type="number"
+            min={0}
+            value={numWomen}
+            onChange={(e) => updateNumWomen(Number(e.target.value))}
+            onClick={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+            className="h-5 w-8 rounded-full px-0 text-center text-[11px]"
+            aria-label="Femmes"
+          />
           <span className="text-muted-foreground">F</span>
-          <span className="text-muted-foreground/40 mx-1">│</span>
-          <button type="button" onClick={() => updateNumMen(numMen + 1)} className="h-6 w-6 rounded-full border bg-card text-foreground hover:bg-muted">+</button>
-          <button type="button" onClick={() => updateNumWomen(numWomen + 1)} className="h-6 w-6 rounded-full border bg-card text-foreground hover:bg-muted">+</button>
         </div>
       </div>
 
