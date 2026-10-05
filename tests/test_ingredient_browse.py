@@ -132,9 +132,9 @@ def test_search_uses_embedding_when_alias_missing(client, db_session, make_ingre
 
     vec = [0.0] * 256
     for row in (r1, r2, r3):
-        db_session.execute(text('''
-            UPDATE ingredient_database SET embedding = :vec WHERE id = :id
-        '''), {'vec': json.dumps(vec), 'id': str(row.id)})
+            db_session.execute(text('''
+                UPDATE ingredient_database SET embedding = :vec WHERE id = :id
+            '''), {'vec': vec, 'id': str(row.id)})
     db_session.flush()
 
     res = client.get("/api/ingredients/search", params={"q": "haricots verts"})

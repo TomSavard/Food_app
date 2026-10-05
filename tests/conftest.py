@@ -35,8 +35,25 @@ def _ensure_embedding_column(session):
 
 
 def _ensure_recipe_images_table(session):
-    """No-op: recipe_images table already exists from schema migration."""
-    pass
+    """Create recipe_images table if missing on the test Neon branch."""
+    has = session.execute(text('''
+        SELECT count(*) FROM information_schema.tables
+        WHERE table_schema = 'public' AND table_name = 'recipe_images'
+    ''')).scalar() > 0
+    if not has:
+        session.execute(text('''
+            CREATE TABLE recipe_images (
+                image_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                recipe_id UUID NOT NULL REFERENCES recipes(recipe_id) ON DELETE CASCADE,
+                object_key TEXT NOT NULL,
+                original_filename TEXT,
+                content_type TEXT,
+                size_bytes BIGINT,
+                sort_order INTEGER NOT NULL DEFAULT 0,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+            )
+        '''))
+        session.commit()
 
 
 def _truncate_tables(session):

@@ -1,7 +1,7 @@
 """Weekly meal plan: each day is an ordered stack of meals."""
 import random
 from datetime import date, datetime, timedelta
-from typing import List
+from typing import List, Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -288,8 +288,14 @@ def get_weekly_nutrition(
     week_start: str = Query(..., description="Monday in YYYY-MM-DD"),
     num_men: int = Query(1, ge=0, description="Number of men in the group"),
     num_women: int = Query(1, ge=0, description="Number of women in the group"),
+    sex: Optional[str] = Query(None, description="Override: 'male' or 'female' (sets num_men=1 or num_women=1)"),
     db: Session = Depends(get_db),
 ):
+    # Allow 'sex' shorthand: overrides num_men/num_women if provided.
+    if sex == "male":
+        num_men, num_women = 1, 0
+    elif sex == "female":
+        num_men, num_women = 0, 1
     """Aggregate nutrition over the week's slots.
 
     For each `MealPlanSlot.recipe.ingredients`:
