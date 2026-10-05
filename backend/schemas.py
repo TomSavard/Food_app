@@ -71,19 +71,31 @@ class RecipeUpdate(BaseModel):
     instructions: Optional[List[InstructionCreate]] = None
 
 
+class RecipeSummary(RecipeBase):
+    recipe_id: UUID
+    # Intentionally NO ingredients or instructions — summary-only view.
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class RecipeResponse(RecipeBase):
     recipe_id: UUID
     created_at: datetime
     updated_at: datetime
     ingredients: List[IngredientResponse] = []
     instructions: List[InstructionResponse] = []
-    
+
     model_config = ConfigDict(from_attributes=True)
 
 
 class RecipeListResponse(BaseModel):
-    recipes: List[RecipeResponse]
+    recipes: List[RecipeSummary]
     total: int
+
+
+class RecipeWithNutritionResponse(RecipeResponse):
+    """Recipe response with pre-computed nutrition embedded."""
+    nutrition: Optional[dict] = None
 
 
 # Shopping List schemas — items hold zero+ contributions describing where

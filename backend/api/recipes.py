@@ -13,9 +13,11 @@ from backend.db.session import get_db
 from backend.db.models import Recipe, Ingredient, Instruction, RecipeImage
 from backend.schemas import (
     RecipeCreate,
+    RecipeSummary,
     RecipeUpdate,
     RecipeResponse,
-    RecipeListResponse
+    RecipeListResponse,
+    RecipeWithNutritionResponse,
 )
 from backend.utils.nutrition import compute_recipe_nutrition
 from backend.storage import get_storage_service, PresignedUrlResponse
@@ -33,7 +35,7 @@ def list_recipes(
     tag: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
-    """List all recipes with optional filtering
+    """List all recipes with optional filtering (full data with ingredients/instructions)
     
     - search: Search in recipe name and description
     - cuisine: Filter by cuisine type
@@ -73,22 +75,72 @@ def list_recipes(
     return RecipeListResponse(recipes=recipes, total=total)
 
 
-@router.get("/{recipe_id}", response_model=RecipeResponse)
+@router.get("/summary", response_model=RecipeListResponse)
+def list_recipes_summary(
+    skip: int = 0,
+    limit: int = 100,
+    search: Optional[str] = None,
+    cuisine: Optional[str] = None,
+    ingredient: Optional[str] = None,
+    tag: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """Lightweight list: recipe metadata only, NO ingredients/instructions.
+    
+    Use this for the list/grid view. Open individual recipes for full detail.
+    """
+    def apply_filters(q):
+        if search:
+            q = q.filter(
+                Recipe.name.ilike(f"%{search}%") |
+                Recipe.description.ilike(f"%{search}%")
+            )
+        if cuisine:
+            q = q.filter(Recipe.cuisine_type.ilike(f"%{cuisine}%"))
+        if ingredient:
+            q = q.join(Ingredient).filter(
+                Ingredient.name.ilike(f"%{ingredient}%")
+            ).distinct()
+        if tag:
+            q = q.filter(
+                func.lower(func.cast(Recipe.tags, String)).contains(tag.lower())
+            )
+        return q
+
+    base_query = apply_filters(db.query(Recipe))
+    total = base_query.count()
+
+    recipes = base_query.order_by(
+        desc(Recipe.is_favorite), desc(Recipe.created_at)
+    ).offset(skip).limit(limit).all()
+
+    return RecipeListResponse(recipes=recipes, total=total)
+
+
+@router.get("/{recipe_id}", response_model=RecipeWithNutritionResponse)
 def get_recipe(recipe_id: UUID, db: Session = Depends(get_db)):
-    """Get a single recipe by ID"""
-    # Eagerly load ingredients and instructions
+    """Get a single recipe by ID (includes pre-computed nutrition)"""
     recipe = db.query(Recipe).options(
         selectinload(Recipe.ingredients),
         selectinload(Recipe.instructions)
     ).filter(Recipe.recipe_id == recipe_id).first()
-    
+
     if not recipe:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Recipe with id {recipe_id} not found"
         )
-    
-    return recipe
+
+    nutrition = compute_recipe_nutrition(recipe.ingredients, db)
+    servings = recipe.servings if recipe.servings > 0 else 1
+    nutrition["per_serving"] = {
+        k: round(v / servings, 1) for k, v in nutrition.items()
+    }
+    nutrition["servings"] = servings
+
+    recipe_dict = RecipeResponse.model_validate(recipe).model_dump()
+    recipe_dict["nutrition"] = nutrition
+    return RecipeWithNutritionResponse(**recipe_dict)
 
 
 @router.get("/{recipe_id}/nutrition")

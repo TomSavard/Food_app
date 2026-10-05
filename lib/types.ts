@@ -38,12 +38,32 @@ export interface Recipe {
   is_favorite: boolean;
   created_at: string;
   updated_at: string;
-  ingredients: Ingredient[];
-  instructions: Instruction[];
+  ingredients?: Ingredient[];
+  instructions?: Instruction[];
 }
 
 export interface RecipeListResponse {
   recipes: Recipe[];
+  total: number;
+}
+
+export interface RecipeSummary {
+  recipe_id: string;
+  name: string;
+  description: string | null;
+  prep_time: number;
+  cook_time: number;
+  servings: number;
+  cuisine_type: string | null;
+  tags: string[];
+  image_url: string | null;
+  is_favorite: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RecipeListSummaryResponse {
+  recipes: RecipeSummary[];
   total: number;
 }
 
