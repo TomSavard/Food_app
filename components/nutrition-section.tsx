@@ -105,8 +105,14 @@ export function NutritionSection({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showUntracked, setShowUntracked] = useState(false);
-  const [numMen, setNumMen] = useState(() => Number(localStorage.getItem("nutrition.numMen")) || 1);
-  const [numWomen, setNumWomen] = useState(() => Number(localStorage.getItem("nutrition.numWomen")) || 1);
+  const [numMen, setNumMen] = useState(() => {
+    if (typeof window === "undefined") return 1;
+    return Number(localStorage.getItem("nutrition.numMen")) || 1;
+  });
+  const [numWomen, setNumWomen] = useState(() => {
+    if (typeof window === "undefined") return 1;
+    return Number(localStorage.getItem("nutrition.numWomen")) || 1;
+  });
 
   function updateNumMen(n: number) {
     setNumMen(n);
