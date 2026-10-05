@@ -105,14 +105,22 @@ export function NutritionSection({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showUntracked, setShowUntracked] = useState(false);
-  const [sex, setSex] = useState<"male" | "female">(() => {
-    if (typeof window === "undefined") return "male";
-    return (localStorage.getItem("nutrition.sex") as "male" | "female") || "male";
+  const [numMen, setNumMen] = useState(() => {
+    if (typeof window === "undefined") return 1;
+    return Number(localStorage.getItem("nutrition.numMen")) || 1;
+  });
+  const [numWomen, setNumWomen] = useState(() => {
+    if (typeof window === "undefined") return 1;
+    return Number(localStorage.getItem("nutrition.numWomen")) || 1;
   });
 
-  function updateSex(s: "male" | "female") {
-    setSex(s);
-    if (typeof window !== "undefined") localStorage.setItem("nutrition.sex", s);
+  function updateNumMen(n: number) {
+    setNumMen(n);
+    if (typeof window !== "undefined") localStorage.setItem("nutrition.numMen", String(n));
+  }
+  function updateNumWomen(n: number) {
+    setNumWomen(n);
+    if (typeof window !== "undefined") localStorage.setItem("nutrition.numWomen", String(n));
   }
 
   useEffect(() => {
@@ -120,14 +128,14 @@ export function NutritionSection({
     setLoading(true);
     setError(null);
     api
-      .getWeeklyNutritionFor(weekStart, sex)
+      .getWeeklyNutrition(weekStart, numMen, numWomen)
       .then((d) => !cancelled && setData(d))
       .catch((e) => !cancelled && setError(e instanceof Error ? e.message : "Erreur"))
       .finally(() => !cancelled && setLoading(false));
     return () => {
       cancelled = true;
     };
-  }, [weekStart, refreshKey, sex]);
+  }, [weekStart, refreshKey, numMen, numWomen]);
 
   if (loading && !data) {
     return (
@@ -151,24 +159,20 @@ export function NutritionSection({
 
   return (
     <section className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-xl font-semibold">Nutrition</h2>
-        <div className="inline-flex overflow-hidden rounded-full border text-xs">
-          {(["male", "female"] as const).map((s) => (
-            <button
-              key={s}
-              type="button"
-              onClick={() => updateSex(s)}
-              className={
-                "px-3 py-1 transition " +
-                (sex === s
-                  ? "bg-foreground text-background"
-                  : "text-muted-foreground hover:text-foreground")
-              }
-            >
-              {s === "male" ? "Homme" : "Femme"}
-            </button>
-          ))}
+        <div className="flex items-center gap-2 text-xs">
+          <span className="text-muted-foreground">Groupe :</span>
+          <button type="button" onClick={() => updateNumMen(Math.max(0, numMen - 1))} className="h-6 w-6 rounded-full border bg-card text-foreground hover:bg-muted">−</button>
+          <span className="w-4 text-center tabular-nums">{numMen}</span>
+          <span className="text-muted-foreground">H</span>
+          <span className="text-muted-foreground/40 mx-1">+</span>
+          <button type="button" onClick={() => updateNumWomen(Math.max(0, numWomen - 1))} className="h-6 w-6 rounded-full border bg-card text-foreground hover:bg-muted">−</button>
+          <span className="w-4 text-center tabular-nums">{numWomen}</span>
+          <span className="text-muted-foreground">F</span>
+          <span className="text-muted-foreground/40 mx-1">│</span>
+          <button type="button" onClick={() => updateNumMen(numMen + 1)} className="h-6 w-6 rounded-full border bg-card text-foreground hover:bg-muted">+</button>
+          <button type="button" onClick={() => updateNumWomen(numWomen + 1)} className="h-6 w-6 rounded-full border bg-card text-foreground hover:bg-muted">+</button>
         </div>
       </div>
 
