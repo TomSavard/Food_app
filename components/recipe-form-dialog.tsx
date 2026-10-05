@@ -55,7 +55,6 @@ interface FormState {
   prep_time: number;
   cook_time: number;
   servings: number;
-  cuisine_type: string;
   tags: string[];
   ingredients: IngredientRow[];
   instructions: InstructionRow[];
@@ -67,7 +66,6 @@ const empty: FormState = {
   prep_time: 0,
   cook_time: 0,
   servings: 1,
-  cuisine_type: "",
   tags: [],
   ingredients: [{ name: "", quantity: 0, unit: "", notes: "" }],
   instructions: [{ instruction_text: "" }],
@@ -100,7 +98,6 @@ export function RecipeFormDialog({
         prep_time: editing.prep_time,
         cook_time: editing.cook_time,
         servings: editing.servings,
-        cuisine_type: editing.cuisine_type || "",
         tags: [...(editing.tags || [])],
         ingredients:
           (editing.ingredients?.length ?? 0) > 0
@@ -140,7 +137,6 @@ export function RecipeFormDialog({
         prep_time: form.prep_time,
         cook_time: form.cook_time,
         servings: form.servings,
-        cuisine_type: form.cuisine_type || undefined,
         tags: form.tags,
         ingredients: form.ingredients
           .filter((i) => i.name.trim())
@@ -229,13 +225,6 @@ export function RecipeFormDialog({
                 min={1}
                 value={form.servings}
                 onChange={(e) => setForm({ ...form, servings: Number(e.target.value) })}
-              />
-            </div>
-            <div className="grid gap-1">
-              <Label>Cuisine</Label>
-              <Input
-                value={form.cuisine_type}
-                onChange={(e) => setForm({ ...form, cuisine_type: e.target.value })}
               />
             </div>
           </div>
