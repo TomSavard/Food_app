@@ -273,10 +273,21 @@ def _zero_macros() -> dict[str, float]:
     return {k: 0.0 for k in DAILY_MACROS}
 
 
+def _rdi_group(num_men: int, num_women: int) -> dict[str, float]:
+    """Daily intake target summed for num_men adults + num_women adults."""
+    male = rdi_for("male")
+    female = rdi_for("female")
+    return {
+        k: float(male.get(k, 0) * num_men + female.get(k, 0) * num_women)
+        for k in rdi_for("male")  # all nutrients, not just macros
+    }
+
+
 @router.get("/nutrition", response_model=WeeklyNutritionResponse)
 def get_weekly_nutrition(
     week_start: str = Query(..., description="Monday in YYYY-MM-DD"),
-    sex: str = Query("male", pattern="^(male|female)$"),
+    num_men: int = Query(1, ge=0, description="Number of men in the group"),
+    num_women: int = Query(1, ge=0, description="Number of women in the group"),
     db: Session = Depends(get_db),
 ):
     """Aggregate nutrition over the week's slots.
@@ -368,6 +379,6 @@ def get_weekly_nutrition(
         week_start=monday.isoformat(),
         days=days,
         week=week,
-        rdi=rdi_for(sex),  # type: ignore[arg-type]
+        rdi=_rdi_group(num_men, num_women),  # type: ignore[arg-type]
         untracked=untracked,
     )
